@@ -13,7 +13,6 @@ import {
   PaymentsService,
   planAccountType,
   unusedPartCents,
-  withdrawalRetryDelayMs,
 } from './payments.service.js';
 
 // Whoever pays here is an adult with a verified identity, unless a test says
@@ -1129,7 +1128,7 @@ describe('PaymentsService', () => {
 
   describe('withdrawPlan', () => {
     const DAY = 24 * 60 * 60 * 1000;
-    const MINUTE = 60 * 1000;
+    const _MINUTE = 60 * 1000;
     // Bought on 1 November; a 30-day period; today is 11 November: 10 days
     // used, 20 left.
     const boughtAt = new Date('2026-11-01T00:00:00.000Z');
@@ -1154,11 +1153,6 @@ describe('PaymentsService', () => {
       withdrawalRefundCents: null,
       withdrawalRefundId: null,
       withdrawalFinishedAt: null,
-      withdrawalInvoiceId: null,
-      withdrawalPaymentIntentId: null,
-      withdrawalRefundKey: null,
-      withdrawalAttempts: 0,
-      withdrawalNextAttemptAt: null,
       plan: {
         id: 'plan_pro',
         name: 'Pro',
@@ -1169,18 +1163,6 @@ describe('PaymentsService', () => {
       profile: { username: 'ana' },
       ...over,
     });
-    // A row marked withdrawn earlier, owing 666 cents from pi_1.
-    const marked = (over: Row = {}) =>
-      plan({
-        status: SubscriptionStatus.CANCELLED,
-        withdrawnAt: today,
-        withdrawalRefundCents: 666,
-        withdrawalInvoiceId: 'in_1',
-        withdrawalPaymentIntentId: 'pi_1',
-        withdrawalRefundKey: 'plan-withdrawal-stripe_sub_1',
-        withdrawalNextAttemptAt: today,
-        ...over,
-      });
     const invoice = (over: Row = {}) => ({
       id: 'in_1',
       totalCents: 999,
@@ -1234,27 +1216,6 @@ describe('PaymentsService', () => {
       errorCode: 'PAYMENT_PROVIDER_UNAVAILABLE',
       status: 503,
     };
-    // The reconcile job's round, with this row due.
-    const reconcile = async () => {
-      // As the query asks: marked, not finished, with a next attempt (a row
-      // with none, made in one request, is never taken). When it is due is
-      // the query's, checked on its own below.
-      prisma.platformSubscription.findMany = vi.fn(async () =>
-        row.withdrawnAt &&
-        !row.withdrawalFinishedAt &&
-        row.withdrawalNextAttemptAt
-          ? [
-              {
-                id: row.id,
-                withdrawalAttempts: row.withdrawalAttempts,
-                withdrawnAt: row.withdrawnAt,
-              },
-            ]
-          : [],
-      ) as any;
-      return service.finishPendingWithdrawals();
-    };
-
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(today);
@@ -1347,8 +1308,6 @@ describe('PaymentsService', () => {
           status: SubscriptionStatus.CANCELLED,
         },
       });
-      // Nothing is left for the reconcile job: no next attempt is set.
-      expect(row.withdrawalNextAttemptAt).toBeNull();
       expect(usersService.syncUserTier).toHaveBeenCalledWith('u_1');
       expect(markOrder()).toBeLessThan(order(usersService.syncUserTier));
       expect(emailService.sendPlanWithdrawnEmail).toHaveBeenCalledWith(
@@ -1788,113 +1747,6 @@ describe('PaymentsService', () => {
       );
     });
 
-    describe('a withdrawal marked before withdrawals were made in one request', () => {
-      it('is finished by the reconcile job: ended, refunded from the stored payment and amount, and the payer told once', async () => {
-        row = marked();
-
-        await expect(reconcile()).resolves.toBe(1);
-
-        expect(stripeService.refundSubscriptionPayment).toHaveBeenCalledWith(
-          expect.objectContaining({
-            paymentIntentId: 'pi_1',
-            amountInCents: 666,
-            idempotencyKey: 'plan-withdrawal-stripe_sub_1',
-          }),
-        );
-        expect(row.withdrawalFinishedAt).not.toBeNull();
-        expect(emailService.sendPlanWithdrawnEmail).toHaveBeenCalledTimes(1);
-      });
-
-      it('with no payment stored stays unfinished, with no email', async () => {
-        row = marked({ withdrawalPaymentIntentId: null });
-
-        await expect(reconcile()).resolves.toBe(0);
-
-        expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
-        expect(row.withdrawalFinishedAt).toBeNull();
-        expect(row.withdrawalAttempts).toBe(1);
-        expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
-      });
-
-      it('takes a new key after the provider answered the refund with an error', async () => {
-        row = marked();
-        stripeService.refundSubscriptionPayment.mockRejectedValueOnce(
-          Object.assign(new Error('internal'), {
-            type: 'StripeAPIError',
-            statusCode: 500,
-          }),
-        );
-
-        await reconcile();
-
-        expect(row.withdrawalRefundKey).toMatch(
-          /^plan-withdrawal-stripe_sub_1-/,
-        );
-        expect(row.withdrawalFinishedAt).toBeNull();
-      });
-
-      it('waits on a pending refund, and reports it still pending two days on', async () => {
-        row = marked();
-        stripeService.refundSubscriptionPayment.mockResolvedValue(
-          refunded({ status: 'pending' }),
-        );
-
-        await reconcile();
-        expect(row.withdrawalFinishedAt).toBeNull();
-        expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
-        expect(sentry.captureMessage).not.toHaveBeenCalled();
-
-        vi.setSystemTime(new Date(today.getTime() + 2 * DAY + 1));
-        await reconcile();
-        expect(sentry.captureMessage).toHaveBeenCalledWith(
-          'Withdrawal of subscription sub_1 is still waiting for its refund',
-          {
-            level: 'warning',
-            tags: { area: 'plan-withdrawal' },
-            extra: { platformSubscriptionId: 'sub_1', attempts: 2 },
-          },
-        );
-
-        stripeService.refundSubscriptionPayment.mockResolvedValue(refunded());
-        await expect(reconcile()).resolves.toBe(1);
-        expect(emailService.sendPlanWithdrawnEmail).toHaveBeenCalledTimes(1);
-      });
-
-      it('keeps what the payment could not give back as owed by staff, once', async () => {
-        row = marked();
-        stripeService.refundSubscriptionPayment = vi
-          .fn()
-          .mockResolvedValue(refunded({ amount: 600 }));
-
-        await reconcile();
-
-        expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
-          where: { id: 'sub_1', withdrawalRefundCents: 666 },
-          data: {
-            withdrawalRefundId: 're_1',
-            withdrawalRefundCents: 600,
-            withdrawalOwedByStaffCents: { increment: 66 },
-          },
-        });
-      });
-
-      it('is reported at its fifth attempt, even within two days', async () => {
-        row = marked({ withdrawalAttempts: 4 });
-        stripeService.refundSubscriptionPayment.mockResolvedValue(
-          refunded({ status: 'requires_action' }),
-        );
-
-        await reconcile();
-
-        expect(sentry.captureMessage).toHaveBeenCalledWith(
-          expect.stringContaining('still waiting'),
-          expect.objectContaining({
-            extra: { platformSubscriptionId: 'sub_1', attempts: 5 },
-          }),
-        );
-      });
-    });
-
     describe('after a move to the yearly price', () => {
       const movedAt = new Date('2026-11-10T00:00:00.000Z');
       const yearEnd = new Date('2027-11-10T00:00:00.000Z');
@@ -2069,110 +1921,6 @@ describe('PaymentsService', () => {
         service.withdrawPlan('u_1', 'prof_1'),
       ).resolves.toBeDefined();
       expect(stripeService.refundSubscriptionPayment).toHaveBeenCalled();
-    });
-
-    it('a failed email does not fail an earlier withdrawal finished by the reconcile job', async () => {
-      row = marked();
-      emailService.sendPlanWithdrawnEmail.mockRejectedValueOnce(
-        new Error('mail down'),
-      );
-
-      await expect(reconcile()).resolves.toBe(1);
-      expect(row.withdrawalFinishedAt).not.toBeNull();
-    });
-
-    it('the reconcile job takes only withdrawals whose next attempt is due, the longest waiting first', async () => {
-      prisma.platformSubscription.findMany = vi.fn().mockResolvedValue([]);
-
-      await service.finishPendingWithdrawals(10);
-
-      expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith({
-        where: {
-          withdrawnAt: { not: null },
-          withdrawalFinishedAt: null,
-          withdrawalNextAttemptAt: { lte: today },
-        },
-        select: { id: true, withdrawalAttempts: true, withdrawnAt: true },
-        take: 10,
-        orderBy: { withdrawalNextAttemptAt: 'asc' },
-      });
-    });
-
-    it('waits 5 minutes after a failed attempt, twice as long each time, at most 6 hours', () => {
-      expect(withdrawalRetryDelayMs(1)).toBe(5 * MINUTE);
-      expect(withdrawalRetryDelayMs(2)).toBe(10 * MINUTE);
-      expect(withdrawalRetryDelayMs(5)).toBe(80 * MINUTE);
-      expect(withdrawalRetryDelayMs(30)).toBe(6 * 60 * MINUTE);
-    });
-
-    it('reports a withdrawal that keeps failing to the error tracker from its fifth failed attempt', async () => {
-      row = marked();
-      const failure = new Error('card network down');
-      stripeService.refundSubscriptionPayment.mockRejectedValue(failure);
-
-      for (let attempt = 1; attempt <= 4; attempt++) await reconcile();
-      expect(sentry.captureException).not.toHaveBeenCalled();
-      expect(row.withdrawalAttempts).toBe(4);
-
-      await reconcile();
-      expect(sentry.captureException).toHaveBeenCalledWith(failure, {
-        tags: { area: 'plan-withdrawal' },
-        extra: { platformSubscriptionId: 'sub_1', attempts: 5 },
-      });
-      expect(row.withdrawalNextAttemptAt).toEqual(
-        new Date(today.getTime() + 80 * MINUTE),
-      );
-    });
-
-    it('a withdrawal finished by another attempt between its steps tells the payer once', async () => {
-      row = marked();
-      // The other attempt finishes it while this one refunds.
-      stripeService.refundSubscriptionPayment.mockImplementation(async () => {
-        row.withdrawalFinishedAt = today;
-        return refunded();
-      });
-
-      await expect(reconcile()).resolves.toBe(1);
-
-      expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
-    });
-
-    it('a failure to put off the next attempt of an earlier withdrawal is logged, and the round goes on', async () => {
-      row = marked();
-      stripeService.endSubscriptionNow.mockRejectedValue(new Error('down'));
-      const write = prisma.platformSubscription.updateMany;
-      prisma.platformSubscription.updateMany = vi.fn(async (args: any) => {
-        if (args.data?.withdrawalAttempts !== undefined) throw new Error('db');
-        return (write as any)(args);
-      }) as any;
-
-      await expect(reconcile()).resolves.toBe(0);
-      expect(row.withdrawalAttempts).toBe(0);
-    });
-
-    it('a pending withdrawal finished meanwhile by its request is left as it is', async () => {
-      row = marked({ withdrawalFinishedAt: today });
-      prisma.platformSubscription.findMany = vi
-        .fn()
-        .mockResolvedValue([
-          { id: 'sub_1', withdrawalAttempts: 0, withdrawnAt: today },
-        ]);
-
-      await expect(service.finishPendingWithdrawals()).resolves.toBe(1);
-
-      expect(stripeService.endSubscriptionNow).not.toHaveBeenCalled();
-      expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
-    });
-
-    it('the reconcile round finishes pending withdrawals, and a failure there does not stop the notices', async () => {
-      prisma.platformSubscription.findMany = vi
-        .fn()
-        .mockRejectedValue(new Error('db'));
-      prisma.webhookEvent.findMany = vi.fn().mockResolvedValue([]);
-
-      await expect(service.reconcileStuckWebhookEvents()).resolves.toBe(0);
-      expect(prisma.platformSubscription.findMany).toHaveBeenCalled();
-      expect(prisma.webhookEvent.findMany).toHaveBeenCalled();
     });
   });
 

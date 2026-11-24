@@ -602,23 +602,23 @@ model Post {
   /// The template others may use, offered from this Frame.
   studioTemplate   StudioTemplate? @relation("TemplateOfPost")
 
-  moderationStatus        ModerationStatus @default(VISIBLE)
-  moderationNote          String?          @db.Text
+  moderationStatus   ModerationStatus @default(VISIBLE)
+  moderationNote     String?          @db.Text
   // When it was last hidden or removed by moderation: the six months to
   // appeal it count from then.
-  moderatedAt             DateTime?
+  moderatedAt        DateTime?
   // When automatic moderation checked it and found nothing: only then may it
   // be promoted. Null until checked, or while the check cannot run.
-  moderationPassedAt      DateTime?
+  moderationPassedAt DateTime?
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt               DateTime?
+  deletedAt          DateTime?
   // When its author archived it: shown in their archive only, with its likes
   // and comments, until they show it on their profile again.
-  archivedAt              DateTime?
+  archivedAt         DateTime?
   // When its author pinned it to the top of their profile; null when not
   // pinned. A Profile pins at most PROFILE_PINS_MAX.
-  pinnedToProfileAt       DateTime?
+  pinnedToProfileAt  DateTime?
 
   // Scheduling & Interactive Features
   scheduledAt     DateTime?
@@ -831,17 +831,17 @@ model Story {
   placeId  String?
   place    Place?  @relation(fields: [placeId], references: [id], onDelete: SetNull)
 
-  moderationStatus        ModerationStatus @default(VISIBLE)
-  moderationNote          String?
+  moderationStatus   ModerationStatus @default(VISIBLE)
+  moderationNote     String?
   // When it was last hidden or removed by moderation. Removed content is
   // kept for the six months its author has to appeal, then erased.
-  moderatedAt             DateTime?
+  moderatedAt        DateTime?
   // When automatic moderation checked it and found nothing: only then may it
   // be promoted. Null until checked, or while the check cannot run.
-  moderationPassedAt      DateTime?
+  moderationPassedAt DateTime?
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt               DateTime?
+  deletedAt          DateTime?
 
   // Relation to highlights
 
@@ -1774,28 +1774,18 @@ model PlatformSubscription {
   // An add-on (Edits Studio Pro) is held beside the Profile's plan: a
   // Profile has at most one active plan and one active add-on.
   addOn                      Boolean            @default(false)
-  // A withdrawal within 14 days of the purchase (PD-023): when the payer
-  // withdrew (the row is CANCELLED from then on), the refund owed for the
-  // unused part, in cents, worked out once, the provider's refund, and when
-  // every step (end, open invoices voided, refund) was done. A withdrawal
-  // marked and not finished is finished by the reconcile job.
+  // A withdrawal within 14 days of the purchase (PD-023), made in one
+  // request once the provider has settled it: when the payer withdrew (the
+  // row is CANCELLED from then on), what was refunded to the card, in cents,
+  // the provider's refund, and when it was settled.
   withdrawnAt                DateTime?
   withdrawalRefundCents      Int?
-  // The part paid from the customer's balance or a credit, which staff
-  // return by hand (owner decision, 2026-11-22), in cents.
+  // What the card could not take (paid from the customer's balance or a
+  // credit, or more than was left of the payment), which staff return by
+  // hand (owner decision, 2026-11-22), in cents.
   withdrawalOwedByStaffCents Int?
   withdrawalRefundId         String?
   withdrawalFinishedAt       DateTime?
-  // The paid invoice and the payment the refund was worked out from: every
-  // attempt refunds that payment.
-  withdrawalInvoiceId        String?
-  withdrawalPaymentIntentId  String?
-  // The idempotency key of the refund; a new one after the provider answered
-  // an error, the same one after an outcome that is not known.
-  withdrawalRefundKey        String?
-  // Attempts to finish it, and when the reconcile job tries next.
-  withdrawalAttempts         Int                @default(0)
-  withdrawalNextAttemptAt    DateTime?
   // When the subscription started at the provider (the purchase): the 14
   // days to withdraw count from it.
   providerStartedAt          DateTime?
@@ -1810,6 +1800,22 @@ model PlatformSubscription {
   @@index([profileId])
   @@index([status])
   @@map("platform_subscriptions")
+}
+
+// The bookkeeping of the withdrawals made before withdrawals were made in
+// one request, which a reconcile job used to finish them: kept when its
+// columns left platform_subscriptions (owner decision, 2026-11-24). Never
+// written again.
+model PlatformSubscriptionWithdrawalArchive {
+  platformSubscriptionId    String    @id
+  withdrawalInvoiceId       String?
+  withdrawalPaymentIntentId String?
+  withdrawalRefundKey       String?
+  withdrawalAttempts        Int
+  withdrawalNextAttemptAt   DateTime?
+  archivedAt                DateTime  @default(now())
+
+  @@map("platform_subscription_withdrawal_archive")
 }
 
 // The recurring monthly income as it stood on one day, kept so that it can be
