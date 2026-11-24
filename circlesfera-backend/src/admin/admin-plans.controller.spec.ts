@@ -91,21 +91,21 @@ describe('AdminPlansController', () => {
     await request(app.getHttpServer())
       .patch('/api/v1/admin/plans/plan-1')
       .set(ADMIN_BEARER)
-      .send({ features: ['verified_badge'], isActive: true })
+      .send({ isActive: false })
       .expect(200);
 
     expect(mockService.updatePlan).toHaveBeenCalledWith(
       TEST_ADMIN.adminId,
       'plan-1',
-      { features: ['verified_badge'], isActive: true },
+      { isActive: false },
     );
   });
 
-  it('rejects a feature that the code does not know', async () => {
+  it("rejects a change of what a plan includes: that is the catalog's", async () => {
     await request(app.getHttpServer())
       .patch('/api/v1/admin/plans/plan-1')
       .set(ADMIN_BEARER)
-      .send({ features: ['search_priority'] })
+      .send({ isActive: true, features: ['verified_badge'] })
       .expect(400);
 
     expect(mockService.updatePlan).not.toHaveBeenCalled();

@@ -57,39 +57,39 @@ describe('PlansTab', () => {
     expect(plan.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('offers only the features the code knows, ticked as the plan has them', async () => {
+  it('shows what the plan includes, with no way to change it here', async () => {
     const plan = await open();
 
-    const boxes = plan.getAllByRole('checkbox');
-    // The switch for "on sale" plus one box per feature.
-    expect(boxes).toHaveLength(1 + featureKeys.length);
-    expect(plan.getByLabelText('Verification badge')).toBeChecked();
-    expect(plan.getByLabelText('Advanced analytics')).not.toBeChecked();
+    expect(plan.getByText('Verification badge')).toBeInTheDocument();
+    expect(plan.queryByText('Advanced analytics')).not.toBeInTheDocument();
+    // Only the switch for "on sale".
+    expect(plan.getAllByRole('checkbox')).toHaveLength(1);
   });
 
   it('keeps Save disabled until something changes', async () => {
     const plan = await open();
     const save = plan.getByRole('button', { name: 'Save changes' });
+    const onSale = plan.getByRole('checkbox', { name: /On sale/ });
 
     expect(save).toBeDisabled();
-    fireEvent.click(plan.getByLabelText('Advanced analytics'));
+    fireEvent.click(onSale);
     expect(save).toBeEnabled();
-    fireEvent.click(plan.getByLabelText('Advanced analytics'));
+    fireEvent.click(onSale);
     expect(save).toBeDisabled();
   });
 
-  it('sends only what changed', async () => {
+  it('sends whether the plan is on sale', async () => {
     vi.mocked(adminApi.updatePlan).mockResolvedValue({
       data: premium,
     } as never);
     const plan = await open();
 
-    fireEvent.click(plan.getByLabelText('Advanced analytics'));
+    fireEvent.click(plan.getByRole('checkbox', { name: /On sale/ }));
     fireEvent.click(plan.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(adminApi.updatePlan).toHaveBeenCalledWith('plan-1', {
-        features: ['verified_badge', 'advanced_analytics'],
+        isActive: false,
       }),
     );
     await waitFor(() =>

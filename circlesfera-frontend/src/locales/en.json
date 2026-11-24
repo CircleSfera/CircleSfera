@@ -3431,7 +3431,7 @@
     },
     "plans": {
       "title": "Plans",
-      "subtitle": "What each plan includes and whether it is on sale. Changes apply to every subscriber of the plan.",
+      "subtitle": "What each plan includes, set in the code, and whether it is on sale, changed here. Whoever has it keeps it.",
       "price_month": "{{price}} a month",
       "price_year": "{{price}} a year",
       "price_note": "Stripe charges the price; it cannot be changed here.",
@@ -6312,6 +6312,7 @@
       "EDIT_PROJECT_NOT_FOUND": "We couldn't find that project.",
       "EDIT_CLIP_NOT_FOUND": "We couldn't find that clip.",
       "AI_SERVICE_UNAVAILABLE": "This feature is temporarily unavailable. Try again later.",
+      "PAYMENT_PROVIDER_UNAVAILABLE": "The payment provider could not complete this right now. Nothing was changed: try again in a moment.",
       "FEATURE_DISABLED": "This feature is turned off right now.",
       "INTERACTIVE_NOT_FOUND": "This poll or question is no longer available.",
       "MISSING_POST_OR_STORY_ID": "Choose a post or story first.",

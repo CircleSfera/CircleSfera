@@ -303,14 +303,15 @@ export function planUpdate(
     interval: 'month',
     stripeProductId: productId,
     stripePriceId: priceId,
-    isActive: true,
     yearlyStripePriceId: yearlyPrice?.id ?? null,
     yearlyPriceCents: yearlyPrice?.cents ?? null,
     badge: plan.badge,
     forAccountType: plan.forAccountType ?? null,
     addOn: plan.addOn ?? false,
   };
-  if (!row) return target;
+  // A new plan goes on sale; whether one is on sale after that is staff's
+  // (the admin panel), so the sync never puts back one taken off.
+  if (!row) return { ...target, isActive: true };
   const changed = Object.fromEntries(
     Object.entries(target).filter(([key, value]) => {
       const current = (row as Record<string, unknown>)[key];

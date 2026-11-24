@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
 import { PLAN_FEATURE_KEYS } from '../common/constants/plan-features.constants.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -37,21 +32,7 @@ export class AdminPlansService {
   }
 
   async updatePlan(adminId: string, id: string, dto: UpdatePlanDto) {
-    const data = {
-      ...(dto.features !== undefined && {
-        // Stored in the order of the catalogue, whatever order was sent.
-        features: PLAN_FEATURE_KEYS.filter((key) =>
-          dto.features?.includes(key),
-        ),
-      }),
-      ...(dto.description !== undefined && {
-        description: dto.description.trim() || null,
-      }),
-      ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-    };
-    if (Object.keys(data).length === 0) {
-      throw new BadRequestException('Nothing to change');
-    }
+    const data = { isActive: dto.isActive };
 
     const before = await this.prisma.platformPlan.findUnique({
       where: { id },
@@ -72,11 +53,7 @@ export class AdminPlansService {
           targetType: 'PLATFORM_PLAN',
           targetId: id,
           details: JSON.stringify({
-            before: {
-              features: before.features,
-              description: before.description,
-              isActive: before.isActive,
-            },
+            before: { isActive: before.isActive },
             after: data,
           }),
         },

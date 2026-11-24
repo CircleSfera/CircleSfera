@@ -483,11 +483,9 @@ export interface AdminPlanCatalogue {
   featureKeys: string[];
 }
 
-// What the Backoffice changes in a plan. Its words are the app's: the pricing
-// page writes them from its catalog.
-export type AdminPlanChanges = Partial<
-  Pick<AdminPlan, 'features' | 'isActive'>
->;
+// What the Backoffice changes in a plan: whether it is on sale. What it
+// includes and its price are the plan catalog's, in the code.
+export type AdminPlanChanges = Pick<AdminPlan, 'isActive'>;
 
 export interface AdminSupportAccount {
   userId: string;
