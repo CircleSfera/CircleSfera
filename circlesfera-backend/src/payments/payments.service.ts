@@ -2303,18 +2303,20 @@ export class PaymentsService {
         const named = invoice.parent?.subscription_details?.subscription;
         const subscriptionId = typeof named === 'string' ? named : named?.id;
         if (subscriptionId) {
-          // A withdrawn plan has ended: a failed collection does not bring
-          // it back as overdue.
-          await this.prisma.platformSubscription.updateMany({
-            where: { stripeSubscriptionId: subscriptionId, withdrawnAt: null },
-            data: { status: SubscriptionStatus.PAST_DUE },
-          });
-          const platformSub = await this.prisma.platformSubscription.findFirst({
-            where: { stripeSubscriptionId: subscriptionId },
-            select: { userId: true },
-          });
-          if (platformSub?.userId) {
-            await this.usersService.syncUserTier(platformSub.userId);
+          // The subscription is read from the provider, not assumed overdue:
+          // a declined move to the yearly price leaves the plan active at
+          // its monthly price, and its benefits stay. A withdrawn plan stays
+          // ended (applyStripeSubscription keeps it so). One the provider
+          // does not hold comes back without a status: nothing to apply.
+          const current = await this.currentSubscription({
+            id: subscriptionId,
+          } as StripeSubscriptionState);
+          if (current.status) {
+            await this.applyStripeSubscription(current);
+          } else {
+            this.logger.warn(
+              `Failed invoice of subscription ${subscriptionId}, which the provider does not hold`,
+            );
           }
         }
         break;

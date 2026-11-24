@@ -4284,8 +4284,8 @@ describe('PaymentsService', () => {
       );
     });
 
-    it('8bf. updates subscription to PAST_DUE on invoice.payment_failed', async () => {
-      const event = {
+    describe('invoice.payment_failed', () => {
+      const failed = asEvent({
         id: 'evt_inv_fail',
         type: 'invoice.payment_failed',
         data: {
@@ -4294,20 +4294,94 @@ describe('PaymentsService', () => {
             parent: { subscription_details: { subscription: 'sub_fail' } },
           },
         },
-      };
+      });
+      const atProvider = (status: string) => ({
+        id: 'sub_fail',
+        status,
+        cancel_at_period_end: false,
+        items: {
+          data: [{ current_period_start: 1000, current_period_end: 2000 }],
+        },
+      });
+      beforeEach(() => {
+        prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue({
+          userId: 'u_fail',
+        });
+      });
+      const statusWritten = () =>
+        vi
+          .mocked(prisma.platformSubscription.updateMany)
+          .mock.calls.map(
+            ([args]) => (args as { data: { status?: string } }).data.status,
+          )
+          .filter(Boolean);
 
-      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue({
-        userId: 'u_fail',
+      it('takes the overdue state the provider holds after a failed renewal', async () => {
+        stripeService.getSubscription.mockResolvedValue(atProvider('past_due'));
+
+        await service.processWebhookEvent(failed);
+
+        expect(stripeService.getSubscription).toHaveBeenCalledWith('sub_fail');
+        expect(statusWritten()).toContain(SubscriptionStatus.PAST_DUE);
+        expect(usersService.syncUserTier).toHaveBeenCalledWith('u_fail');
       });
 
-      await service.processWebhookEvent(asEvent(event));
+      it('keeps a plan active, with its benefits, when only the charge of a move to the yearly price was declined', async () => {
+        // pending_if_incomplete: the provider keeps the plan active at its
+        // monthly price.
+        stripeService.getSubscription.mockResolvedValue(atProvider('active'));
 
-      // A withdrawn plan is never brought back as overdue.
-      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
-        where: { stripeSubscriptionId: 'sub_fail', withdrawnAt: null },
-        data: { status: SubscriptionStatus.PAST_DUE },
+        await service.processWebhookEvent(failed);
+
+        expect(statusWritten()).toEqual(
+          expect.arrayContaining([SubscriptionStatus.ACTIVE]),
+        );
+        expect(statusWritten()).not.toContain(SubscriptionStatus.PAST_DUE);
+        expect(usersService.syncUserTier).toHaveBeenCalledWith('u_fail');
       });
-      expect(usersService.syncUserTier).toHaveBeenCalledWith('u_fail');
+
+      it('leaves a withdrawn plan ended', async () => {
+        stripeService.getSubscription.mockResolvedValue(atProvider('past_due'));
+
+        await service.processWebhookEvent(failed);
+
+        expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
+          where: {
+            stripeSubscriptionId: 'sub_fail',
+            withdrawnAt: { not: null },
+            status: { not: SubscriptionStatus.CANCELLED },
+          },
+          data: { status: SubscriptionStatus.CANCELLED },
+        });
+      });
+    });
+
+    it('applies nothing for a failed invoice of a subscription the provider does not hold', async () => {
+      stripeService.getSubscription.mockRejectedValue(
+        Object.assign(new Error('No such subscription'), {
+          type: 'StripeInvalidRequestError',
+        }),
+      );
+
+      await expect(
+        service.processWebhookEvent(
+          asEvent({
+            id: 'evt_inv_gone',
+            type: 'invoice.payment_failed',
+            data: {
+              object: {
+                id: 'in_gone',
+                parent: { subscription_details: { subscription: 'sub_gone' } },
+              },
+            },
+          }),
+        ),
+      ).resolves.toBeUndefined();
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ stripeSubscriptionId: 'sub_gone' }),
+        }),
+      );
     });
 
     it('9. should handle unknown event gracefully', async () => {
