@@ -21,6 +21,7 @@ describe('PaymentEventsService', () => {
           useValue: {
             transaction: {
               create: vi.fn(),
+              upsert: vi.fn(),
               findUnique: vi.fn(),
               update: vi.fn(),
               updateMany: vi.fn(),
@@ -74,8 +75,11 @@ describe('PaymentEventsService', () => {
         where: { id: 'promo_test_id' },
         data: { status: 'ACTIVE', chargedAt: expect.any(Date) },
       });
-      expect(prisma.transaction.create).toHaveBeenCalledWith({
-        data: {
+      // Recorded once: a notice sent again finds it and changes nothing.
+      expect(prisma.transaction.upsert).toHaveBeenCalledWith({
+        where: { stripePaymentIntentId: 'pi_promo_1' },
+        update: {},
+        create: {
           type: 'PROMOTION_PAYMENT',
           amount: 5000,
           currency: 'EUR',
@@ -103,8 +107,10 @@ describe('PaymentEventsService', () => {
 
       await service.handleCheckoutSessionCompleted(session);
 
-      expect(prisma.transaction.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
+      expect(prisma.transaction.upsert).toHaveBeenCalledWith({
+        where: { stripePaymentIntentId: 'pi_obj' },
+        update: {},
+        create: expect.objectContaining({
           amount: 0,
           currency: 'EUR',
           senderId: null,
@@ -116,15 +122,17 @@ describe('PaymentEventsService', () => {
         expect.objectContaining({ amount: 0, currency: 'eur' }),
       );
 
-      prisma.transaction.create.mockClear();
+      prisma.transaction.upsert.mockClear();
       await service.handleCheckoutSessionCompleted({
         id: 'cs_promo_3',
         payment_intent: null,
         metadata: { type: 'PROMOTION', promotionId: 'promo_3' },
       } as any);
-      expect(prisma.transaction.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({ stripePaymentIntentId: 'cs_promo_3' }),
-      });
+      expect(prisma.transaction.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { stripePaymentIntentId: 'cs_promo_3' },
+        }),
+      );
     });
 
     it('throws BadRequest when PROMOTION metadata lacks promotionId', async () => {
@@ -147,7 +155,7 @@ describe('PaymentEventsService', () => {
         metadata: { type: 'PROMOTION', promotionId: 'promo_q' },
       } as any);
 
-      expect(prisma.transaction.create).toHaveBeenCalled();
+      expect(prisma.transaction.upsert).toHaveBeenCalled();
       expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
@@ -232,7 +240,7 @@ describe('PaymentEventsService', () => {
         await expect(
           service.handleCheckoutSessionCompleted(session),
         ).resolves.toBeUndefined();
-        expect(prisma.transaction.create).toHaveBeenCalled();
+        expect(prisma.transaction.upsert).toHaveBeenCalled();
       });
 
       it('changes nothing for a payment no dispute was reported about', async () => {
@@ -252,7 +260,7 @@ describe('PaymentEventsService', () => {
       await expect(
         service.handleCheckoutSessionCompleted(session),
       ).resolves.toBeUndefined();
-      expect(prisma.transaction.create).not.toHaveBeenCalled();
+      expect(prisma.transaction.upsert).not.toHaveBeenCalled();
       // A checkout that names no payment looks for no earlier dispute.
       expect(prisma.paymentDispute.findMany).not.toHaveBeenCalled();
     });

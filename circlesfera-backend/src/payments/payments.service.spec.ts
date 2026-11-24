@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -462,9 +463,14 @@ describe('PaymentsService', () => {
         yearlyStripePriceId: null,
       });
 
+      // Refused as the caller's to change, never a server error.
       await expect(
         service.createCheckout('u_1', 'plan_1', 'YEARLY', 'prof_1'),
-      ).rejects.toThrow('Billing cycle YEARLY is not available for this plan');
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.PRICE_NOT_FOUND,
+        status: 400,
+        message: 'Billing cycle YEARLY is not available for this plan',
+      });
     });
 
     it('makes no customer in Stripe while payments are paused', async () => {

@@ -1000,12 +1000,14 @@ export class UsersService {
     let underMinimumAge = false;
 
     if (dob?.year && dob?.month && dob?.day) {
-      dateOfBirth = new Date(dob.year, dob.month - 1, dob.day);
+      // A calendar date, at midnight UTC as the date given at sign-up, so it
+      // never moves a day with the server's time zone.
+      dateOfBirth = new Date(Date.UTC(dob.year, dob.month - 1, dob.day));
 
       const today = new Date();
-      let age = today.getFullYear() - dateOfBirth.getFullYear();
-      const m = today.getMonth() - dateOfBirth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
+      let age = today.getUTCFullYear() - dateOfBirth.getUTCFullYear();
+      const m = today.getUTCMonth() - dateOfBirth.getUTCMonth();
+      if (m < 0 || (m === 0 && today.getUTCDate() < dateOfBirth.getUTCDate())) {
         age--;
       }
       underMinimumAge = age < 16;

@@ -88,18 +88,23 @@ export class PaymentEventsService {
           },
         });
 
-        await tx.transaction.create({
-          data: {
+        const stripePaymentIntentId =
+          typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent?.id || session.id;
+        // A notice sent again after this committed finds the payment
+        // recorded and leaves it as it is, instead of failing on it.
+        await tx.transaction.upsert({
+          where: { stripePaymentIntentId },
+          update: {},
+          create: {
             type: 'PROMOTION_PAYMENT',
             amount,
             currency,
             status: 'COMPLETED',
             senderId: metadata.userId || null,
             promotionId,
-            stripePaymentIntentId:
-              typeof session.payment_intent === 'string'
-                ? session.payment_intent
-                : session.payment_intent?.id || session.id,
+            stripePaymentIntentId,
             description: `Promotion checkout ${session.id}`,
           },
         });

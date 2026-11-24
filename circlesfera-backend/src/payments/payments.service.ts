@@ -380,8 +380,11 @@ export class PaymentsService {
     const stripePriceId =
       billingCycle === 'YEARLY' ? plan.yearlyStripePriceId : plan.stripePriceId;
 
+    // A cycle the plan is not sold by (the add-on by the year) is the
+    // caller's to change: refused as such, never a server error.
     if (!stripePriceId) {
-      throw new Error(
+      throw AppException.BadRequest(
+        ErrorCode.PRICE_NOT_FOUND,
         `Billing cycle ${billingCycle} is not available for this plan`,
       );
     }
