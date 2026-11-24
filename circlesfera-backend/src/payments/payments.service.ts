@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { AccountType, SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
@@ -42,8 +41,6 @@ import {
   type StripeDisputePayload,
   type StripeRefundedCharge,
 } from './payment-events.service.js';
-
-export const WEBHOOK_LEASE_DURATION_MS = 2 * 60 * 1000; // 2 minutes lease duration
 
 // The type of Profile a plan is meant for, from its name; Premium, and any
 // plan that names none, is for every Profile.
@@ -1769,101 +1766,31 @@ export class PaymentsService {
     return this.stripeService.constructEvent(payload, sig);
   }
 
-  // Main processor for incoming Stripe webhook events.
-  // Idempotent: PROCESSED events are skipped; PENDING/FAILED are reprocessed.
-  // On handler failure marks FAILED and rethrows (controller returns 5xx).
-  // Includes lease-based crash recovery and duplicate delivery protection.
+  // Processes a notice of the payment provider, once: one already PROCESSED
+  // is skipped. Any other is recorded (its payload kept for staff to send
+  // again from the admin panel) and handled; a failure marks it FAILED and
+  // is thrown, so the controller answers 5xx and the provider sends it again
+  // (for up to three days), as Stripe expects. The handlers read the state
+  // again from the provider and can run twice, so a notice delivered twice
+  // at once, or handled before a crash kept it from being marked, does no
+  // harm when it comes back.
   async processWebhookEvent(event: Stripe.Event) {
     const existing = await this.prisma.webhookEvent.findUnique({
       where: { externalId: event.id },
+      select: { status: true },
     });
+    if (existing?.status === 'PROCESSED') return;
 
-    if (existing?.status === 'PROCESSED') {
-      return;
-    }
-
-    const now = new Date();
-    const leaseCutoff = new Date(now.getTime() - WEBHOOK_LEASE_DURATION_MS);
-
-    if (!existing) {
-      try {
-        await this.prisma.webhookEvent.create({
-          data: {
-            provider: 'stripe',
-            externalId: event.id,
-            payload: event as unknown as object,
-            status: 'PENDING',
-          },
-        });
-      } catch (err: unknown) {
-        if (
-          typeof err === 'object' &&
-          err !== null &&
-          'code' in err &&
-          (err as { code: string }).code === 'P2002'
-        ) {
-          const raced = await this.prisma.webhookEvent.findUnique({
-            where: { externalId: event.id },
-          });
-          if (!raced || raced.status === 'PROCESSED') {
-            return;
-          }
-          if (raced.status === 'PENDING') {
-            if (raced.updatedAt > leaseCutoff) {
-              return; // Actively held lease
-            }
-            const { count } = await this.prisma.webhookEvent.updateMany({
-              where: {
-                externalId: event.id,
-                status: 'PENDING',
-                updatedAt: { lte: leaseCutoff },
-              },
-              data: { updatedAt: now },
-            });
-            if (count === 0) return;
-          } else if (raced.status === 'FAILED') {
-            const { count } = await this.prisma.webhookEvent.updateMany({
-              where: { externalId: event.id, status: 'FAILED' },
-              data: { status: 'PENDING', updatedAt: now },
-            });
-            if (count === 0) return;
-          }
-        } else {
-          throw err;
-        }
-      }
-    } else if (existing.status === 'FAILED') {
-      const { count } = await this.prisma.webhookEvent.updateMany({
-        where: { externalId: event.id, status: 'FAILED' },
-        data: { status: 'PENDING', updatedAt: now },
-      });
-      if (count === 0) return;
-    } else if (existing.status === 'PENDING') {
-      // Lease check:
-      // If lease is still active, another worker is actively processing it.
-      if (existing.updatedAt > leaseCutoff) {
-        this.logger.debug(
-          `Webhook event ${event.id} is actively being processed (lease active).`,
-        );
-        return;
-      }
-
-      // If lease expired, the previous worker crashed. Atomically claim the expired lease.
-      const { count } = await this.prisma.webhookEvent.updateMany({
-        where: {
-          externalId: event.id,
-          status: 'PENDING',
-          updatedAt: { lte: leaseCutoff },
-        },
-        data: { updatedAt: now },
-      });
-      if (count === 0) {
-        return; // Another worker claimed it or state changed
-      }
-      this.logger.warn(
-        `Recovered stuck PENDING webhook event ${event.id} (lease expired, claimed for retry).`,
-      );
-    }
+    await this.prisma.webhookEvent.upsert({
+      where: { externalId: event.id },
+      update: { status: 'PENDING' },
+      create: {
+        provider: 'stripe',
+        externalId: event.id,
+        payload: event as unknown as object,
+        status: 'PENDING',
+      },
+    });
 
     try {
       await this.dispatchStripeEvent(event);
@@ -1885,77 +1812,6 @@ export class PaymentsService {
         .catch(() => undefined);
       throw err;
     }
-  }
-
-  /**
-   * Periodic reconciliation job:
-   * Recovers and processes stuck PENDING webhook events whose lease has expired.
-   */
-  @Cron(CronExpression.EVERY_5_MINUTES)
-  async reconcileStuckWebhookEvents(limit = 25): Promise<number> {
-    const leaseCutoff = new Date(Date.now() - WEBHOOK_LEASE_DURATION_MS);
-
-    const stuckEvents = await this.prisma.webhookEvent.findMany({
-      where: {
-        status: 'PENDING',
-        updatedAt: { lte: leaseCutoff },
-      },
-      take: limit,
-      orderBy: { updatedAt: 'asc' },
-    });
-
-    if (stuckEvents.length === 0) {
-      return 0;
-    }
-
-    this.logger.log(
-      `Found ${stuckEvents.length} stuck PENDING webhook events. Starting reconciliation...`,
-    );
-
-    let recoveredCount = 0;
-
-    for (const webhook of stuckEvents) {
-      // Atomically claim the expired lease
-      const now = new Date();
-      const { count } = await this.prisma.webhookEvent.updateMany({
-        where: {
-          id: webhook.id,
-          status: 'PENDING',
-          updatedAt: { lte: leaseCutoff },
-        },
-        data: { updatedAt: now },
-      });
-
-      if (count === 0) {
-        continue; // Claimed by another worker
-      }
-
-      try {
-        await this.dispatchStripeEvent(
-          webhook.payload as unknown as Stripe.Event,
-        );
-        await this.prisma.webhookEvent.update({
-          where: { id: webhook.id },
-          data: { status: 'PROCESSED', processedAt: new Date() },
-        });
-        recoveredCount++;
-        this.logger.log(
-          `Reconciled and processed stuck webhook event ${webhook.externalId}`,
-        );
-      } catch (err: any) {
-        this.logger.error(
-          `Failed to reconcile webhook event ${webhook.externalId}: ${err?.message || err}`,
-        );
-        await this.prisma.webhookEvent
-          .update({
-            where: { id: webhook.id },
-            data: { status: 'FAILED' },
-          })
-          .catch(() => undefined);
-      }
-    }
-
-    return recoveredCount;
   }
 
   // Mirrors a dispute. Who was charged is read from the provider only when
