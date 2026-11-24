@@ -150,6 +150,23 @@ function providerInterval(subscription: SubscriptionWithItems): {
 // does its year start a new 14 days to withdraw.
 export const YEARLY_MOVE_METADATA_KEY = 'moved_to_yearly';
 
+// Whether a plan checkout is for the add-on, so a newer payment page of the
+// same Profile replaces only the older one of the same kind.
+const CHECKOUT_ADD_ON_METADATA_KEY = 'addOn';
+
+// The mark a second plan of a Profile gets at the provider before it ends,
+// so a retried notice still refunds it.
+const DUPLICATE_PLAN_METADATA_KEY = 'duplicate_plan';
+
+// The provider's states of a subscription that charges, or may charge again.
+const STANDING_STATUSES = [
+  'active',
+  'trialing',
+  'past_due',
+  'unpaid',
+  'paused',
+];
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -358,6 +375,20 @@ export class PaymentsService {
         );
       }
     } else {
+      // A plan whose renewal failed is paid in the billing portal, not
+      // replaced by another: two plans are never charged.
+      const overdue = user.platformSubscriptions.some(
+        (s) =>
+          s.profileId === profile.id &&
+          s.status === SubscriptionStatus.PAST_DUE &&
+          !isAddOnPlan(s.plan.name),
+      );
+      if (overdue) {
+        throw AppException.Conflict(
+          ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+          'This profile has a plan with a payment due. Pay it in the billing portal.',
+        );
+      }
       if (activeSubs.some((s) => !isAddOnPlan(s.plan.name))) {
         throw AppException.Conflict(
           ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
@@ -398,7 +429,7 @@ export class PaymentsService {
         await this.stripeService.assertPaymentsEnabled();
         const customerId = await this.ensureStripeCustomer(user);
 
-        return await this.stripeService.createCheckoutSession(
+        const session = await this.stripeService.createCheckoutSession(
           {
             customer: customerId,
             line_items: [{ price: stripePriceId, quantity: 1 }],
@@ -417,16 +448,29 @@ export class PaymentsService {
               planId: plan.id,
               billingCycle,
               profileId: profile.id,
+              [CHECKOUT_ADD_ON_METADATA_KEY]: String(buyingAddOn),
               ...planStartConsentMetadata(),
             },
           },
           {
             // A new prefix whenever the parameters change (here the
             // consent wording, by its version): a key reused with other
-            // parameters is refused.
-            idempotencyKey: `checkout_sub_tax_${PLAN_START_CONSENT_VERSION}_${intentKey}`,
+            // parameters is refused. The minute keeps a retry of the same
+            // request on the same session, and a purchase made again later
+            // (after a withdrawal) on a new one.
+            idempotencyKey: `checkout_sub_tax_${PLAN_START_CONSENT_VERSION}_${intentKey}:${Math.floor(Date.now() / 60_000)}`,
           },
         );
+        // One payment page open per Profile for a plan (and one for the
+        // add-on): the newest. An older one left in another tab can no
+        // longer be paid, so two plans are not bought by mistake.
+        await this.expireOtherOpenCheckouts(
+          customerId,
+          session,
+          profile.id,
+          buyingAddOn,
+        );
+        return session;
       } catch (err) {
         this.logger.error(
           `Stripe checkout session creation failed for ${intentKey} (${classifyStripeError(err)}): ${
@@ -441,6 +485,51 @@ export class PaymentsService {
 
     this.checkoutInFlight.set(intentKey, checkoutPromise);
     return checkoutPromise;
+  }
+
+  // Only pages opened before the kept one are expired, so two pages opened
+  // at once never expire each other. A page opened before the add-on mark
+  // existed is told apart by its plan.
+  private async expireOtherOpenCheckouts(
+    customerId: string,
+    kept: Pick<Stripe.Checkout.Session, 'id' | 'created'>,
+    profileId: string,
+    addOn: boolean,
+  ) {
+    try {
+      const open =
+        await this.stripeService.listOpenCheckoutSessions(customerId);
+      const addOnPlanIds = new Set(
+        (
+          await this.prisma.platformPlan.findMany({
+            select: { id: true, name: true },
+          })
+        )
+          .filter((plan) => isAddOnPlan(plan.name))
+          .map((plan) => plan.id),
+      );
+      const isAddOn = (metadata: Stripe.Metadata | null | undefined) =>
+        metadata?.[CHECKOUT_ADD_ON_METADATA_KEY] !== undefined
+          ? metadata[CHECKOUT_ADD_ON_METADATA_KEY] === 'true'
+          : addOnPlanIds.has(metadata?.planId ?? '');
+      for (const other of open) {
+        if (
+          other.id !== kept.id &&
+          other.created < kept.created &&
+          other.mode === 'subscription' &&
+          other.metadata?.profileId === profileId &&
+          isAddOn(other.metadata) === addOn
+        ) {
+          await this.stripeService.expireCheckoutSession(other.id);
+        }
+      }
+    } catch (err) {
+      // The page just opened stays usable; a second plan paid from an older
+      // page is still refunded when it arrives (refundDuplicatePlan).
+      this.logger.warn(
+        `Could not expire the older payment pages of profile ${profileId} (${classifyStripeError(err)})`,
+      );
+    }
   }
 
   /**
@@ -1683,54 +1772,104 @@ export class PaymentsService {
     return profile?.id ?? null;
   }
 
-  // Heal races: on one Profile, keep only the newly activated plan as
-  // ACTIVE, or the newly activated add-on: an add-on never cancels the plan
-  // beside it, nor a plan the add-on. The plans of the person's other
-  // Profiles are left alone.
-  private async enforceSingleActivePlatformPlan(
+  // Whether the subscription just paid is a second plan (or add-on) of a
+  // Profile that still holds one at the provider, bought from a second tab.
+  // That new one ends at once and its payment is refunded in full; the plan
+  // the Profile held stays. A held row the provider has ended meanwhile is
+  // brought up to date instead, and the new plan is recorded. An add-on
+  // never counts against a plan, nor a plan against the add-on, and the
+  // person's other Profiles are left alone. Each step is safe to repeat, so
+  // a retried notice finishes what a failed one left: the duplicate is
+  // marked at the provider before it ends, and a marked one is refunded
+  // whatever the Profile holds by then.
+  private async refundDuplicatePlan(
     profileId: string,
-    keepStripeSubscriptionId: string,
+    subscription: Pick<StripeSubscriptionState, 'id' | 'status' | 'metadata'>,
     addOn: boolean,
-  ) {
-    const others = await this.prisma.platformSubscription.findMany({
+  ): Promise<boolean> {
+    const stripeSubscriptionId = subscription.id;
+    const marked =
+      subscription.metadata?.[DUPLICATE_PLAN_METADATA_KEY] === 'true';
+    if (
+      !marked &&
+      !(await this.holdsStandingPlan(profileId, subscription.id, addOn))
+    ) {
+      return false;
+    }
+
+    if (subscription.status !== 'canceled') {
+      await this.stripeService.endDuplicateSubscription(stripeSubscriptionId);
+    }
+    const invoice =
+      await this.stripeService.latestPaidInvoice(stripeSubscriptionId);
+    if (invoice?.paymentIntentId) {
+      await this.stripeService.refundSubscriptionPayment({
+        paymentIntentId: invoice.paymentIntentId,
+        amountInCents: invoice.paidCents,
+        idempotencyKey: `duplicate_plan_${stripeSubscriptionId}`,
+        metadata: {
+          reason: 'duplicate_plan',
+          platformSubscriptionId: stripeSubscriptionId,
+        },
+      });
+    }
+    // What the customer balance paid is not on the card: the team returns
+    // it, told here as for a withdrawal.
+    const owedByStaffCents = invoice
+      ? Math.max(0, invoice.totalCents - invoice.paidCents)
+      : 0;
+    const message = `Second ${addOn ? 'add-on' : 'plan'} ${stripeSubscriptionId} of profile ${profileId}: ended and refunded${
+      owedByStaffCents > 0
+        ? `; ${owedByStaffCents} cents paid from the customer balance are owed by staff`
+        : ''
+    }`;
+    this.logger.warn(message);
+    Sentry.captureMessage(message, {
+      level: 'warning',
+      tags: { area: 'duplicate-plan' },
+      extra: { stripeSubscriptionId, profileId, owedByStaffCents },
+    });
+    return true;
+  }
+
+  // Whether the Profile holds another plan (or add-on) the provider still
+  // charges or may charge: active, trialing, overdue, unpaid or paused. A
+  // held row the provider has ended is brought up to date on the way.
+  private async holdsStandingPlan(
+    profileId: string,
+    stripeSubscriptionId: string,
+    addOn: boolean,
+  ): Promise<boolean> {
+    const held = await this.prisma.platformSubscription.findMany({
       where: {
         profileId,
         addOn,
         status: {
-          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+          in: [
+            SubscriptionStatus.ACTIVE,
+            SubscriptionStatus.TRIALING,
+            SubscriptionStatus.PAST_DUE,
+          ],
         },
-        NOT: { stripeSubscriptionId: keepStripeSubscriptionId },
+        NOT: { stripeSubscriptionId },
       },
+      select: { stripeSubscriptionId: true },
     });
-
-    for (const other of others) {
-      let stripeCancelled = true;
-
-      if (other.stripeSubscriptionId) {
-        try {
-          await this.stripeService.cancelSubscription(
-            other.stripeSubscriptionId,
-            false,
-          );
-        } catch (err) {
-          this.logger.error(
-            `Failed to cancel Stripe sub ${other.stripeSubscriptionId}`,
-            err,
-          );
-          stripeCancelled = false;
-        }
-      }
-
-      if (stripeCancelled) {
-        await this.prisma.platformSubscription.update({
-          where: { id: other.id },
-          data: {
-            status: SubscriptionStatus.CANCELLED,
-            cancelAtPeriodEnd: false,
-          },
-        });
+    let standing = false;
+    for (const other of held) {
+      if (!other.stripeSubscriptionId) continue;
+      const atProvider = await this.currentSubscription({
+        id: other.stripeSubscriptionId,
+      } as StripeSubscriptionState);
+      // One the provider does not hold comes back without a status.
+      if (!atProvider.status) continue;
+      if (STANDING_STATUSES.includes(atProvider.status)) {
+        standing = true;
+      } else {
+        await this.applyStripeSubscription(atProvider);
       }
     }
+    return standing;
   }
 
   async getPortalUrl(
@@ -2046,14 +2185,18 @@ export class PaymentsService {
           });
           const addOn = isAddOnPlan(plan?.name);
 
-          // The plan being recorded is the one that stays. Any older plan of
-          // this Profile (or older add-on, for an add-on) is cancelled first,
-          // so the Profile never holds two, which the database would refuse.
-          await this.enforceSingleActivePlatformPlan(
-            profileId,
-            stripeSubscriptionId,
-            addOn,
-          );
+          // A Profile holds one plan (and one add-on). One paid while it
+          // already had one is a duplicate: it ends and is paid back, and the
+          // plan held stays.
+          if (
+            await this.refundDuplicatePlan(
+              profileId,
+              { ...stripeSubscription, id: stripeSubscriptionId },
+              addOn,
+            )
+          ) {
+            return;
+          }
 
           // A notice retried after a withdrawal leaves the row CANCELLED:
           // both writes commit together.
