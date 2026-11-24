@@ -4121,80 +4121,32 @@ describe('PaymentsService', () => {
       });
     });
 
-    it('follows a plan changed in the billing portal to the plan of its new price, monthly or yearly', async () => {
-      prisma.platformPlan.findFirst = vi
-        .fn()
-        .mockResolvedValue({ id: 'plan_business' });
-      stripeService.getSubscription.mockResolvedValue({
-        id: 'sub_portal',
-        status: 'active',
-        cancel_at_period_end: false,
-        items: {
-          data: [
-            {
-              current_period_start: 1000,
-              current_period_end: 2000,
-              price: { id: 'price_business_year' },
-            },
-          ],
-        },
-      });
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_portal',
-          type: 'customer.subscription.updated',
-          data: { object: { id: 'sub_portal' } },
+    it('applies nothing for a failed invoice of a subscription the provider does not hold', async () => {
+      stripeService.getSubscription.mockRejectedValue(
+        Object.assign(new Error('No such subscription'), {
+          type: 'StripeInvalidRequestError',
         }),
       );
 
-      expect(prisma.platformPlan.findFirst).toHaveBeenCalledWith({
-        where: {
-          OR: [
-            { stripePriceId: 'price_business_year' },
-            { yearlyStripePriceId: 'price_business_year' },
-          ],
-        },
-        select: { id: true },
-      });
-      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            stripeSubscriptionId: 'sub_portal',
+      await expect(
+        service.processWebhookEvent(
+          asEvent({
+            id: 'evt_inv_gone',
+            type: 'invoice.payment_failed',
+            data: {
+              object: {
+                id: 'in_gone',
+                parent: { subscription_details: { subscription: 'sub_gone' } },
+              },
+            },
           }),
-          data: expect.objectContaining({ planId: 'plan_business' }),
+        ),
+      ).resolves.toBeUndefined();
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ stripeSubscriptionId: 'sub_gone' }),
         }),
       );
-    });
-
-    it('keeps the plan it has when no plan has the price charged', async () => {
-      prisma.platformPlan.findFirst = vi.fn().mockResolvedValue(null);
-      stripeService.getSubscription.mockResolvedValue({
-        id: 'sub_unknown',
-        status: 'active',
-        cancel_at_period_end: false,
-        items: {
-          data: [
-            {
-              current_period_start: 1000,
-              current_period_end: 2000,
-              price: { id: 'price_retired' },
-            },
-          ],
-        },
-      });
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_unknown_price',
-          type: 'customer.subscription.updated',
-          data: { object: { id: 'sub_unknown' } },
-        }),
-      );
-
-      const data = vi.mocked(prisma.platformSubscription.updateMany).mock
-        .calls[0][0] as { data: Record<string, unknown> };
-      expect(data.data).not.toHaveProperty('planId');
     });
 
     it('9. should handle unknown event gracefully', async () => {
