@@ -383,7 +383,7 @@ describe('planUpdate', () => {
     });
   });
 
-  it('turns on a plan switched off, and sets features that differ', () => {
+  it('sets features that differ, and leaves a plan staff took off sale off sale', () => {
     expect(
       planUpdate(
         stored({ isActive: false, features: ['verified_badge'] }),
@@ -394,7 +394,6 @@ describe('planUpdate', () => {
       ),
     ).toEqual({
       features: ['verified_badge', 'priority_support'],
-      isActive: true,
     });
   });
 });

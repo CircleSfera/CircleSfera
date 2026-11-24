@@ -3430,7 +3430,7 @@
     },
     "plans": {
       "title": "Planes",
-      "subtitle": "Qué incluye cada plan y si está a la venta. Los cambios se aplican a todos los suscriptores del plan.",
+      "subtitle": "Qué incluye cada plan, que se define en el código, y si está a la venta, que se cambia aquí. Quien ya lo tiene lo conserva.",
       "price_month": "{{price}} al mes",
       "price_year": "{{price}} al año",
       "price_note": "El precio lo cobra Stripe y no se cambia desde aquí.",
@@ -6310,6 +6310,7 @@
       "EDIT_PROJECT_NOT_FOUND": "No hemos encontrado ese proyecto.",
       "EDIT_CLIP_NOT_FOUND": "No hemos encontrado ese clip.",
       "AI_SERVICE_UNAVAILABLE": "Esta función no está disponible ahora mismo. Inténtalo más tarde.",
+      "PAYMENT_PROVIDER_UNAVAILABLE": "El proveedor de pagos no ha podido completarlo ahora. No se ha cambiado nada: inténtalo de nuevo en un momento.",
       "FEATURE_DISABLED": "Esta función está desactivada ahora mismo.",
       "INTERACTIVE_NOT_FOUND": "Esta encuesta o pregunta ya no está disponible.",
       "MISSING_POST_OR_STORY_ID": "Elige primero una publicación o una historia.",

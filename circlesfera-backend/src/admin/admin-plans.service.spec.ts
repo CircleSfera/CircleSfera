@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminPlansService } from './admin-plans.service.js';
 
@@ -68,21 +68,15 @@ describe('AdminPlansService', () => {
     );
   });
 
-  it('saves the features in catalogue order and audits before and after', async () => {
+  it('takes a plan off sale, and audits before and after', async () => {
     prisma.platformPlan.findUnique.mockResolvedValue(plan);
 
-    await service.updatePlan('admin-1', 'plan-1', {
-      features: ['advanced_analytics', 'verified_badge'],
-      isActive: false,
-    });
+    await service.updatePlan('admin-1', 'plan-1', { isActive: false });
 
     expect(prisma.platformPlan.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'plan-1' },
-        data: {
-          features: ['verified_badge', 'advanced_analytics'],
-          isActive: false,
-        },
+        data: { isActive: false },
       }),
     );
     const audit = prisma.adminAuditLog.create.mock.calls[0][0] as {
@@ -97,27 +91,24 @@ describe('AdminPlansService', () => {
       }),
     );
     expect(JSON.parse(audit.data.details)).toEqual({
-      before: {
-        features: ['verified_badge'],
-        description: 'The verified badge',
-        isActive: true,
-      },
-      after: {
-        features: ['verified_badge', 'advanced_analytics'],
-        isActive: false,
-      },
+      before: { isActive: true },
+      after: { isActive: false },
     });
-  });
-
-  it('changes the plan and writes the audit entry in one transaction', async () => {
-    prisma.platformPlan.findUnique.mockResolvedValue(plan);
-
-    await service.updatePlan('admin-1', 'plan-1', { description: '  ' });
-
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(prisma.$transaction.mock.calls[0][0]).toHaveLength(2);
+  });
+
+  it("never writes what the plan includes or its description: those are the catalog's", async () => {
+    prisma.platformPlan.findUnique.mockResolvedValue(plan);
+
+    await service.updatePlan('admin-1', 'plan-1', {
+      isActive: true,
+      features: ['advanced_analytics'],
+      description: 'Another text',
+    } as never);
+
     expect(prisma.platformPlan.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { description: null } }),
+      expect.objectContaining({ data: { isActive: true } }),
     );
   });
 
@@ -133,13 +124,6 @@ describe('AdminPlansService', () => {
     expect(prisma.platformPlan.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { isActive: true } }),
     );
-  });
-
-  it('rejects a request that changes nothing', async () => {
-    await expect(
-      service.updatePlan('admin-1', 'plan-1', {}),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.platformPlan.update).not.toHaveBeenCalled();
   });
 
   it('answers not found for a plan that does not exist', async () => {

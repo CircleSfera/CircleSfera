@@ -1,5 +1,11 @@
 import { ErrorCode, type PaymentAlertEvent } from '@circlesfera/shared';
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import {
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -149,6 +155,23 @@ function providerInterval(subscription: SubscriptionWithItems): {
 // provider: only a subscription with it moved from monthly, and only then
 // does its year start a new 14 days to withdraw.
 export const YEARLY_MOVE_METADATA_KEY = 'moved_to_yearly';
+
+// Whether a plan checkout is for the add-on, so a newer payment page of the
+// same Profile replaces only the older one of the same kind.
+const CHECKOUT_ADD_ON_METADATA_KEY = 'addOn';
+
+// The mark a second plan of a Profile gets at the provider before it ends,
+// so a retried notice still refunds it.
+const DUPLICATE_PLAN_METADATA_KEY = 'duplicate_plan';
+
+// The provider's states of a subscription that charges, or may charge again.
+const STANDING_STATUSES = [
+  'active',
+  'trialing',
+  'past_due',
+  'unpaid',
+  'paused',
+];
 
 @Injectable()
 export class PaymentsService {
@@ -358,6 +381,20 @@ export class PaymentsService {
         );
       }
     } else {
+      // A plan whose renewal failed is paid in the billing portal, not
+      // replaced by another: two plans are never charged.
+      const overdue = user.platformSubscriptions.some(
+        (s) =>
+          s.profileId === profile.id &&
+          s.status === SubscriptionStatus.PAST_DUE &&
+          !isAddOnPlan(s.plan.name),
+      );
+      if (overdue) {
+        throw AppException.Conflict(
+          ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+          'This profile has a plan with a payment due. Pay it in the billing portal.',
+        );
+      }
       if (activeSubs.some((s) => !isAddOnPlan(s.plan.name))) {
         throw AppException.Conflict(
           ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
@@ -401,7 +438,7 @@ export class PaymentsService {
         await this.stripeService.assertPaymentsEnabled();
         const customerId = await this.ensureStripeCustomer(user);
 
-        return await this.stripeService.createCheckoutSession(
+        const session = await this.stripeService.createCheckoutSession(
           {
             customer: customerId,
             line_items: [{ price: stripePriceId, quantity: 1 }],
@@ -420,16 +457,29 @@ export class PaymentsService {
               planId: plan.id,
               billingCycle,
               profileId: profile.id,
+              [CHECKOUT_ADD_ON_METADATA_KEY]: String(buyingAddOn),
               ...planStartConsentMetadata(),
             },
           },
           {
             // A new prefix whenever the parameters change (here the
             // consent wording, by its version): a key reused with other
-            // parameters is refused.
-            idempotencyKey: `checkout_sub_tax_${PLAN_START_CONSENT_VERSION}_${intentKey}`,
+            // parameters is refused. The minute keeps a retry of the same
+            // request on the same session, and a purchase made again later
+            // (after a withdrawal) on a new one.
+            idempotencyKey: `checkout_sub_tax_${PLAN_START_CONSENT_VERSION}_${intentKey}:${Math.floor(Date.now() / 60_000)}`,
           },
         );
+        // One payment page open per Profile for a plan (and one for the
+        // add-on): the newest. An older one left in another tab can no
+        // longer be paid, so two plans are not bought by mistake.
+        await this.expireOtherOpenCheckouts(
+          customerId,
+          session,
+          profile.id,
+          buyingAddOn,
+        );
+        return session;
       } catch (err) {
         this.logger.error(
           `Stripe checkout session creation failed for ${intentKey} (${classifyStripeError(err)}): ${
@@ -444,6 +494,51 @@ export class PaymentsService {
 
     this.checkoutInFlight.set(intentKey, checkoutPromise);
     return checkoutPromise;
+  }
+
+  // Only pages opened before the kept one are expired, so two pages opened
+  // at once never expire each other. A page opened before the add-on mark
+  // existed is told apart by its plan.
+  private async expireOtherOpenCheckouts(
+    customerId: string,
+    kept: Pick<Stripe.Checkout.Session, 'id' | 'created'>,
+    profileId: string,
+    addOn: boolean,
+  ) {
+    try {
+      const open =
+        await this.stripeService.listOpenCheckoutSessions(customerId);
+      const addOnPlanIds = new Set(
+        (
+          await this.prisma.platformPlan.findMany({
+            select: { id: true, name: true },
+          })
+        )
+          .filter((plan) => isAddOnPlan(plan.name))
+          .map((plan) => plan.id),
+      );
+      const isAddOn = (metadata: Stripe.Metadata | null | undefined) =>
+        metadata?.[CHECKOUT_ADD_ON_METADATA_KEY] !== undefined
+          ? metadata[CHECKOUT_ADD_ON_METADATA_KEY] === 'true'
+          : addOnPlanIds.has(metadata?.planId ?? '');
+      for (const other of open) {
+        if (
+          other.id !== kept.id &&
+          other.created < kept.created &&
+          other.mode === 'subscription' &&
+          other.metadata?.profileId === profileId &&
+          isAddOn(other.metadata) === addOn
+        ) {
+          await this.stripeService.expireCheckoutSession(other.id);
+        }
+      }
+    } catch (err) {
+      // The page just opened stays usable; a second plan paid from an older
+      // page is still refunded when it arrives (refundDuplicatePlan).
+      this.logger.warn(
+        `Could not expire the older payment pages of profile ${profileId} (${classifyStripeError(err)})`,
+      );
+    }
   }
 
   /**
@@ -741,20 +836,20 @@ export class PaymentsService {
   // `withdrawableUntil` field of the billing status and the error code
   // WITHDRAWAL_PERIOD_ENDED.
   //
-  // Steps:
+  // Steps, all in the one request that asks for it:
   // 1. Checked, with nothing changed: the 14 days, counted from the purchase
   //    at the provider, and the refund owed for the unused part, worked out
   //    once from the paid invoice.
-  // 2. Marked, in one conditional write: withdrawn now, the refund owed and
-  //    the payment it comes from, and CANCELLED, so the benefits stop at
-  //    once. A second request at the same time finds the row marked and
-  //    changes nothing.
-  // 3. Finished (finishWithdrawal): ended at the provider, its open invoices
-  //    voided, the stored amount refunded from the stored payment, and, once
-  //    the refund has gone through, the payer emailed. Each step can be
-  //    repeated. A step that fails, or a refund still pending, leaves the
-  //    row marked and the reconcile job tries again later, so once marked
-  //    the person is answered that the plan ended.
+  // 2. Settled at the provider first (settleWithdrawal): the plan ended, its
+  //    open invoices voided, the unused part refunded to the card. Each step
+  //    can be repeated (an ended plan counts as ended, and the refund is
+  //    looked for by its metadata before one is made), so when one fails
+  //    nothing is marked here, the person is told to try again, and trying
+  //    again finishes it without refunding twice.
+  // 3. Marked, in one conditional write: withdrawn, CANCELLED, what was
+  //    refunded and what the team owes, so the benefits stop. A second
+  //    request at the same time finds the row marked and tells no one.
+  // 4. The team told what it owes; the payer emailed.
   // The request acts on the running plan only: an older withdrawal not
   // finished yet is the reconcile job's, never taken for this one.
   async withdrawPlan(userId: string, profileId: string, addOn = false) {
@@ -782,47 +877,159 @@ export class PaymentsService {
     }
 
     const owed = await this.withdrawalRefundOwed(subscription);
-    const now = Date.now();
+    const refund = await this.settleWithdrawal(subscription, owed);
+
+    // What the card could not take is the team's to pay back.
+    const refundedCents = refund?.amount ?? 0;
+    const owedByStaffCents =
+      owed.owedByStaffCents + Math.max(0, owed.refundCents - refundedCents);
+    const now = new Date();
     const { count } = await this.prisma.platformSubscription.updateMany({
       where: { id: subscription.id, withdrawnAt: null },
       data: {
-        withdrawnAt: new Date(now),
-        withdrawalRefundCents: owed.refundCents,
-        withdrawalOwedByStaffCents: owed.owedByStaffCents,
-        withdrawalInvoiceId: owed.invoiceId,
-        withdrawalPaymentIntentId: owed.paymentIntentId,
-        withdrawalRefundKey: `plan-withdrawal-${subscription.stripeSubscriptionId}`,
-        // The reconcile job leaves it to this request for a while.
-        withdrawalNextAttemptAt: new Date(now + WEBHOOK_LEASE_DURATION_MS),
+        withdrawnAt: now,
+        withdrawalRefundCents: refundedCents,
+        withdrawalRefundId: refund?.id ?? null,
+        withdrawalOwedByStaffCents: owedByStaffCents,
+        withdrawalFinishedAt: now,
         providerStartedAt: owed.startedAt,
         status: SubscriptionStatus.CANCELLED,
       },
     });
-    // Marked by another request at the same time: that one finishes it.
+    // Marked by another request at the same time: that one tells everyone.
     if (count === 0) return this.getBillingStatus(userId, profileId);
 
-    // The part paid from the balance is returned by the team: told once,
-    // when the withdrawal is made.
-    if (owed.owedByStaffCents > 0) {
-      const message = `Plan withdrawal of subscription ${subscription.id}: ${owed.owedByStaffCents} cents paid from the customer balance are owed by staff`;
+    if (subscription.userId)
+      await this.syncBenefitsOfWithdrawn(subscription.userId);
+    if (owedByStaffCents > 0) {
+      const message = `Plan withdrawal of subscription ${subscription.id}: ${owedByStaffCents} cents are owed by staff`;
       this.logger.warn(message);
       Sentry.captureMessage(message, {
         level: 'warning',
         tags: { area: 'plan-withdrawal' },
+        fingerprint: ['plan-withdrawal-owed', subscription.id],
         extra: {
           platformSubscriptionId: subscription.id,
-          owedByStaffCents: owed.owedByStaffCents,
+          stripeSubscriptionId: subscription.stripeSubscriptionId,
+          paymentIntentId: owed.paymentIntentId,
+          refundId: refund?.id ?? null,
+          owedByStaffCents,
         },
       });
     }
-
-    // The benefits stop now. A failure here does not hold back the rest:
-    // every attempt to finish syncs them again.
-    if (subscription.userId)
-      await this.syncBenefitsOfWithdrawn(subscription.userId);
-
-    await this.attemptWithdrawal(subscription.id, 0, new Date(now));
+    await this.emailWithdrawal(subscription, refund, owedByStaffCents);
     return this.getBillingStatus(userId, profileId);
+  }
+
+  // Ends the plan at the provider, voids its open invoices and refunds the
+  // unused part to the card. When a step fails nothing is marked: it is
+  // reported, and the person is told to try again, which finishes it.
+  private async settleWithdrawal(
+    subscription: { id: string; stripeSubscriptionId: string },
+    owed: { refundCents: number; paymentIntentId: string | null },
+  ): Promise<Stripe.Refund | null> {
+    const stripeSubscriptionId = subscription.stripeSubscriptionId;
+    try {
+      await this.endAtProvider(stripeSubscriptionId);
+      await this.stripeService.voidOpenInvoices(stripeSubscriptionId);
+      if (owed.refundCents > 0 && owed.paymentIntentId) {
+        return await this.stripeService.refundSubscriptionPayment({
+          paymentIntentId: owed.paymentIntentId,
+          amountInCents: owed.refundCents,
+          idempotencyKey: `plan-withdrawal-${stripeSubscriptionId}`,
+          metadata: {
+            reason: 'withdrawal',
+            platformSubscriptionId: subscription.id,
+          },
+        });
+      }
+      return null;
+    } catch (err) {
+      this.logger.error(
+        `Withdrawal of subscription ${subscription.id} could not be settled at the provider (${classifyStripeError(err)}); the person can try again`,
+      );
+      Sentry.captureException(err, {
+        tags: { area: 'plan-withdrawal' },
+        fingerprint: ['plan-withdrawal-unsettled', subscription.id],
+        extra: {
+          platformSubscriptionId: subscription.id,
+          stripeSubscriptionId,
+          paymentIntentId: owed.paymentIntentId,
+          refundCents: owed.refundCents,
+        },
+      });
+      throw new AppException(
+        ErrorCode.PAYMENT_PROVIDER_UNAVAILABLE,
+        HttpStatus.SERVICE_UNAVAILABLE,
+        'The withdrawal could not be completed right now. Try again in a moment.',
+      );
+    }
+  }
+
+  // Tells the payer the plan was withdrawn and what was refunded. Best
+  // effort: the withdrawal already stands.
+  private async emailWithdrawal(
+    subscription: {
+      userId: string | null;
+      planId: string;
+      profileId: string | null;
+    },
+    refund: Stripe.Refund | null,
+    owedByStaffCents: number,
+  ): Promise<void> {
+    try {
+      const [payer, plan, profile] = await Promise.all([
+        subscription.userId
+          ? this.prisma.user.findUnique({
+              where: { id: subscription.userId },
+              select: { email: true },
+            })
+          : null,
+        this.prisma.platformPlan.findUnique({
+          where: { id: subscription.planId },
+          select: { name: true, currency: true },
+        }),
+        subscription.profileId
+          ? this.prisma.profile.findUnique({
+              where: { id: subscription.profileId },
+              select: { username: true },
+            })
+          : null,
+      ]);
+      if (payer?.email && plan) {
+        await this.emailService.sendPlanWithdrawnEmail(
+          payer.email,
+          plan.name,
+          profile?.username ?? '',
+          refund?.amount ?? 0,
+          refund?.currency ?? plan.currency,
+          owedByStaffCents,
+        );
+      }
+    } catch (err) {
+      this.logger.error('Failed to send the plan withdrawn email', err);
+    }
+  }
+
+  // Ends a subscription at the provider now. One the provider already holds
+  // as ended counts as done; any other refusal is thrown.
+  private async endAtProvider(
+    stripeSubscriptionId: string,
+  ): Promise<StripeSubscriptionState> {
+    try {
+      return (await this.stripeService.endSubscriptionNow(
+        stripeSubscriptionId,
+      )) as unknown as StripeSubscriptionState;
+    } catch (err) {
+      if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') {
+        throw err;
+      }
+      const current = (await this.stripeService.getSubscription(
+        stripeSubscriptionId,
+      )) as unknown as StripeSubscriptionState;
+      if (!ENDED_AT_PROVIDER.includes(current?.status)) throw err;
+      return current;
+    }
   }
 
   // Whether a plan bought at `startedAt` can still be withdrawn from at
@@ -1016,9 +1223,11 @@ export class PaymentsService {
     return false;
   }
 
-  // Finishes a withdrawal that is marked: every step can be repeated, so a
-  // request and the reconcile job may both run it. 'waiting' while its
-  // refund is pending at the provider.
+  // Finishes a withdrawal marked before withdrawals were made in one request
+  // (completeWithdrawal): only those carry a next attempt, so only those are
+  // finished here, by the reconcile job. Every step can be repeated.
+  // 'waiting' while its refund is pending at the provider. Removed with the
+  // columns it uses once none is left.
   private async finishWithdrawal(id: string): Promise<'finished' | 'waiting'> {
     const row = await this.prisma.platformSubscription.findUnique({
       where: { id },
@@ -1035,27 +1244,9 @@ export class PaymentsService {
     if (row.userId) await this.syncBenefitsOfWithdrawn(row.userId);
 
     // Ended at the provider; one that has already ended (an earlier try)
-    // counts as done.
-    let ended: StripeSubscriptionState;
-    try {
-      ended = (await this.stripeService.endSubscriptionNow(
-        stripeSubscriptionId,
-      )) as unknown as StripeSubscriptionState;
-    } catch (err) {
-      if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') {
-        throw err;
-      }
-      // Refused: ended only if the provider holds it as ended. Otherwise
-      // nothing more is done this round (no refund); the row stays marked
-      // and the reconcile job tries again.
-      const current = (await this.stripeService.getSubscription(
-        stripeSubscriptionId,
-      )) as unknown as StripeSubscriptionState;
-      if (!ENDED_AT_PROVIDER.includes(current?.status)) {
-        throw err;
-      }
-      ended = current;
-    }
+    // counts as done. Otherwise nothing more is done this round (no
+    // refund); the row stays marked and the reconcile job tries again.
+    const ended = await this.endAtProvider(stripeSubscriptionId);
     // A renewal that failed leaves an open invoice the provider would keep
     // trying to collect.
     await this.stripeService.voidOpenInvoices(stripeSubscriptionId);
@@ -1686,54 +1877,104 @@ export class PaymentsService {
     return profile?.id ?? null;
   }
 
-  // Heal races: on one Profile, keep only the newly activated plan as
-  // ACTIVE, or the newly activated add-on: an add-on never cancels the plan
-  // beside it, nor a plan the add-on. The plans of the person's other
-  // Profiles are left alone.
-  private async enforceSingleActivePlatformPlan(
+  // Whether the subscription just paid is a second plan (or add-on) of a
+  // Profile that still holds one at the provider, bought from a second tab.
+  // That new one ends at once and its payment is refunded in full; the plan
+  // the Profile held stays. A held row the provider has ended meanwhile is
+  // brought up to date instead, and the new plan is recorded. An add-on
+  // never counts against a plan, nor a plan against the add-on, and the
+  // person's other Profiles are left alone. Each step is safe to repeat, so
+  // a retried notice finishes what a failed one left: the duplicate is
+  // marked at the provider before it ends, and a marked one is refunded
+  // whatever the Profile holds by then.
+  private async refundDuplicatePlan(
     profileId: string,
-    keepStripeSubscriptionId: string,
+    subscription: Pick<StripeSubscriptionState, 'id' | 'status' | 'metadata'>,
     addOn: boolean,
-  ) {
-    const others = await this.prisma.platformSubscription.findMany({
+  ): Promise<boolean> {
+    const stripeSubscriptionId = subscription.id;
+    const marked =
+      subscription.metadata?.[DUPLICATE_PLAN_METADATA_KEY] === 'true';
+    if (
+      !marked &&
+      !(await this.holdsStandingPlan(profileId, subscription.id, addOn))
+    ) {
+      return false;
+    }
+
+    if (subscription.status !== 'canceled') {
+      await this.stripeService.endDuplicateSubscription(stripeSubscriptionId);
+    }
+    const invoice =
+      await this.stripeService.latestPaidInvoice(stripeSubscriptionId);
+    if (invoice?.paymentIntentId) {
+      await this.stripeService.refundSubscriptionPayment({
+        paymentIntentId: invoice.paymentIntentId,
+        amountInCents: invoice.paidCents,
+        idempotencyKey: `duplicate_plan_${stripeSubscriptionId}`,
+        metadata: {
+          reason: 'duplicate_plan',
+          platformSubscriptionId: stripeSubscriptionId,
+        },
+      });
+    }
+    // What the customer balance paid is not on the card: the team returns
+    // it, told here as for a withdrawal.
+    const owedByStaffCents = invoice
+      ? Math.max(0, invoice.totalCents - invoice.paidCents)
+      : 0;
+    const message = `Second ${addOn ? 'add-on' : 'plan'} ${stripeSubscriptionId} of profile ${profileId}: ended and refunded${
+      owedByStaffCents > 0
+        ? `; ${owedByStaffCents} cents paid from the customer balance are owed by staff`
+        : ''
+    }`;
+    this.logger.warn(message);
+    Sentry.captureMessage(message, {
+      level: 'warning',
+      tags: { area: 'duplicate-plan' },
+      extra: { stripeSubscriptionId, profileId, owedByStaffCents },
+    });
+    return true;
+  }
+
+  // Whether the Profile holds another plan (or add-on) the provider still
+  // charges or may charge: active, trialing, overdue, unpaid or paused. A
+  // held row the provider has ended is brought up to date on the way.
+  private async holdsStandingPlan(
+    profileId: string,
+    stripeSubscriptionId: string,
+    addOn: boolean,
+  ): Promise<boolean> {
+    const held = await this.prisma.platformSubscription.findMany({
       where: {
         profileId,
         addOn,
         status: {
-          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+          in: [
+            SubscriptionStatus.ACTIVE,
+            SubscriptionStatus.TRIALING,
+            SubscriptionStatus.PAST_DUE,
+          ],
         },
-        NOT: { stripeSubscriptionId: keepStripeSubscriptionId },
+        NOT: { stripeSubscriptionId },
       },
+      select: { stripeSubscriptionId: true },
     });
-
-    for (const other of others) {
-      let stripeCancelled = true;
-
-      if (other.stripeSubscriptionId) {
-        try {
-          await this.stripeService.cancelSubscription(
-            other.stripeSubscriptionId,
-            false,
-          );
-        } catch (err) {
-          this.logger.error(
-            `Failed to cancel Stripe sub ${other.stripeSubscriptionId}`,
-            err,
-          );
-          stripeCancelled = false;
-        }
-      }
-
-      if (stripeCancelled) {
-        await this.prisma.platformSubscription.update({
-          where: { id: other.id },
-          data: {
-            status: SubscriptionStatus.CANCELLED,
-            cancelAtPeriodEnd: false,
-          },
-        });
+    let standing = false;
+    for (const other of held) {
+      if (!other.stripeSubscriptionId) continue;
+      const atProvider = await this.currentSubscription({
+        id: other.stripeSubscriptionId,
+      } as StripeSubscriptionState);
+      // One the provider does not hold comes back without a status.
+      if (!atProvider.status) continue;
+      if (STANDING_STATUSES.includes(atProvider.status)) {
+        standing = true;
+      } else {
+        await this.applyStripeSubscription(atProvider);
       }
     }
+    return standing;
   }
 
   async getPortalUrl(
@@ -2049,14 +2290,18 @@ export class PaymentsService {
           });
           const addOn = isAddOnPlan(plan?.name);
 
-          // The plan being recorded is the one that stays. Any older plan of
-          // this Profile (or older add-on, for an add-on) is cancelled first,
-          // so the Profile never holds two, which the database would refuse.
-          await this.enforceSingleActivePlatformPlan(
-            profileId,
-            stripeSubscriptionId,
-            addOn,
-          );
+          // A Profile holds one plan (and one add-on). One paid while it
+          // already had one is a duplicate: it ends and is paid back, and the
+          // plan held stays.
+          if (
+            await this.refundDuplicatePlan(
+              profileId,
+              { ...stripeSubscription, id: stripeSubscriptionId },
+              addOn,
+            )
+          ) {
+            return;
+          }
 
           // A notice retried after a withdrawal leaves the row CANCELLED:
           // both writes commit together.
@@ -2163,18 +2408,20 @@ export class PaymentsService {
         const named = invoice.parent?.subscription_details?.subscription;
         const subscriptionId = typeof named === 'string' ? named : named?.id;
         if (subscriptionId) {
-          // A withdrawn plan has ended: a failed collection does not bring
-          // it back as overdue.
-          await this.prisma.platformSubscription.updateMany({
-            where: { stripeSubscriptionId: subscriptionId, withdrawnAt: null },
-            data: { status: SubscriptionStatus.PAST_DUE },
-          });
-          const platformSub = await this.prisma.platformSubscription.findFirst({
-            where: { stripeSubscriptionId: subscriptionId },
-            select: { userId: true },
-          });
-          if (platformSub?.userId) {
-            await this.usersService.syncUserTier(platformSub.userId);
+          // The subscription is read from the provider, not assumed overdue:
+          // a declined move to the yearly price leaves the plan active at
+          // its monthly price, and its benefits stay. A withdrawn plan stays
+          // ended (applyStripeSubscription keeps it so). One the provider
+          // does not hold comes back without a status: nothing to apply.
+          const current = await this.currentSubscription({
+            id: subscriptionId,
+          } as StripeSubscriptionState);
+          if (current.status) {
+            await this.applyStripeSubscription(current);
+          } else {
+            this.logger.warn(
+              `Failed invoice of subscription ${subscriptionId}, which the provider does not hold`,
+            );
           }
         }
         break;

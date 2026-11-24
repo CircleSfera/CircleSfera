@@ -207,6 +207,21 @@ export class StripeService implements OnModuleInit {
     return this.stripe.checkout.sessions.expire(sessionId);
   }
 
+  // The Checkout Sessions of a customer still open to pay.
+  async listOpenCheckoutSessions(
+    customerId: string,
+  ): Promise<Stripe.Checkout.Session[]> {
+    const sessions: Stripe.Checkout.Session[] = [];
+    for await (const session of this.stripe.checkout.sessions.list({
+      customer: customerId,
+      status: 'open',
+      limit: 100,
+    })) {
+      sessions.push(session);
+    }
+    return sessions;
+  }
+
   // Create a partial/full refund against the PaymentIntent of a Checkout Session.
   // Returns null when the session has no charge to refund.
   async createRefundFromCheckoutSession(params: {
@@ -349,6 +364,17 @@ export class StripeService implements OnModuleInit {
       prorate: false,
       invoice_now: false,
     });
+  }
+
+  // Ends a second plan a Profile paid for by mistake, marked first, so a
+  // later try knows it was a duplicate and refunds it even after it ended.
+  async endDuplicateSubscription(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
+    await this.stripe.subscriptions.update(subscriptionId, {
+      metadata: { duplicate_plan: 'true' },
+    });
+    return this.endSubscriptionNow(subscriptionId);
   }
 
   // The newest paid invoice of a subscription: what was paid, in cents, the

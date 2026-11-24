@@ -7,7 +7,12 @@ import { isProviderErrorResponse, StripeService } from './stripe.service.js';
 // answer. The provider's client is replaced: nothing here reaches it.
 const client = {
   checkout: {
-    sessions: { create: vi.fn(), retrieve: vi.fn(), expire: vi.fn() },
+    sessions: {
+      create: vi.fn(),
+      retrieve: vi.fn(),
+      expire: vi.fn(),
+      list: vi.fn(),
+    },
   },
   refunds: { create: vi.fn(), list: vi.fn() },
   paymentIntents: { retrieve: vi.fn() },
@@ -279,6 +284,42 @@ describe('StripeService withdrawal from a plan', () => {
       metadata: { reason: 'withdrawal', platformSubscriptionId: 'ps_1' },
       ...over,
     });
+
+  it('lists every open payment page of a customer, page after page', async () => {
+    const { service } = serviceWith();
+    client.checkout.sessions.list.mockReturnValue(
+      listOf([{ id: 'cs_1' }, { id: 'cs_2' }]),
+    );
+
+    await expect(service.listOpenCheckoutSessions('cus_1')).resolves.toEqual([
+      { id: 'cs_1' },
+      { id: 'cs_2' },
+    ]);
+    expect(client.checkout.sessions.list).toHaveBeenCalledWith({
+      customer: 'cus_1',
+      status: 'open',
+      limit: 100,
+    });
+  });
+
+  it('marks a second plan as a duplicate before ending it now', async () => {
+    const { service } = serviceWith();
+    client.subscriptions.update.mockResolvedValue({ id: 'sub_2' });
+    client.subscriptions.cancel.mockResolvedValue({ id: 'sub_2' });
+
+    await service.endDuplicateSubscription('sub_2');
+
+    expect(client.subscriptions.update).toHaveBeenCalledWith('sub_2', {
+      metadata: { duplicate_plan: 'true' },
+    });
+    expect(client.subscriptions.cancel).toHaveBeenCalledWith('sub_2', {
+      prorate: false,
+      invoice_now: false,
+    });
+    expect(
+      client.subscriptions.update.mock.invocationCallOrder[0],
+    ).toBeLessThan(client.subscriptions.cancel.mock.invocationCallOrder[0]);
+  });
 
   it('ends a subscription now, with no credit and no final invoice', async () => {
     const { service } = serviceWith();
