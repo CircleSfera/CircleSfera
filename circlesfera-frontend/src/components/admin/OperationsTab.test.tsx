@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   adminApi,
   type OperationsCspSummary,
+  type OperationsLives,
   type OperationsOrphanFiles,
   type OperationsResources,
   type OperationsWarehouse,
@@ -22,6 +23,7 @@ vi.mock('../../services/admin.service', () => ({
     getOperationsWarehouse: vi.fn(),
     getOperationsCsp: vi.fn(),
     getOperationsOrphanFiles: vi.fn(),
+    getOperationsLives: vi.fn(),
   },
 }));
 
@@ -173,6 +175,13 @@ const orphans = (
   ...over,
 });
 
+const lives = (over: Partial<OperationsLives> = {}): OperationsLives => ({
+  generatedAt: '2026-11-25T10:00:00.000Z',
+  lives: { onAir: 4, limit: 10, withoutRoom: 1, roomsRead: true },
+  recordings: { running: 1, limit: 2, enabled: true },
+  ...over,
+});
+
 const section = (title: string) =>
   screen
     .getByRole('heading', { name: title })
@@ -189,6 +198,54 @@ describe('OperationsTab', () => {
     api.getOperationsWarehouse.mockResolvedValue(warehouse());
     api.getOperationsCsp.mockResolvedValue(csp());
     api.getOperationsOrphanFiles.mockResolvedValue(orphans());
+    api.getOperationsLives.mockResolvedValue(lives());
+  });
+
+  describe('lives (PD-092)', () => {
+    it('shows lives on air and recordings against their limits, and the lives left without a room', async () => {
+      renderWithProviders(<OperationsTab />);
+
+      await screen.findByText('4 of 10');
+      expect(
+        within(metric('Lives', 'Lives on air')).getByText('4 of 10'),
+      ).toBeInTheDocument();
+      expect(
+        within(metric('Lives', 'Lives on air')).getByText(
+          /1 more marked on air with no room/,
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(metric('Lives', 'Being recorded')).getByText('1 of 2'),
+      ).toBeInTheDocument();
+    });
+
+    it('marks a limit reached, and says when the rooms could not be read or nothing is recorded', async () => {
+      api.getOperationsLives.mockResolvedValue(
+        lives({
+          lives: { onAir: 10, limit: 10, withoutRoom: 0, roomsRead: false },
+          recordings: { running: 0, limit: 2, enabled: false },
+        }),
+      );
+      renderWithProviders(<OperationsTab />);
+
+      const full = await screen.findByText('10 of 10');
+      expect(full).toHaveClass('text-red-400');
+      expect(
+        screen.getByText(/did not answer: every live marked on air is counted/),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Recording is off in this environment.'),
+      ).toBeInTheDocument();
+    });
+
+    it('says so when the counts cannot be read', async () => {
+      api.getOperationsLives.mockRejectedValue(new Error('down'));
+      renderWithProviders(<OperationsTab />);
+
+      await waitFor(() =>
+        expect(within(section('Lives')).getByRole('alert')).toBeInTheDocument(),
+      );
+    });
   });
 
   it('shows the server as the backend sees it, and says what it cannot see', async () => {
@@ -537,13 +594,14 @@ describe('OperationsTab', () => {
     api.getOperationsWarehouse.mockReturnValue(new Promise(() => {}));
     api.getOperationsCsp.mockReturnValue(new Promise(() => {}));
     api.getOperationsOrphanFiles.mockReturnValue(new Promise(() => {}));
+    api.getOperationsLives.mockReturnValue(new Promise(() => {}));
     renderWithProviders(<OperationsTab />);
 
     // The orphan files wait for their button.
-    expect(screen.getAllByTestId('ops-loading')).toHaveLength(3);
+    expect(screen.getAllByTestId('ops-loading')).toHaveLength(4);
     fireEvent.click(screen.getByRole('button', { name: 'Compute' }));
     await waitFor(() =>
-      expect(screen.getAllByTestId('ops-loading')).toHaveLength(4),
+      expect(screen.getAllByTestId('ops-loading')).toHaveLength(5),
     );
     expect(
       screen.getByText(

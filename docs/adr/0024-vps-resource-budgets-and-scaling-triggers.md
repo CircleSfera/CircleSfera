@@ -106,3 +106,33 @@ conditional on the Slack webhook being set. The database size and Redis memory h
 in this ADR, so they are shown, not alerted; their thresholds remain a known gap. The values are
 shown to staff on the Backoffice's Operations page, together with what the backend container cannot
 see (each container's usage, Docker's disk use).
+
+## Update (2026-11-25, PD-092): lives and recordings
+
+Lives and their recordings run on CircleSfera's own LiveKit server and recorder (egress), on the
+same VPS, so they get a budget of their own: a count of what runs at once, not a percentage.
+
+| Resource | Limit (setting) | Start value | At the limit |
+| --- | --- | --- | --- |
+| Lives on air | `max_concurrent_lives` (1 to 500) | 10 | A new live is refused with `LIVES_FULL` (409); the host is told lives are full and to try again in a few minutes |
+| Lives being recorded | `max_concurrent_recordings` (1 to 50) | 2 | The live goes on unrecorded (`SKIPPED_LIMIT`); the host is told before going live, and again on air if the recorder filled in between |
+
+- **Where they are set:** Backoffice → global settings (`system_settings`), by staff with the
+  `system` permission, without a deploy. A value outside the range is refused when saved. The
+  defaults are written by `SystemSettingsService.ensureDefaults` and never overwrite a value staff
+  set. `LIVE_RECORDINGS_AT_ONCE` (environment) is no longer read.
+- **What counts:** a live marked on air whose room is open at the live service, or started in the
+  last 2 minutes (its host is still reaching the room). A live whose room is gone (its host's app
+  was closed without ending it) holds no place. When the live service cannot be asked within 3
+  seconds, every live marked on air counts. A recording counts while its live is on air and its
+  recording runs; the recorder's minute check settles recordings whose host left.
+- **Race safety:** each count and the write that takes a place happen under a Postgres advisory
+  lock held to the end of the transaction (lives 7340002, recordings 7340001), so two starts at
+  the same moment on any server never both take the last place.
+- **Why these values:** each recording transcodes up to four people's camera and microphone to
+  H.264 (720 x 1280, 30 fps) on the VPS CPU, which the video transcoding queue shares; a live
+  without a recording only forwards media. The values are a start, not a measurement: they are
+  moved from the CPU load and the recorder's behaviour seen under real lives.
+- **Signal:** the Operations page shows lives on air and recordings running against their
+  limits, and the lives marked on air without a room. There is no alert on these: reaching the
+  limit is the designed behaviour, not an incident.

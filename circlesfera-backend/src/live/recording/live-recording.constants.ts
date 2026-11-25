@@ -1,12 +1,6 @@
 import * as path from 'node:path';
 
 /**
- * How many broadcasts the recorder records at once when LIVE_RECORDINGS_AT_ONCE
- * does not say; others go unrecorded.
- */
-export const RECORDINGS_AT_ONCE_DEFAULT = 1;
-
-/**
  * The most guest parts one broadcast's recording keeps, all its guests
  * together: each part is one more input of the replay.
  */

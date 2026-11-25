@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
+  isValidSettingValue,
   SYSTEM_SETTING_CACHE_TTL_MS,
   SYSTEM_SETTING_DEFAULTS,
   type SystemSettingKey,
@@ -51,11 +52,13 @@ export class SystemSettingsService {
     });
   }
 
+  // A value that does not fit its setting (see isValidSettingValue) reads as
+  // the setting's default.
   async getValue(key: SystemSettingKey): Promise<string> {
     const cacheKey = this.cacheKey(key);
     const cached = await this.cache.get<string>(cacheKey);
-    if (cached === 'true' || cached === 'false') {
-      return cached;
+    if (isValidSettingValue(key, cached)) {
+      return cached as string;
     }
 
     await this.ensureDefaultsOnce();
@@ -64,8 +67,9 @@ export class SystemSettingsService {
     });
     const fallback =
       SYSTEM_SETTING_DEFAULTS.find((s) => s.key === key)?.value ?? 'false';
-    const value =
-      row?.value === 'true' || row?.value === 'false' ? row.value : fallback;
+    const value = isValidSettingValue(key, row?.value)
+      ? (row?.value as string)
+      : fallback;
 
     await this.cache.set(cacheKey, value, SYSTEM_SETTING_CACHE_TTL_MS);
     return value;
@@ -73,6 +77,11 @@ export class SystemSettingsService {
 
   async isEnabled(key: SystemSettingKey): Promise<boolean> {
     return (await this.getValue(key)) === 'true';
+  }
+
+  /** A setting that is a count, as a whole number within its range. */
+  async getNumber(key: SystemSettingKey): Promise<number> {
+    return Number(await this.getValue(key));
   }
 
   async invalidateAll(): Promise<void> {

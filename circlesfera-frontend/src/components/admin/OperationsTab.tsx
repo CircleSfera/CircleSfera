@@ -6,6 +6,7 @@ import {
   EyeOff,
   FileWarning,
   PauseCircle,
+  Radio,
   RefreshCw,
   Server,
   ShieldAlert,
@@ -15,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import {
   adminApi,
   type OperationsCspSummary,
+  type OperationsLives,
   type OperationsOrphanFiles,
   type OperationsResources,
   type OperationsWarehouse,
@@ -610,6 +612,55 @@ function OrphansBody({ data }: { data: OperationsOrphanFiles }) {
   );
 }
 
+function LivesBody({ data }: { data: OperationsLives }) {
+  const { t, i18n } = useTranslation();
+  const count = (n: number) => formatNumber(n, i18n.language);
+  const { lives, recordings } = data;
+  return (
+    <>
+      <div className="grid grid-cols-2 divide-x divide-white/5">
+        <Metric
+          label={t('admin.operations.lives_on_air')}
+          value={t('admin.operations.lives_of_limit', {
+            value: count(lives.onAir),
+            limit: count(lives.limit),
+          })}
+          tone={lives.onAir >= lives.limit ? 'danger' : 'default'}
+          hint={
+            !lives.roomsRead
+              ? t('admin.operations.lives_rooms_unread')
+              : lives.withoutRoom > 0
+                ? t('admin.operations.lives_without_room', {
+                    count: lives.withoutRoom,
+                  })
+                : undefined
+          }
+        />
+        <Metric
+          label={t('admin.operations.lives_recorded')}
+          value={t('admin.operations.lives_of_limit', {
+            value: count(recordings.running),
+            limit: count(recordings.limit),
+          })}
+          tone={
+            recordings.enabled && recordings.running >= recordings.limit
+              ? 'danger'
+              : 'default'
+          }
+          hint={
+            recordings.enabled
+              ? undefined
+              : t('admin.operations.lives_recording_off')
+          }
+        />
+      </div>
+      <p className="px-3 py-3 text-xs text-white/50 border-t border-white/5">
+        {t('admin.operations.lives_limits_hint')}
+      </p>
+    </>
+  );
+}
+
 /**
  * The Operations page of the Backoffice: the server's resources, the
  * analytics warehouse, the CSP reports and the orphan files, read from the
@@ -627,6 +678,12 @@ export default function OperationsTab() {
     queryKey: ['admin', 'operations', 'warehouse'],
     queryFn: adminApi.getOperationsWarehouse,
   });
+  const lives = useQuery({
+    queryKey: ['admin', 'operations', 'lives'],
+    queryFn: adminApi.getOperationsLives,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  });
   const csp = useQuery({
     queryKey: ['admin', 'operations', 'csp'],
     queryFn: adminApi.getOperationsCsp,
@@ -639,7 +696,7 @@ export default function OperationsTab() {
     enabled: false,
     staleTime: Number.POSITIVE_INFINITY,
   });
-  const queries = [resources, warehouse, csp];
+  const queries = [resources, lives, warehouse, csp];
   const refreshing = queries.some((query) => query.isFetching);
 
   const body = <T,>(
@@ -687,6 +744,15 @@ export default function OperationsTab() {
           >
             {body(resources, (data) => (
               <ResourcesBody data={data} />
+            ))}
+          </Section>
+          <Section
+            title={t('admin.operations.lives_title')}
+            subtitle={t('admin.operations.lives_subtitle')}
+            icon={Radio}
+          >
+            {body(lives, (data) => (
+              <LivesBody data={data} />
             ))}
           </Section>
         </div>

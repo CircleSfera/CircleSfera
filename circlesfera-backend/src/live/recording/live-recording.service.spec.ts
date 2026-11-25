@@ -5,12 +5,14 @@ import type { ConfigService } from '@nestjs/config';
 import { EgressStatus, ServerError } from 'livekit-server-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../prisma/prisma.service.js';
+import type { SystemSettingsService } from '../../system-settings/system-settings.service.js';
 import type { UploadsService } from '../../uploads/uploads.service.js';
 import { COHOST_PARTS_MAX } from './live-recording.constants.js';
 import { LiveRecordingService } from './live-recording.service.js';
 
 const sdk = vi.hoisted(() => ({
   createRoom: vi.fn(),
+  listRooms: vi.fn(),
   deleteRoom: vi.fn(),
   removeParticipant: vi.fn(),
   updateParticipant: vi.fn(),
@@ -35,6 +37,7 @@ vi.mock('livekit-server-sdk', async (importOriginal) => {
     RoomServiceClient: vi.fn(function (this: object) {
       Object.assign(this, {
         createRoom: sdk.createRoom,
+        listRooms: sdk.listRooms,
         deleteRoom: sdk.deleteRoom,
         removeParticipant: sdk.removeParticipant,
         updateParticipant: sdk.updateParticipant,
@@ -58,9 +61,16 @@ describe('LiveRecordingService', () => {
     liveStream: { count: Mock; update: Mock };
     liveRecordingPart: { create: Mock };
   };
+  // The recordings' limit staff set (max_concurrent_recordings).
+  let atOnce: number;
   let prisma: {
     $transaction: Mock;
-    liveStream: { findUnique: Mock; findMany: Mock; updateMany: Mock };
+    liveStream: {
+      findUnique: Mock;
+      findMany: Mock;
+      updateMany: Mock;
+      count: Mock;
+    };
     liveRecordingPart: { create: Mock; findMany: Mock; updateMany: Mock };
   };
   // What the parts table answers: the jobs held by parts being recorded,
@@ -101,6 +111,7 @@ describe('LiveRecordingService', () => {
         findUnique: vi.fn(),
         findMany: vi.fn(async () => []),
         updateMany: vi.fn(async () => ({ count: 1 })),
+        count: vi.fn(async () => 0),
       },
       liveRecordingPart: {
         create: vi.fn(async (args: { data: { file: string } }) => ({
@@ -121,10 +132,16 @@ describe('LiveRecordingService', () => {
       enqueueLiveReplay: vi.fn(async () => undefined),
       recoverLiveReplay: vi.fn(async () => true),
     };
+    atOnce = 2;
     service = new LiveRecordingService(
       prisma as unknown as PrismaService,
       { get: (key: string) => settings[key] } as unknown as ConfigService,
       uploads as unknown as UploadsService,
+      {
+        getNumber: vi.fn(async (key: string) =>
+          key === 'max_concurrent_recordings' ? atOnce : Number.NaN,
+        ),
+      } as unknown as SystemSettingsService,
     );
   });
 
@@ -135,24 +152,54 @@ describe('LiveRecordingService', () => {
   });
 
   describe('recordingsAtOnce', () => {
-    it.each([
-      [undefined, 1],
-      ['1', 1],
-      ['3', 3],
-      ['0', 1],
-      ['-2', 1],
-      ['1.5', 1],
-      ['many', 1],
-    ])('reads LIVE_RECORDINGS_AT_ONCE=%s as %i', (value, expected) => {
-      settings.LIVE_RECORDINGS_AT_ONCE = value;
-      expect(service.recordingsAtOnce()).toBe(expected);
+    it('is the limit staff set, not an environment variable', async () => {
+      settings.LIVE_RECORDINGS_AT_ONCE = '7';
+      atOnce = 3;
+      await expect(service.recordingsAtOnce()).resolves.toBe(3);
+    });
+  });
+
+  describe('recordingsRunning', () => {
+    it('counts the broadcasts on air whose recording runs', async () => {
+      prisma.liveStream.count.mockResolvedValueOnce(2);
+      await expect(service.recordingsRunning()).resolves.toBe(2);
+      expect(prisma.liveStream.count).toHaveBeenCalledWith({
+        where: { recordingStatus: 'RECORDING', status: 'LIVE' },
+      });
+    });
+  });
+
+  describe('openRooms', () => {
+    it("names the live service's open rooms", async () => {
+      sdk.listRooms.mockResolvedValueOnce([{ name: 's1' }, { name: 's2' }]);
+      await expect(service.openRooms()).resolves.toEqual(new Set(['s1', 's2']));
+    });
+
+    it('is null when the live service fails or is not set up', async () => {
+      sdk.listRooms.mockRejectedValueOnce(new Error('unreachable'));
+      await expect(service.openRooms()).resolves.toBeNull();
+
+      settings.LIVEKIT_API_KEY = undefined;
+      await expect(service.openRooms()).resolves.toBeNull();
+    });
+
+    it('is null when the live service does not answer in time', async () => {
+      vi.useFakeTimers();
+      try {
+        sdk.listRooms.mockReturnValueOnce(new Promise(() => {}));
+        const rooms = service.openRooms();
+        await vi.advanceTimersByTimeAsync(3000);
+        await expect(rooms).resolves.toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
   describe('start', () => {
     it('does nothing where the environment has no recorder of its own', async () => {
       settings.LIVE_RECORDING_ENABLED = undefined;
-      await service.start('s1', 'host-1');
+      await expect(service.start('s1', 'host-1')).resolves.toBe('OFF');
       expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(sdk.startParticipantEgress).not.toHaveBeenCalled();
     });
@@ -172,7 +219,7 @@ describe('LiveRecordingService', () => {
     );
 
     it("takes a place under the lock and records the host's own camera and microphone to one MP4 file", async () => {
-      await service.start('s1', 'host-1');
+      await expect(service.start('s1', 'host-1')).resolves.toBe('RECORDING');
 
       expect(tx.$executeRaw).toHaveBeenCalled();
       expect(tx.liveStream.update).toHaveBeenCalledWith({
@@ -217,9 +264,11 @@ describe('LiveRecordingService', () => {
       expect(sdk.hosts).toEqual(['http://livekit:7880']);
     });
 
-    it('records one broadcast at a time unless the setting says more', async () => {
-      tx.liveStream.count.mockResolvedValue(1);
-      await service.start('s1', 'host-1');
+    it('records no more broadcasts at once than staff set, and says one past it is not recorded', async () => {
+      tx.liveStream.count.mockResolvedValue(2);
+      await expect(service.start('s1', 'host-1')).resolves.toBe(
+        'SKIPPED_LIMIT',
+      );
       expect(tx.liveStream.update).toHaveBeenCalledWith({
         where: { id: 's1' },
         data: { recordingStatus: 'SKIPPED_LIMIT' },
@@ -227,8 +276,22 @@ describe('LiveRecordingService', () => {
       expect(tx.liveRecordingPart.create).not.toHaveBeenCalled();
       expect(sdk.startParticipantEgress).not.toHaveBeenCalled();
 
-      settings.LIVE_RECORDINGS_AT_ONCE = '2';
-      await service.start('s2', 'host-2');
+      atOnce = 3;
+      await expect(service.start('s2', 'host-2')).resolves.toBe('RECORDING');
+      expect(sdk.startParticipantEgress).toHaveBeenCalledTimes(1);
+    });
+
+    it('takes a place without asking the recorder, then begins it apart', async () => {
+      await expect(service.place('s1')).resolves.toEqual({
+        status: 'RECORDING',
+        partId: 'P_HOST',
+      });
+      expect(sdk.createRoom).not.toHaveBeenCalled();
+      expect(sdk.startParticipantEgress).not.toHaveBeenCalled();
+
+      await expect(service.begin('s1', 'host-1', 'P_HOST')).resolves.toBe(
+        'RECORDING',
+      );
       expect(sdk.startParticipantEgress).toHaveBeenCalledTimes(1);
     });
 
@@ -241,13 +304,13 @@ describe('LiveRecordingService', () => {
 
     it('leaves the broadcast as it is when no place can be taken', async () => {
       prisma.$transaction.mockRejectedValue(new Error('db down'));
-      await expect(service.start('s1', 'host-1')).resolves.toBeUndefined();
+      await expect(service.start('s1', 'host-1')).resolves.toBe('FAILED');
       expect(sdk.startParticipantEgress).not.toHaveBeenCalled();
     });
 
     it('marks the part and the recording failed when the recorder refuses it', async () => {
       sdk.startParticipantEgress.mockRejectedValue('no recorder');
-      await expect(service.start('s1', 'host-1')).resolves.toBeUndefined();
+      await expect(service.start('s1', 'host-1')).resolves.toBe('FAILED');
       expect(prisma.liveRecordingPart.updateMany).toHaveBeenCalledWith({
         where: { id: 'P_HOST', status: 'RECORDING' },
         data: { status: 'FAILED', endedAt: expect.any(Date) },
@@ -307,7 +370,7 @@ describe('LiveRecordingService', () => {
       sdk.createRoom.mockRejectedValue(new Error('no live service'));
       prisma.liveRecordingPart.updateMany.mockRejectedValue('db down');
       prisma.liveStream.updateMany.mockRejectedValue(new Error('db down'));
-      await expect(service.start('s1', 'host-1')).resolves.toBeUndefined();
+      await expect(service.start('s1', 'host-1')).resolves.toBe('FAILED');
     });
   });
 

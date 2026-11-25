@@ -8,7 +8,9 @@ import {
 } from '@circlesfera/shared';
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
+import { useQuery } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   CalendarClock,
   Heart,
   HelpCircle,
@@ -58,10 +60,14 @@ import { useStoryCamera } from '../../components/story/capture/useStoryCamera';
 import { LIVEKIT_URL } from '../../constants/livekit';
 import { useLiveGuests } from '../../hooks/useLiveGuests';
 import { apiClient as api } from '../../services/api';
-import type { ScheduledLive } from '../../services/live';
+import {
+  type LiveRecordingStart,
+  liveApi,
+  type ScheduledLive,
+} from '../../services/live';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
-import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import { apiErrorCode, apiErrorMessage } from '../../utils/apiErrorMessage';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 import { formatLiveStart } from '../../utils/liveSchedule';
 
@@ -172,6 +178,24 @@ export default function LiveBroadcaster() {
   // The title as it is used: the one written, or the default one.
   const liveTitle = titleInput.trim() || t('live.default_title');
 
+  // Before going live (PD-092): whether lives are full now, and whether this
+  // live would be recorded. Asked again while the host gets ready; the start
+  // checks again on the server.
+  const capacity = useQuery({
+    queryKey: ['live', 'capacity'],
+    queryFn: liveApi.getCapacity,
+    enabled: !hasStarted,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    // One small answer, kept: the setup opened again shows the last one
+    // while it asks again, and leaving the screen leaves no timer behind.
+    gcTime: Number.POSITIVE_INFINITY,
+  });
+  const livesFull = capacity.data?.livesFull === true;
+  // A practice is never recorded: nothing to say about it.
+  const notRecorded =
+    capacity.data?.recording === 'FULL' && audience !== 'PRACTICE';
+
   // Goes live with what the setup says, or from an upcoming live, which
   // brings its own title and audience.
   const goLive = async (
@@ -188,10 +212,20 @@ export default function LiveBroadcaster() {
       setSheet(null);
       setHasStarted(true);
       setStartedAt(Date.now());
+      // The recorder filled up, or was full: the live goes on, unrecorded,
+      // and the host is told so on air.
+      if (
+        (res.data.recording as LiveRecordingStart | undefined) ===
+        'SKIPPED_LIMIT'
+      ) {
+        toast(t('live.capacity.not_recorded_started'));
+      }
     } catch (error) {
       toast.error(apiErrorMessage(error, t, 'live.start_failed'));
       setIsStarting(false);
       setStartingId(null);
+      // Lives filled up since the screen asked: it says so until there is room.
+      if (apiErrorCode(error) === 'LIVES_FULL') void capacity.refetch();
     }
   };
 
@@ -541,9 +575,24 @@ export default function LiveBroadcaster() {
           <p className="px-1 text-center text-xs text-white/70">
             {t(`live.audience.hint_${audience}`)} {t('live.setup_hint')}
           </p>
+          {livesFull || notRecorded ? (
+            <p
+              role="status"
+              className="live-glass flex items-start gap-2 rounded-2xl px-4 py-3 text-sm text-white"
+            >
+              <AlertTriangle
+                size={18}
+                className="mt-0.5 shrink-0 text-amber-300"
+                aria-hidden
+              />
+              {livesFull
+                ? t('live.capacity.full')
+                : t('live.capacity.not_recorded')}
+            </p>
+          ) : null}
           <button
             type="submit"
-            disabled={isStarting}
+            disabled={isStarting || livesFull}
             className={CREATE_PRIMARY}
           >
             {isStarting ? t('live.starting') : t('live.start_button')}

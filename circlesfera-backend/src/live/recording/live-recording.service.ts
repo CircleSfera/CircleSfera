@@ -20,6 +20,8 @@ import {
   VideoCodec,
 } from 'livekit-server-sdk';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { SYSTEM_SETTING_KEYS } from '../../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../../system-settings/system-settings.service.js';
 import { UploadsService } from '../../uploads/uploads.service.js';
 import { liveKitApiUrl } from '../livekit-api-url.js';
 import {
@@ -29,7 +31,6 @@ import {
   RECORDER_FOLDER,
   RECORDING_ENCODING,
   RECORDING_MAX_MS,
-  RECORDINGS_AT_ONCE_DEFAULT,
   recordingsFolder,
 } from './live-recording.constants.js';
 
@@ -42,6 +43,29 @@ const START_LOST_MS = 2 * 60 * 1000;
 // ago (or ran past its longest), is given up.
 const UNKNOWN_GIVEN_UP_MS = 60 * 60 * 1000;
 const POLL_PAGE = 50;
+// How long the live service is given to list its rooms.
+const ROOMS_ANSWER_MS = 3000;
+// A broadcast that holds a recording place: on air, its recording running.
+// One that ended is over for the recorder, even while the minute check has
+// not settled its files yet.
+const RECORDING_PLACE_HELD = {
+  recordingStatus: 'RECORDING',
+  status: 'LIVE',
+} as const;
+
+/**
+ * What became of a broadcast's recording when it went live: not recorded
+ * where the environment has no recorder of its own (OFF), recorded,
+ * unrecorded as the recorder already records as many as it may
+ * (SKIPPED_LIMIT), or failed.
+ */
+export type RecordingStart = 'OFF' | 'RECORDING' | 'SKIPPED_LIMIT' | 'FAILED';
+
+/** A place taken for a recording, with its host's part to begin. */
+export interface RecordingPlace {
+  status: RecordingStart;
+  partId?: string;
+}
 
 const errorText = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -97,6 +121,7 @@ export class LiveRecordingService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly uploads: UploadsService,
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
   /**
@@ -114,14 +139,48 @@ export class LiveRecordingService {
   }
 
   /**
-   * How many broadcasts are recorded at once: LIVE_RECORDINGS_AT_ONCE, a
-   * whole number from 1, or 1 when it says nothing usable.
+   * How many broadcasts are recorded at once: the setting staff change from
+   * the Backoffice (max_concurrent_recordings, PD-092).
    */
-  recordingsAtOnce(): number {
-    const value = Number(this.config.get<string>('LIVE_RECORDINGS_AT_ONCE'));
-    return Number.isInteger(value) && value >= 1
-      ? value
-      : RECORDINGS_AT_ONCE_DEFAULT;
+  recordingsAtOnce(): Promise<number> {
+    return this.systemSettings.getNumber(
+      SYSTEM_SETTING_KEYS.MAX_CONCURRENT_RECORDINGS,
+    );
+  }
+
+  /** The broadcasts being recorded now: on air, with a recording running. */
+  recordingsRunning(): Promise<number> {
+    return this.prisma.liveStream.count({ where: RECORDING_PLACE_HELD });
+  }
+
+  /**
+   * The names of the rooms open at the live service now (a broadcast's room
+   * is named by its id), or null when the live service is not set up or did
+   * not answer within ROOMS_ANSWER_MS. Never throws.
+   */
+  async openRooms(): Promise<Set<string> | null> {
+    const [key, secret] = this.credentials();
+    if (!key || !secret || !this.apiUrl()) return null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const rooms = await Promise.race([
+        this.rooms().listRooms(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error('no answer')),
+            ROOMS_ANSWER_MS,
+          );
+        }),
+      ]);
+      return new Set(rooms.map((room) => room.name));
+    } catch (error: unknown) {
+      this.logger.warn(
+        `The live service's rooms could not be read: ${errorText(error)}`,
+      );
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private apiUrl(): string {
@@ -252,13 +311,28 @@ export class LiveRecordingService {
   /**
    * Starts recording a broadcast that has just begun, from its host's camera
    * and microphone, if recording is on and the recorder has a free place;
-   * otherwise marks it as not recorded for the limit. Never throws.
+   * otherwise marks it as not recorded for the limit. Says what became of
+   * it. Never throws.
    */
-  async start(streamId: string, hostProfileId: string): Promise<void> {
-    if (!this.isEnabled()) return;
-    const file = hostFileName(streamId);
-    let partId: string;
+  async start(
+    streamId: string,
+    hostProfileId: string,
+  ): Promise<RecordingStart> {
+    const place = await this.place(streamId);
+    if (!place.partId) return place.status;
+    return this.begin(streamId, hostProfileId, place.partId);
+  }
+
+  /**
+   * Takes a recorder's place for a broadcast that has just begun, when
+   * recording is on and one is free (marking it not recorded for the limit
+   * otherwise): quick, so the host is told at once whether the broadcast is
+   * recorded. begin() then asks the recorder. Never throws.
+   */
+  async place(streamId: string): Promise<RecordingPlace> {
+    if (!this.isEnabled()) return { status: 'OFF' };
     try {
+      const atOnce = await this.recordingsAtOnce();
       // Counted and taken under one lock: two broadcasts starting at the
       // same moment on two servers cannot both take the last place.
       const part = await this.prisma.$transaction(async (tx) => {
@@ -269,9 +343,9 @@ export class LiveRecordingService {
         // deploy's check, a host who leaves) would otherwise keep the next
         // one unrecorded until then.
         const running = await tx.liveStream.count({
-          where: { recordingStatus: 'RECORDING', status: 'LIVE' },
+          where: RECORDING_PLACE_HELD,
         });
-        const free = running < this.recordingsAtOnce();
+        const free = running < atOnce;
         await tx.liveStream.update({
           where: { id: streamId },
           data: free
@@ -280,27 +354,39 @@ export class LiveRecordingService {
         });
         if (!free) return null;
         return tx.liveRecordingPart.create({
-          data: { streamId, role: 'HOST', file },
+          data: { streamId, role: 'HOST', file: hostFileName(streamId) },
           select: { id: true },
         });
       });
       if (!part) {
         this.logger.log(`Broadcast ${streamId} not recorded: recorder full`);
-        return;
+        return { status: 'SKIPPED_LIMIT' };
       }
-      partId = part.id;
+      return { status: 'RECORDING', partId: part.id };
     } catch (error: unknown) {
       this.logger.error(
         `The recording of broadcast ${streamId} could not be placed: ${errorText(error)}`,
       );
-      return;
+      return { status: 'FAILED' };
     }
+  }
 
+  /**
+   * Asks the recorder to record the host of a broadcast that took a place,
+   * marking the part and the recording failed when it cannot. Never throws.
+   */
+  async begin(
+    streamId: string,
+    hostProfileId: string,
+    partId: string,
+  ): Promise<RecordingStart> {
+    const file = hostFileName(streamId);
     try {
       // The recorder joins a room that exists: it is made now, before the
       // host's device joins it.
       await this.rooms().createRoom({ name: streamId, emptyTimeout: 300 });
       await this.startPart(streamId, hostProfileId, { id: partId, file });
+      return 'RECORDING';
     } catch (error: unknown) {
       this.logger.error(
         `The recording of broadcast ${streamId} could not start: ${errorText(error)}`,
@@ -309,6 +395,7 @@ export class LiveRecordingService {
       await this.failPart(partId).catch(() => undefined);
       await this.stopStrayJobs(streamId, [file]);
       await this.markFailed(streamId).catch(() => undefined);
+      return 'FAILED';
     }
   }
 

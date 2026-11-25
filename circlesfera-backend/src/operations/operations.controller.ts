@@ -5,6 +5,7 @@ import {
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import { LiveCapacityService } from '../live/capacity/live-capacity.service.js';
 import { CspReportStore } from '../security-reports/csp-report.store.js';
 import { OrphanFilesReportService } from './orphan-files-report.service.js';
 import { ServerResourcesService } from './server-resources.service.js';
@@ -28,6 +29,8 @@ export class OperationsController {
     @Inject(CspReportStore) private readonly csp: CspReportStore,
     @Inject(OrphanFilesReportService)
     private readonly orphans: OrphanFilesReportService,
+    @Inject(LiveCapacityService)
+    private readonly lives: LiveCapacityService,
   ) {}
 
   @Get('resources')
@@ -52,5 +55,12 @@ export class OperationsController {
   @ApiResponse({ status: 200 })
   getOrphanFiles() {
     return this.orphans.report();
+  }
+
+  // Lives and recordings running against their limits (PD-092).
+  @Get('lives')
+  @ApiResponse({ status: 200 })
+  getLives() {
+    return this.lives.report();
   }
 }

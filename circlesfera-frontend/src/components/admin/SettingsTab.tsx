@@ -6,6 +6,7 @@ import {
   type AdminSystemSetting,
   adminApi,
 } from '../../services/admin.service';
+import { apiErrorDetails } from '../../utils/apiErrorMessage';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminPageHeader } from './AdminPageHeader';
@@ -43,7 +44,25 @@ export default function SettingsTab({ onToast }: Props) {
       onToast(t('admin.settings.saved_success'), 'success');
       queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] });
     },
-    onError: () => {
+    onError: (error) => {
+      // A count outside its range (the limits of lives): the server names
+      // the setting and its bounds.
+      const details = apiErrorDetails(error);
+      if (
+        typeof details?.key === 'string' &&
+        typeof details.min === 'number' &&
+        typeof details.max === 'number'
+      ) {
+        onToast(
+          t('admin.settings.saved_error_range', {
+            label: t(`admin.settings.keys.${details.key}`, details.key),
+            min: details.min,
+            max: details.max,
+          }),
+          'error',
+        );
+        return;
+      }
       onToast(t('admin.settings.saved_error'), 'error');
     },
   });
@@ -171,6 +190,10 @@ export default function SettingsTab({ onToast }: Props) {
                       <input
                         id={fieldId}
                         type="text"
+                        // A count (the limits of lives) opens the number pad.
+                        inputMode={
+                          /^\d+$/.test(setting.value) ? 'numeric' : undefined
+                        }
                         value={value}
                         onChange={(e) =>
                           handleChange(setting.key, e.target.value)

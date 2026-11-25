@@ -2,6 +2,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
+  isValidSettingValue,
   SYSTEM_SETTING_DEFAULTS,
   SYSTEM_SETTING_KEYS,
 } from './system-settings.constants.js';
@@ -142,6 +143,51 @@ describe('SystemSettingsService', () => {
 
     const value = await service.getValue('UNKNOWN_KEY' as any);
     expect(value).toBe('false');
+  });
+
+  describe('the limits of lives and recordings (PD-092)', () => {
+    it('start at 10 lives and 2 recordings at once', async () => {
+      expect(
+        await service.getNumber(SYSTEM_SETTING_KEYS.MAX_CONCURRENT_LIVES),
+      ).toBe(10);
+      expect(
+        await service.getNumber(SYSTEM_SETTING_KEYS.MAX_CONCURRENT_RECORDINGS),
+      ).toBe(2);
+    });
+
+    it('read what staff set', async () => {
+      store.set(SYSTEM_SETTING_KEYS.MAX_CONCURRENT_LIVES, '25');
+      expect(
+        await service.getNumber(SYSTEM_SETTING_KEYS.MAX_CONCURRENT_LIVES),
+      ).toBe(25);
+    });
+
+    it.each(['0', '-3', '2.5', 'ten', '', '100000'])(
+      'read a stored %j as the default, never as no limit or none',
+      async (value) => {
+        store.set(SYSTEM_SETTING_KEYS.MAX_CONCURRENT_RECORDINGS, value);
+        expect(
+          await service.getNumber(
+            SYSTEM_SETTING_KEYS.MAX_CONCURRENT_RECORDINGS,
+          ),
+        ).toBe(2);
+      },
+    );
+  });
+
+  it.each([
+    ['max_concurrent_lives', '1', true],
+    ['max_concurrent_lives', '500', true],
+    ['max_concurrent_lives', '501', false],
+    ['max_concurrent_lives', '0', false],
+    ['max_concurrent_lives', ' 10', false],
+    ['max_concurrent_recordings', '50', true],
+    ['max_concurrent_recordings', '51', false],
+    ['max_concurrent_recordings', 'true', false],
+    ['maintenance_mode', 'true', true],
+    ['maintenance_mode', '1', false],
+  ])('a value of %s of %j fits: %s', (key, value, fits) => {
+    expect(isValidSettingValue(key, value)).toBe(fits);
   });
 
   it('sells promotions unless staff turn them off', () => {

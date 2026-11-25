@@ -16,6 +16,7 @@ import {
 } from '../auth/decorators/current-user.decorator.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { LiveCapacityService } from './capacity/live-capacity.service.js';
 import { InviteCoHostDto } from './dto/invite-cohost.dto.js';
 import { InviteGuestDto } from './dto/invite-guest.dto.js';
 import { StartStreamDto } from './dto/start-stream.dto.js';
@@ -30,6 +31,7 @@ export class LiveController {
     private readonly liveService: LiveService,
     private readonly startNotice: LiveStartNoticeService,
     private readonly schedule: LiveScheduleService,
+    private readonly capacity: LiveCapacityService,
   ) {}
 
   @Post('start')
@@ -88,6 +90,15 @@ export class LiveController {
   @ApiResponse({ status: 200 })
   getActiveStreams(@CurrentUser() user: CurrentUserData) {
     return this.liveService.getActiveStreams(user.profileId);
+  }
+
+  // Before going live (PD-092): whether lives are full now, and whether a
+  // live started now would be recorded. Before `:streamId`, which would
+  // take the word for an id.
+  @Get('capacity')
+  @ApiResponse({ status: 200 })
+  getCapacity() {
+    return this.capacity.forHost();
   }
 
   @Get(':streamId')

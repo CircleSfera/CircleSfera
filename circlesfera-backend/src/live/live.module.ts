@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { SocketModule } from '../socket/socket.module.js';
+import { LiveCapacityModule } from './capacity/live-capacity.module.js';
 import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
@@ -17,6 +18,7 @@ import { LiveRecordingModule } from './recording/live-recording.module.js';
     PrismaModule,
     NotificationsModule,
     LiveRecordingModule,
+    LiveCapacityModule,
     forwardRef(() => SocketModule),
   ],
   // The scheduled lives' routes first: `/live/scheduled` is not a live's id.

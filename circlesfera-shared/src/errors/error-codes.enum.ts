@@ -143,6 +143,9 @@ export enum ErrorCode {
   ALREADY_ON_AIR = 'ALREADY_ON_AIR',
   CANNOT_RECONNECT_GUEST = 'CANNOT_RECONNECT_GUEST',
   LIVE_STREAMS_DISABLED = 'LIVE_STREAMS_DISABLED',
+  // As many lives are on air as the live server takes at once (PD-092):
+  // details carry nothing; the host tries again in a few minutes.
+  LIVES_FULL = 'LIVES_FULL',
   // The broadcast is still on, or its recording is not ready (or gone).
   RECORDING_NOT_READY = 'RECORDING_NOT_READY',
   // A scheduled live starts too soon or too far ahead; details carry the

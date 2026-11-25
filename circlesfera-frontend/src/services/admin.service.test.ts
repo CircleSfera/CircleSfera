@@ -90,6 +90,12 @@ const cases: Case[] = [
     ['/admin/operations/orphan-files'],
   ],
   [
+    'getOperationsLives',
+    () => adminApi.getOperationsLives(),
+    'get',
+    ['/admin/operations/lives'],
+  ],
+  [
     'getActivityChart',
     () => adminApi.getActivityChart(),
     'get',
@@ -1203,6 +1209,7 @@ describe('the staff API client', () => {
     await expect(adminApi.getOperationsWarehouse()).resolves.toBe('payload');
     await expect(adminApi.getOperationsCsp()).resolves.toBe('payload');
     await expect(adminApi.getOperationsOrphanFiles()).resolves.toBe('payload');
+    await expect(adminApi.getOperationsLives()).resolves.toBe('payload');
     await expect(adminApi.getSystemSettings()).resolves.toBe('payload');
     await expect(adminApi.updateSystemSettings([])).resolves.toBe('payload');
   });
