@@ -557,6 +557,55 @@ export const EmailTemplates = {
     };
   },
 
+  // A founding creator's free year ends in a few days (BD-034): the day it
+  // ends; for a year that goes on, the monthly price a saved card then pays
+  // (in cents, VAT included) and how to cancel; for one set to end, that
+  // nothing is charged and Verified is chosen in Plans.
+  freeYearEnding: (
+    ctx: EmailContext,
+    planName: string,
+    username: string,
+    endsAt: Date,
+    priceCents: number,
+    currency: string,
+    continues = true,
+    // The Profile whose year it is: the link opens its billing, which the
+    // app shows only to its owner.
+    profileId: string | null = null,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    const language = ctx.locale === 'es' ? 'es-ES' : 'en-GB';
+    const billing = profileId
+      ? `${ctx.frontendUrl}/accounts/billing?profile=${encodeURIComponent(profileId)}`
+      : `${ctx.frontendUrl}/accounts/billing`;
+    const date = endsAt.toLocaleDateString(language, {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+    const price = new Intl.NumberFormat(language, {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(priceCents / 100);
+    return {
+      subject: fill(copy.freeYearEnding.subject, { plan: planName, date }),
+      html: layout(ctx, copy, {
+        title: copy.freeYearEnding.title,
+        content: fill(
+          continues ? copy.freeYearEnding.body : copy.freeYearEnding.bodyEnds,
+          {
+            plan: escapeHtml(planName),
+            username: escapeHtml(username),
+            date: escapeHtml(date),
+            price: escapeHtml(price),
+          },
+        ),
+        button: { text: copy.freeYearEnding.button, url: billing },
+      }),
+    };
+  },
+
   // A plan withdrawn from within 14 days: it ended at once, and the unused
   // part of what was paid is refunded. The amount is in cents.
   planWithdrawn: (

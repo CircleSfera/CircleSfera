@@ -1,0 +1,162 @@
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { adminAuthApi } from '../../services/admin-auth.service';
+import { foundingCreatorsStaffApi } from '../../services/foundingCreators.service';
+import { renderWithProviders } from '../../test/test-utils';
+import { adminToast } from './adminToast';
+import FoundingCreatorsTab from './FoundingCreatorsTab';
+
+vi.mock('../../services/foundingCreators.service', () => ({
+  foundingCreatorsStaffApi: { queue: vi.fn(), decide: vi.fn() },
+}));
+vi.mock('./adminToast', () => ({ adminToast: vi.fn() }));
+vi.mock('../../services/admin-auth.service', () => ({
+  adminAuthApi: { stepUp: vi.fn() },
+}));
+
+const api = vi.mocked(foundingCreatorsStaffApi);
+
+const application = (over = {}) => ({
+  id: 'app-1',
+  status: 'PENDING' as const,
+  links: ['https://vimeo.com/ana', 'https://www.tiktok.com/@ana'],
+  city: 'Valencia',
+  note: 'Editor of reels',
+  createdAt: '2026-11-25T10:00:00Z',
+  platformSubscriptionId: null,
+  profile: {
+    id: 'p1',
+    username: 'ana',
+    accountType: 'CREATOR',
+    verificationLevel: 'BASIC',
+    user: { identityVerifiedAt: null },
+  },
+  ...over,
+});
+
+describe('FoundingCreatorsTab', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.queue.mockResolvedValue({ items: [application()], total: 1 });
+    api.decide.mockResolvedValue(application());
+    vi.mocked(adminAuthApi.stepUp).mockResolvedValue({} as never);
+  });
+
+  it('shows what staff decide on: the work, the city, the note and whether the identity is verified', async () => {
+    const { i18n } = renderWithProviders(<FoundingCreatorsTab />);
+    const card = await screen.findByTestId('founding-application-app-1');
+    expect(card).toHaveTextContent('@ana');
+    expect(card).toHaveTextContent('Valencia');
+    expect(card).toHaveTextContent('Editor of reels');
+    expect(card).toHaveTextContent(
+      i18n!.t('admin.founding_creators.identity_missing'),
+    );
+    const link = screen.getByText('https://vimeo.com/ana');
+    expect(link).toHaveAttribute('href', 'https://vimeo.com/ana');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer nofollow');
+  });
+
+  it('approves after the member of staff proves again who they are, and says the person starts the year', async () => {
+    api.decide
+      .mockRejectedValueOnce({
+        response: { status: 401, data: { message: 'ADMIN_STEP_UP_REQUIRED' } },
+      })
+      .mockResolvedValue({ ...application(), status: 'APPROVED' });
+    const { i18n } = renderWithProviders(<FoundingCreatorsTab />);
+    fireEvent.click(
+      await screen.findByText(i18n!.t('admin.founding_creators.approve')),
+    );
+    await screen.findByRole('dialog');
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: '123456' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() =>
+      expect(adminAuthApi.stepUp).toHaveBeenCalledWith({
+        totpCode: '123456',
+      }),
+    );
+    await waitFor(() =>
+      expect(adminToast).toHaveBeenCalledWith(
+        i18n!.t('admin.founding_creators.approved'),
+        'success',
+      ),
+    );
+    expect(api.decide).toHaveBeenCalledTimes(2);
+    expect(api.decide).toHaveBeenLastCalledWith('app-1', { approve: true });
+  });
+
+  it('declines with a reason the person reads and a note', async () => {
+    const { i18n } = renderWithProviders(<FoundingCreatorsTab />);
+    const t = i18n!.t.bind(i18n);
+    fireEvent.click(
+      await screen.findByText(t('admin.founding_creators.decline')),
+    );
+    fireEvent.change(
+      screen.getByLabelText(t('admin.founding_creators.reason')),
+      {
+        target: { value: 'PROGRAM_FULL' },
+      },
+    );
+    fireEvent.change(
+      screen.getByLabelText(t('admin.founding_creators.decline_note')),
+      { target: { value: ' Try again in spring ' } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: t('admin.founding_creators.confirm_decline'),
+      }),
+    );
+    await waitFor(() =>
+      expect(api.decide).toHaveBeenCalledWith('app-1', {
+        approve: false,
+        reason: 'PROGRAM_FULL',
+        note: 'Try again in spring',
+      }),
+    );
+  });
+
+  it('reads the queue again when the application was decided by someone else meanwhile', async () => {
+    api.decide.mockRejectedValue({
+      response: {
+        status: 409,
+        data: { errorCode: 'FOUNDING_CREATOR_NOT_FOUND' },
+      },
+    });
+    const { i18n } = renderWithProviders(<FoundingCreatorsTab />);
+    fireEvent.click(
+      await screen.findByText(i18n!.t('admin.founding_creators.approve')),
+    );
+
+    await waitFor(() => expect(api.queue).toHaveBeenCalledTimes(2));
+    expect(adminToast).toHaveBeenCalledWith(
+      i18n!.t('admin.founding_creators.decide_failed'),
+      'error',
+    );
+  });
+
+  it('keeps the queue as it is after another failure', async () => {
+    api.decide.mockRejectedValue({ response: { status: 500, data: {} } });
+    const { i18n } = renderWithProviders(<FoundingCreatorsTab />);
+    fireEvent.click(
+      await screen.findByText(i18n!.t('admin.founding_creators.approve')),
+    );
+
+    await waitFor(() =>
+      expect(adminToast).toHaveBeenCalledWith(
+        i18n!.t('admin.founding_creators.decide_failed'),
+        'error',
+      ),
+    );
+    expect(api.queue).toHaveBeenCalledTimes(1);
+  });
+
+  it('says when nothing waits', async () => {
+    api.queue.mockResolvedValue({ items: [], total: 0 });
+    const { i18n } = renderWithProviders(<FoundingCreatorsTab />);
+    expect(
+      await screen.findByText(i18n!.t('admin.founding_creators.empty_title')),
+    ).toBeInTheDocument();
+  });
+});

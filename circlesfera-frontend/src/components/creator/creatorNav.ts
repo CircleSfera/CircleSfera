@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   type LucideIcon,
   Megaphone,
+  Sparkles,
 } from 'lucide-react';
 
 // Canonical creator studio tabs (older addresses redirect to plans).
@@ -17,7 +18,8 @@ export type CreatorTab =
   | 'stories'
   | 'plans'
   | 'ads'
-  | 'business';
+  | 'business'
+  | 'founders';
 
 // Older tab ids kept only for redirects.
 export const CREATOR_LEGACY_TABS: readonly string[] = [
@@ -32,6 +34,8 @@ export interface CreatorNavItem {
   badge?: string;
   /** Shown only to a Business Profile. */
   businessOnly?: boolean;
+  /** Shown only to a Creator Profile. */
+  creatorOnly?: boolean;
 }
 
 export interface CreatorNavGroup {
@@ -70,6 +74,13 @@ export const CREATOR_NAV_GROUPS: CreatorNavGroup[] = [
         id: 'ads',
         labelKey: 'creator.nav.ads',
         icon: Megaphone,
+      },
+      {
+        // Founding creators (BD-034): a Creator Profile applies here.
+        id: 'founders',
+        labelKey: 'creator.nav.founders',
+        icon: Sparkles,
+        creatorOnly: true,
       },
     ],
   },
@@ -112,5 +123,9 @@ export function visibleNavItems(
   items: CreatorNavItem[],
   accountType: string | undefined,
 ): CreatorNavItem[] {
-  return items.filter((i) => !i.businessOnly || accountType === 'BUSINESS');
+  return items.filter(
+    (i) =>
+      (!i.businessOnly || accountType === 'BUSINESS') &&
+      (!i.creatorOnly || accountType === 'CREATOR'),
+  );
 }

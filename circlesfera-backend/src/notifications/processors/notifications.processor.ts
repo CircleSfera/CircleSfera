@@ -1,5 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
+import { NotificationType } from '@prisma/client';
 import { type Job, UnrecoverableError } from 'bullmq';
 import { DEFAULT_LOCALE } from '../../common/constants/locale.constants.js';
 import {
@@ -8,7 +9,12 @@ import {
 } from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PushService } from '../../push/push.service.js';
+import {
+  FREE_YEAR_ENDING_NOTICE_JOB,
+  type FreeYearEndingNoticeJob,
+} from '../free-year-notice.job.js';
 import { renderDigest } from '../notice-copy.js';
+import { NotificationsService } from '../notifications.service.js';
 
 @Processor(
   QUEUE_NAMES.NOTIFICATIONS_PROCESSING,
@@ -20,6 +26,8 @@ export class NotificationsProcessor extends WorkerHost {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(PushService) private readonly pushService: PushService,
+    @Inject(NotificationsService)
+    private readonly notifications: NotificationsService,
   ) {
     super();
   }
@@ -30,10 +38,64 @@ export class NotificationsProcessor extends WorkerHost {
         return this.sendDigestPushNotifications();
       case 'cleanup-old-notifications':
         return this.cleanupOldNotifications();
+      case FREE_YEAR_ENDING_NOTICE_JOB:
+        return this.freeYearEndingNotice(
+          (job.data as FreeYearEndingNoticeJob).applicationId,
+        );
       default:
         throw new UnrecoverableError(
           `Unknown job name in notifications queue: ${job.name}`,
         );
+    }
+  }
+
+  // The in-app reminder that a founding creator's free year ends (BD-034),
+  // written now from the year as it is: a year set to end (cancelled
+  // meanwhile, or without VAT) gets the ending text. Nothing when the
+  // application, its year or its Profile is gone, or the year is no longer
+  // in its free period. A notice that could not be created fails the job,
+  // which is tried again under its one id.
+  async freeYearEndingNotice(applicationId: string): Promise<void> {
+    const application = await this.prisma.foundingCreatorApplication.findUnique(
+      {
+        where: { id: applicationId },
+        select: {
+          platformSubscription: {
+            select: {
+              id: true,
+              status: true,
+              cancelAtPeriodEnd: true,
+              currentPeriodEnd: true,
+              periodPriceCents: true,
+              profileId: true,
+              plan: { select: { priceCents: true, currency: true } },
+            },
+          },
+        },
+      },
+    );
+    const year = application?.platformSubscription;
+    if (!year?.profileId || year.status !== 'TRIALING') {
+      this.logger.log(
+        `Free year notice ${applicationId} skipped: nothing to tell`,
+      );
+      return;
+    }
+    const created = await this.notifications.create({
+      recipientId: year.profileId,
+      type: NotificationType.SYSTEM,
+      notice: {
+        key: 'free_year_ending',
+        endsAt: year.currentPeriodEnd,
+        priceCents: year.periodPriceCents ?? year.plan.priceCents,
+        currency: year.plan.currency,
+        continues: !year.cancelAtPeriodEnd,
+      },
+      targetType: 'platform_subscription',
+      targetId: year.id,
+    });
+    if (!created) {
+      throw new Error(`The free year notice ${applicationId} was not created`);
     }
   }
 

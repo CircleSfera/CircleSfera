@@ -14,6 +14,7 @@ describe('creatorNav', () => {
       'business',
       'plans',
       'ads',
+      'founders',
       'content',
       'stories',
     ]);
@@ -36,5 +37,14 @@ describe('creatorNav', () => {
     expect(ids('CREATOR')).not.toContain('business');
     expect(ids(undefined)).not.toContain('business');
     expect(ids('CREATOR')).toContain('analytics');
+  });
+
+  it('shows the founding creators tab to a Creator Profile only (BD-034)', () => {
+    const ids = (type: string | undefined) =>
+      visibleNavItems(CREATOR_NAV_ITEMS, type).map((i) => i.id);
+    expect(ids('CREATOR')).toContain('founders');
+    expect(ids('BUSINESS')).not.toContain('founders');
+    expect(ids('PERSONAL')).not.toContain('founders');
+    expect(ids(undefined)).not.toContain('founders');
   });
 });

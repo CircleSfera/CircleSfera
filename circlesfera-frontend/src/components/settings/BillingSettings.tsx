@@ -3,8 +3,9 @@ import { Shield, Star } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { paymentsApi } from '../../services/payments.service';
+import { profileApi } from '../../services/profile.service';
 import { useAuthStore } from '../../stores/authStore';
 import { formatCents } from '../../utils/money';
 import { sellsInApp } from '../../utils/sellsInApp';
@@ -20,6 +21,57 @@ const CANCELLABLE = ['ACTIVE', 'TRIALING', 'PAST_DUE'];
 // A cancelled plan can be resumed while it is in force, not after a failed
 // renewal.
 const RESUMABLE = ['ACTIVE', 'TRIALING'];
+
+// A link that names one of the person's Profiles (the email about its free
+// year): billing shows the Profile in use, so when that is another one the
+// person is offered to switch to it. Only a Profile the account owns is
+// offered (the list of its own Profiles, and the server's switch, decide);
+// any other id is ignored.
+function OtherProfileBilling() {
+  const { t } = useTranslation();
+  const [params] = useSearchParams();
+  const requested = params.get('profile');
+  const activeId = useAuthStore((state) => state.profile?.id);
+  const switchProfile = useAuthStore((state) => state.switchProfile);
+  const wanted = !!requested && requested !== activeId;
+  const { data: mine } = useQuery({
+    queryKey: ['my-profiles'],
+    queryFn: () => profileApi.getMyProfiles().then((res) => res.data),
+    enabled: wanted,
+  });
+  const other = wanted
+    ? mine?.find((profile) => profile.id === requested)
+    : undefined;
+  const switchTo = useMutation({
+    mutationFn: async (profileId: string) => {
+      await switchProfile?.(profileId);
+    },
+    // The app starts again as that Profile, on its billing.
+    onSuccess: () => window.location.assign('/accounts/billing'),
+    onError: () => toast.error(t('settings.profiles.switch_failed')),
+  });
+  if (!other) return null;
+  return (
+    <div
+      className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3"
+      data-testid="billing-other-profile"
+    >
+      <p className="text-sm text-white/80">
+        {t('settings.billing.other_profile_link', {
+          username: other.username,
+        })}
+      </p>
+      <Button
+        variant="white"
+        className="min-h-11 button-alone text-sm font-semibold"
+        isLoading={switchTo.isPending}
+        onClick={() => switchTo.mutate(other.id)}
+      >
+        {t('settings.billing.switch_to_profile', { username: other.username })}
+      </Button>
+    </div>
+  );
+}
 
 export default function BillingSettings() {
   const { t, i18n } = useTranslation();
@@ -84,6 +136,10 @@ export default function BillingSettings() {
   }
 
   const subscription = billingStatus?.subscription;
+  const freeYear =
+    !!subscription?.foundingCreatorYear &&
+    subscription.status === 'TRIALING' &&
+    !!subscription.currentPeriodEnd;
   const hasActiveSubscription = !!billingStatus?.hasActiveSubscription;
   // The other profiles of the person that have a plan: one payer for all.
   const otherProfiles: {
@@ -94,6 +150,7 @@ export default function BillingSettings() {
 
   return (
     <div className="max-w-xl space-y-5">
+      <OtherProfileBilling />
       <SettingsSection
         title={t('settings.billing.title')}
         description={t('settings.billing.subtitle_profile', { username })}
@@ -115,7 +172,38 @@ export default function BillingSettings() {
                   )
                 : t('settings.billing.no_subscription')}
             </p>
-            {subscription?.priceCents > 0 && (
+            {/* A founding creator's free year (BD-034): nothing is charged
+                while it lasts. At its end it goes on with a saved card, or
+                ends: when cancelled, or when no VAT can be worked out. */}
+            {freeYear && (
+              <p
+                className="text-xs text-white/70 mt-1"
+                data-testid="billing-free-year"
+              >
+                {t(
+                  subscription.freeYearRenewable === false
+                    ? 'settings.billing.free_year_ends_no_address'
+                    : subscription.cancelAtPeriodEnd
+                      ? 'settings.billing.free_year_ends'
+                      : 'settings.billing.free_year_until',
+                  {
+                    date: new Date(
+                      subscription.currentPeriodEnd,
+                    ).toLocaleDateString(i18n.language, {
+                      dateStyle: 'long',
+                      timeZone: 'UTC',
+                    }),
+                    // What a saved card then pays, as the plan says.
+                    price: formatCents(
+                      subscription.priceCents,
+                      i18n.language,
+                      subscription.currency,
+                    ),
+                  },
+                )}
+              </p>
+            )}
+            {!freeYear && subscription?.priceCents > 0 && (
               <p className="text-xs text-white/50 mt-1">
                 {t(
                   subscription.billingInterval === 'year'
@@ -131,7 +219,7 @@ export default function BillingSettings() {
                 )}
               </p>
             )}
-            {subscription?.currentPeriodEnd && (
+            {!freeYear && subscription?.currentPeriodEnd && (
               <p className="text-xs text-white/40 mt-1">
                 {subscription.cancelAtPeriodEnd
                   ? t('settings.billing.cancels_on')
@@ -209,9 +297,12 @@ export default function BillingSettings() {
             </div>
           )}
 
+        {/* A free year whose VAT cannot be worked out is not resumed: the
+            server refuses it, so it is not offered. */}
         {subscription &&
           RESUMABLE.includes(subscription.status) &&
           subscription.cancelAtPeriodEnd &&
+          subscription.freeYearRenewable !== false &&
           new Date(subscription.currentPeriodEnd).getTime() > Date.now() && (
             <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-3">
               <p className="text-sm text-white/70">

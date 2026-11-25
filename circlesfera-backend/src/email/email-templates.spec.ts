@@ -189,6 +189,79 @@ describe('EmailTemplates', () => {
     ).toContain('1 de noviembre de 2026');
   });
 
+  it('the end of a free year says the day, the monthly price with VAT a saved card pays and how to cancel, in each language, and links to the plan', () => {
+    const endsAt = new Date('2027-11-25T10:00:00.000Z');
+    const mail = EmailTemplates.freeYearEnding(
+      en,
+      '<b>Verified</b>',
+      'ana',
+      endsAt,
+      499,
+      'eur',
+    );
+
+    expect(mail.subject).toBe(
+      'Your free year of <b>Verified</b> ends on 25 November 2027',
+    );
+    expect(mail.html).toContain('ends on <strong>25 November 2027</strong>');
+    expect(mail.html).toContain('<strong>€4.99 a month, VAT included</strong>');
+    expect(mail.html).toContain('the plan ends by itself');
+    expect(mail.html).toContain('Settings → Subscription');
+    expect(mail.html).toContain('&lt;b&gt;Verified&lt;/b&gt;');
+    expect(mail.html).toContain(
+      'href="https://circlesfera.com/accounts/billing"',
+    );
+    const es_ = EmailTemplates.freeYearEnding(
+      es,
+      'Verified',
+      'ana',
+      endsAt,
+      499,
+      'EUR',
+    );
+    expect(es_.subject).toBe(
+      'Tu año gratis de Verified termina el 25 de noviembre de 2027',
+    );
+    expect(es_.html).toMatch(/4,99\s€ al mes, IVA incluido/);
+  });
+
+  it('the end of a free year links the billing of the Profile whose year it is', () => {
+    const mail = EmailTemplates.freeYearEnding(
+      en,
+      'Verified',
+      'ana',
+      new Date('2027-11-25T10:00:00.000Z'),
+      499,
+      'EUR',
+      true,
+      'prof 1',
+    );
+    expect(mail.html).toContain(
+      'href="https://circlesfera.com/accounts/billing?profile=prof%201"',
+    );
+  });
+
+  it('the end of a free year set to end says nothing is charged and where to keep Verified, in each language', () => {
+    const endsAt = new Date('2027-11-25T10:00:00.000Z');
+    const ends = (ctx: typeof en) =>
+      EmailTemplates.freeYearEnding(
+        ctx,
+        'Verified',
+        'ana',
+        endsAt,
+        499,
+        'EUR',
+        false,
+      ).html;
+    expect(ends(en)).toContain(
+      'ends on <strong>25 November 2027</strong>, and nothing is charged',
+    );
+    expect(ends(en)).toContain('choose it in Plans');
+    expect(ends(en)).not.toContain('a month, VAT included');
+    expect(ends(es)).toContain('y no se cobra nada');
+    expect(ends(es)).toContain('elígelo en Planes');
+  });
+
   it('a withdrawn plan says it ended and how much is refunded, in each language, and links to the plan', () => {
     const mail = EmailTemplates.planWithdrawn(
       en,

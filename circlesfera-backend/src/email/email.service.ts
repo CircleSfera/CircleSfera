@@ -41,6 +41,15 @@ export interface SendMailOptions {
 // actual send and throws on a transient failure so BullMQ retries it; a
 // permanent (4xx, non-429) BrevoError should NOT be retried -- see
 // EmailProcessor, which classifies via isTransientBrevoFailure below.
+// The job of the reminder that a founding creator's free year ends
+// (BD-034). It carries ids only: the email is written when the job runs,
+// from what is kept then, so no address or text waits in the outbox.
+export const FREE_YEAR_ENDING_EMAIL_JOB = 'send-free-year-ending';
+export interface FreeYearEndingEmailJob {
+  applicationId: string;
+  kind: 'free-year-ending';
+}
+
 export const MAX_EMAILS_PER_RECIPIENT_WINDOW = 5;
 export const RECIPIENT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -415,6 +424,82 @@ export class EmailService {
       email,
       EmailTemplates.planResumed(ctx, planName, username, renewsAt),
     );
+  }
+
+  // The reminder that a founding creator's free year ends, written when its
+  // job runs from what is kept now: the account's address, the Profile, the
+  // day and the price. Null, and nothing is sent, when the application, its
+  // year or the account is gone, or the year is no longer in its free
+  // period.
+  async freeYearEndingMailFor(
+    applicationId: string,
+  ): Promise<SendMailOptions | null> {
+    const application = await this.prisma.foundingCreatorApplication.findUnique(
+      {
+        where: { id: applicationId },
+        select: {
+          platformSubscription: {
+            select: {
+              status: true,
+              cancelAtPeriodEnd: true,
+              currentPeriodEnd: true,
+              periodPriceCents: true,
+              profileId: true,
+              user: { select: { email: true } },
+              profile: { select: { username: true } },
+              plan: {
+                select: { name: true, priceCents: true, currency: true },
+              },
+            },
+          },
+        },
+      },
+    );
+    const year = application?.platformSubscription;
+    const email = year?.user?.email;
+    if (!year || !email || year.status !== 'TRIALING') return null;
+    return this.freeYearEndingMail({
+      email,
+      planName: year.plan.name,
+      username: year.profile?.username ?? '',
+      profileId: year.profileId,
+      endsAt: year.currentPeriodEnd,
+      priceCents: year.periodPriceCents ?? year.plan.priceCents,
+      currency: year.plan.currency,
+      continues: !year.cancelAtPeriodEnd,
+    });
+  }
+
+  // A founding creator's free year ends in a few days (BD-034): a notice
+  // of a charge to come, to the account's address. Its link opens the
+  // billing of the Profile whose year it is.
+  async freeYearEndingMail(params: {
+    email: string;
+    planName: string;
+    username: string;
+    profileId: string | null;
+    endsAt: Date;
+    priceCents: number;
+    currency: string;
+    // Whether it goes on with a saved card, or is set to end.
+    continues: boolean;
+  }): Promise<SendMailOptions> {
+    const ctx = await this.contextFor(params.email);
+    const rendered = EmailTemplates.freeYearEnding(
+      ctx,
+      params.planName,
+      params.username,
+      params.endsAt,
+      params.priceCents,
+      params.currency,
+      params.continues,
+      params.profileId,
+    );
+    return {
+      to: params.email,
+      subject: rendered.subject,
+      html: rendered.html,
+    };
   }
 
   // A plan was withdrawn from within 14 days: it ended at once and the
