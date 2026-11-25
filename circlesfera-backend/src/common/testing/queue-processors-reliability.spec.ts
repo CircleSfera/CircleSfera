@@ -202,7 +202,7 @@ describe('Queue Processors Reliability & Error Handling', () => {
 
   describe('NotificationsProcessor', () => {
     it('throws UnrecoverableError on unknown job name', async () => {
-      const proc = new NotificationsProcessor({} as any, {} as any);
+      const proc = new NotificationsProcessor({} as any, {} as any, {} as any);
       const job = { name: 'unknown-notif-job', data: {} } as any;
 
       await expect(proc.process(job)).rejects.toThrow(UnrecoverableError);
@@ -215,7 +215,7 @@ describe('Queue Processors Reliability & Error Handling', () => {
         },
       } as any;
 
-      const proc = new NotificationsProcessor(mockPrisma, {} as any);
+      const proc = new NotificationsProcessor(mockPrisma, {} as any, {} as any);
       await expect(proc.cleanupOldNotifications()).rejects.toThrow(
         'Database deadlock',
       );

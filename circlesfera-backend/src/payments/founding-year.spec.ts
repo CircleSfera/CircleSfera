@@ -928,21 +928,51 @@ describe('PaymentsService: the free year of a founding creator', () => {
     });
     const remind = () =>
       dispatch('customer.subscription.trial_will_end', { id: 'sub_free' });
-    const notice = (continues: boolean) => ({
-      recipientId: 'prof_1',
-      type: 'SYSTEM',
-      notice: {
-        key: 'free_year_ending',
-        endsAt: YEAR_END,
-        priceCents: 499,
-        currency: 'EUR',
-        continues,
-      },
-      targetType: 'platform_subscription',
-      targetId: 'row_1',
+    // The jobs each way: ids only, one id each, a minute later.
+    const EMAIL_JOB = {
+      queueName: 'email-processing',
+      eventName: 'send-free-year-ending',
+      payload: { applicationId: 'app_1', kind: 'free-year-ending' },
+      options: { jobId: 'free-year-ending-app_1', delay: 60_000 },
+    };
+    const NOTICE_JOB = {
+      queueName: 'notifications-processing',
+      eventName: 'create-free-year-ending-notice',
+      payload: { applicationId: 'app_1', kind: 'free-year-ending-notice' },
+      options: { jobId: 'free-year-ending-notice-app_1', delay: 60_000 },
+    };
+    // The markers as the database keeps them: what a transaction writes is
+    // kept only when it commits, and dropped when its callback throws.
+    let markers: Record<string, Date | null>;
+    const queued = () =>
+      outbox.enqueue.mock.calls.map(
+        (call) => (call[1] as { eventName: string }).eventName,
+      );
+    beforeEach(() => {
+      markers = { freeYearReminderSentAt: null, freeYearNoticeSentAt: null };
+      prisma.$transaction.mockImplementation(
+        async (work: (tx: unknown) => unknown) => {
+          const draft = { ...markers };
+          const tx = {
+            ...prisma,
+            foundingCreatorApplication: {
+              updateMany: vi.fn(
+                async ({ data }: { data: Record<string, Date> }) => {
+                  const [key] = Object.keys(data);
+                  if (draft[key] !== null) return { count: 0 };
+                  draft[key] = data[key];
+                  return { count: 1 };
+                },
+              ),
+            },
+          };
+          await work(tx);
+          markers = draft;
+        },
+      );
     });
 
-    it('tells the person once, in the app and by email, the day it ends and the price a saved card pays', async () => {
+    it('queues both ways in one transaction with their markers, ids only, each to be written when it runs', async () => {
       prisma.platformSubscription.findFirst.mockResolvedValue(row());
 
       await remind();
@@ -955,98 +985,87 @@ describe('PaymentsService: the free year of a founding creator', () => {
           },
         }),
       );
-      // The email: queued through the outbox in the transaction that marks
-      // it sent, under a job id of the application, with ids only. It is
-      // written when the job runs: no address or text waits in the outbox.
-      expect(email.freeYearEndingMail).not.toHaveBeenCalled();
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-      expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
-        {
-          where: { id: 'app_1', freeYearReminderSentAt: null },
-          data: { freeYearReminderSentAt: NOW },
-        },
+      expect(outbox.enqueue).toHaveBeenCalledWith(expect.anything(), EMAIL_JOB);
+      expect(outbox.enqueue).toHaveBeenCalledWith(
+        expect.anything(),
+        NOTICE_JOB,
       );
-      const [, queued] = outbox.enqueue.mock.calls[0];
-      expect(JSON.stringify(queued.payload)).not.toMatch(
-        /ana@example\.com|@|html|subject|Verified|499/,
-      );
-      expect(outbox.enqueue).toHaveBeenCalledWith(prisma, {
-        queueName: 'email-processing',
-        eventName: 'send-free-year-ending',
-        payload: { applicationId: 'app_1', kind: 'free-year-ending' },
-        options: { jobId: 'free-year-ending-app_1' },
+      // Nothing about the person waits in the outbox.
+      for (const [, job] of outbox.enqueue.mock.calls) {
+        expect(JSON.stringify(job.payload)).not.toMatch(
+          /ana@example\.com|@|html|subject|Verified|499|prof_1/,
+        );
+      }
+      expect(markers).toEqual({
+        freeYearReminderSentAt: NOW,
+        freeYearNoticeSentAt: NOW,
       });
       expect(outbox.triggerImmediatePublish).toHaveBeenCalled();
-      // The notice in the app: marked on its own, then given.
-      expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
-        {
-          where: { id: 'app_1', freeYearNoticeSentAt: null },
-          data: { freeYearNoticeSentAt: NOW },
-        },
-      );
-      expect(events.emit).toHaveBeenCalledWith(
-        'notification.create',
-        notice(true),
-      );
+      // Nothing is written or sent here: each job does it when it runs.
+      expect(email.freeYearEndingMail).not.toHaveBeenCalled();
+      expect(events.emit).not.toHaveBeenCalled();
       expect(sentry.captureMessage).not.toHaveBeenCalled();
     });
 
-    it('never tells twice: a notice that comes again, or at the same time, finds each way done', async () => {
+    it('never queues either way twice: a notice that comes again finds both done', async () => {
       prisma.platformSubscription.findFirst.mockResolvedValue(row());
-      prisma.foundingCreatorApplication.updateMany = vi
-        .fn()
-        .mockResolvedValue({ count: 0 });
+
+      await remind();
+      await remind();
+
+      expect(queued()).toEqual([
+        'send-free-year-ending',
+        'create-free-year-ending-notice',
+      ]);
+    });
+
+    it('queues only the way that is missing', async () => {
+      prisma.platformSubscription.findFirst.mockResolvedValue(row());
+      markers.freeYearReminderSentAt = new Date('2026-11-20T00:00:00Z');
 
       await remind();
 
-      expect(outbox.enqueue).not.toHaveBeenCalled();
-      expect(events.emit).not.toHaveBeenCalled();
+      expect(queued()).toEqual(['create-free-year-ending-notice']);
+      expect(markers.freeYearNoticeSentAt).toEqual(NOW);
     });
 
-    it('gives only what is missing when the notice comes again: the email queued, the notice in the app not yet', async () => {
+    it('keeps nothing when a job cannot be queued, fails the provider notice, and queues both ways on its next delivery', async () => {
       prisma.platformSubscription.findFirst.mockResolvedValue(row());
-      prisma.foundingCreatorApplication.updateMany = vi.fn(
-        async ({ where }: { where: Record<string, unknown> }) => ({
-          count: 'freeYearReminderSentAt' in where ? 0 : 1,
-        }),
-      );
-
-      await remind();
-
-      expect(outbox.enqueue).not.toHaveBeenCalled();
-      expect(events.emit).toHaveBeenCalledWith(
-        'notification.create',
-        notice(true),
-      );
-    });
-
-    it('fails the provider notice, with nothing marked, when the email cannot be queued, so it is sent again', async () => {
-      prisma.platformSubscription.findFirst.mockResolvedValue(row());
-      outbox.enqueue.mockRejectedValueOnce(new Error('db down'));
-      prisma.$transaction.mockImplementationOnce(
-        async (work: (tx: unknown) => unknown) => {
-          // The transaction is undone with the failure.
-          await work(prisma);
-        },
-      );
+      // The email's job is queued, then the notice's fails.
+      outbox.enqueue
+        .mockResolvedValueOnce({})
+        .mockRejectedValueOnce(new Error('db down'));
 
       await expect(remind()).rejects.toThrow('db down');
-      expect(events.emit).not.toHaveBeenCalled();
+      // Rolled back: the email's marker, written inside, was not kept.
+      expect(markers).toEqual({
+        freeYearReminderSentAt: null,
+        freeYearNoticeSentAt: null,
+      });
+      expect(outbox.triggerImmediatePublish).not.toHaveBeenCalled();
+
+      // The provider sends its notice again: neither way is skipped.
+      outbox.enqueue.mockClear();
+      await remind();
+      expect(queued()).toEqual([
+        'send-free-year-ending',
+        'create-free-year-ending-notice',
+      ]);
     });
 
-    it('tells a year set to end that it ends with nothing charged', async () => {
+    it('queues a year set to end the same way: its texts are written when the jobs run, from the year then', async () => {
       prisma.platformSubscription.findFirst.mockResolvedValue(
         row({ cancelAtPeriodEnd: true }),
       );
 
       await remind();
 
-      expect(events.emit).toHaveBeenCalledWith(
-        'notification.create',
-        notice(false),
+      expect(outbox.enqueue).toHaveBeenCalledWith(expect.anything(), EMAIL_JOB);
+      expect(outbox.enqueue).toHaveBeenCalledWith(
+        expect.anything(),
+        NOTICE_JOB,
       );
-      // Its email is written when it is sent (ending text then).
-      expect(outbox.enqueue).toHaveBeenCalled();
     });
 
     it('never switches a year set to end into one that charges, also when its customer could now be taxed and has a card', async () => {
@@ -1066,26 +1085,23 @@ describe('PaymentsService: the free year of a founding creator', () => {
       // Only the reminder is marked, each way; nothing about the year
       // changes.
       expect(
-        prisma.foundingCreatorApplication.updateMany.mock.calls.map(
-          ([args]: [{ data: Record<string, unknown> }]) =>
-            Object.keys(args.data),
-        ),
-      ).toEqual([['freeYearReminderSentAt'], ['freeYearNoticeSentAt']]);
-      expect(events.emit).toHaveBeenCalledWith(
-        'notification.create',
-        notice(false),
-      );
+        prisma.foundingCreatorApplication.updateMany,
+      ).not.toHaveBeenCalled();
+      expect(markers).toEqual({
+        freeYearReminderSentAt: NOW,
+        freeYearNoticeSentAt: NOW,
+      });
     });
 
-    it('takes the price of the plan when the row has none, and tells by email when there is no Profile', async () => {
+    it('queues the email alone when there is no Profile to tell in the app', async () => {
       prisma.platformSubscription.findFirst.mockResolvedValue(
-        row({ periodPriceCents: null, profileId: null, profile: null }),
+        row({ profileId: null, profile: null }),
       );
 
       await remind();
 
-      expect(events.emit).not.toHaveBeenCalled();
-      expect(outbox.enqueue).toHaveBeenCalled();
+      expect(queued()).toEqual(['send-free-year-ending']);
+      expect(markers.freeYearNoticeSentAt).toBeNull();
     });
 
     it.each([
@@ -1097,23 +1113,23 @@ describe('PaymentsService: the free year of a founding creator', () => {
 
       await remind();
 
-      expect(events.emit).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(outbox.enqueue).not.toHaveBeenCalled();
       expect(sentry.captureMessage).not.toHaveBeenCalled();
     });
 
-    it('gives the notice in the app alone when the account has no email', async () => {
+    it('queues the notice in the app alone when the account has no email', async () => {
       prisma.platformSubscription.findFirst.mockResolvedValue(
         row({ user: null }),
       );
 
       await remind();
 
-      expect(outbox.enqueue).not.toHaveBeenCalled();
-      expect(events.emit).toHaveBeenCalled();
+      expect(queued()).toEqual(['create-free-year-ending-notice']);
+      expect(markers.freeYearReminderSentAt).toBeNull();
     });
 
-    it('says in the log when the email cannot be queued for want of the outbox, and still gives the notice', async () => {
+    it('says in the log when the reminder cannot be queued for want of the outbox, and marks nothing', async () => {
       service = new PaymentsService(
         prisma as unknown as PrismaService,
         stripe as unknown as StripeService,
@@ -1133,10 +1149,13 @@ describe('PaymentsService: the free year of a founding creator', () => {
       await remind();
 
       expect(warned).toHaveBeenCalledWith(
-        'The reminder email of free year app_1 cannot be queued: no outbox',
+        'The reminder of free year app_1 cannot be queued: no outbox',
       );
       expect(prisma.$transaction).not.toHaveBeenCalled();
-      expect(events.emit).toHaveBeenCalled();
+      expect(markers).toEqual({
+        freeYearReminderSentAt: null,
+        freeYearNoticeSentAt: null,
+      });
     });
   });
 

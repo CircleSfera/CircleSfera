@@ -75,6 +75,10 @@ export function useAdminStepUp(): {
     return action().catch((err: unknown) => {
       if (!isStepUpRequired(err)) throw err;
       return new Promise<T>((resolve, reject) => {
+        // One action waits at a time: an earlier one still waiting is
+        // settled as cancelled, so its caller never stays pending, and the
+        // dialog now confirms this one.
+        waiting.current?.reject(new StepUpCancelled());
         waiting.current = {
           action,
           resolve: resolve as (value: unknown) => void,

@@ -166,6 +166,48 @@ describe('the second confirmation of a staff member', () => {
     expect(done).not.toHaveBeenCalled();
   });
 
+  it('settles an action still waiting as cancelled when another asks to confirm, and confirms the newer one', async () => {
+    const second = vi.fn();
+    const secondDone = vi.fn();
+    function TwoActions() {
+      const stepUp = useAdminStepUp();
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => stepUp.run(() => action()).then(done, failed)}
+          >
+            First
+          </button>
+          <button
+            type="button"
+            onClick={() => stepUp.run(() => second()).then(secondDone, failed)}
+          >
+            Second
+          </button>
+          {stepUp.dialog}
+        </>
+      );
+    }
+    action.mockRejectedValue(asksToConfirm);
+    second.mockRejectedValueOnce(asksToConfirm).mockResolvedValue('second');
+    renderWithProviders(<TwoActions />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+
+    // The first is settled, never left pending.
+    await waitFor(() => expect(failed).toHaveBeenCalledTimes(1));
+    expect(isStepUpCancelled(failed.mock.calls[0][0])).toBe(true);
+
+    type('123456');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(secondDone).toHaveBeenCalledWith('second'));
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(done).not.toHaveBeenCalled();
+  });
+
   it('passes on what the action answers after the confirmation, a refusal included', async () => {
     const conflict = { response: { status: 409, data: {} } };
     action.mockRejectedValueOnce(asksToConfirm).mockRejectedValue(conflict);

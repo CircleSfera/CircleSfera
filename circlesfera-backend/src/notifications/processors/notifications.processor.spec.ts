@@ -3,6 +3,7 @@ import { UnrecoverableError } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PushService } from '../../push/push.service.js';
+import { NotificationsService } from '../notifications.service.js';
 import { NotificationsProcessor } from './notifications.processor.js';
 
 describe('NotificationsProcessor', () => {
@@ -15,11 +16,14 @@ describe('NotificationsProcessor', () => {
     },
     profile: { findMany: vi.fn().mockResolvedValue([]) },
     block: { findMany: vi.fn().mockResolvedValue([]) },
+    foundingCreatorApplication: { findUnique: vi.fn() },
   };
 
   const mockPushService = {
     sendNotification: vi.fn(),
   };
+
+  const mockNotifications = { create: vi.fn() };
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -29,6 +33,7 @@ describe('NotificationsProcessor', () => {
         NotificationsProcessor,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: PushService, useValue: mockPushService },
+        { provide: NotificationsService, useValue: mockNotifications },
       ],
     }).compile();
 
@@ -37,6 +42,86 @@ describe('NotificationsProcessor', () => {
 
   it('should be defined', () => {
     expect(processor).toBeDefined();
+  });
+
+  describe('the reminder that a free year ends (ids only in the job)', () => {
+    const YEAR_END = new Date('2027-11-25T10:00:00.000Z');
+    const job = {
+      name: 'create-free-year-ending-notice',
+      data: { applicationId: 'app_1', kind: 'free-year-ending-notice' },
+    } as any;
+    const year = (over: Record<string, unknown> = {}) => ({
+      platformSubscription: {
+        id: 'row_1',
+        status: 'TRIALING',
+        cancelAtPeriodEnd: false,
+        currentPeriodEnd: YEAR_END,
+        periodPriceCents: null,
+        profileId: 'prof_1',
+        plan: { priceCents: 499, currency: 'EUR' },
+        ...over,
+      },
+    });
+
+    it.each([
+      ['goes on', false, true],
+      // Cancelled after the provider's notice came: the ending text.
+      ['was set to end meanwhile', true, false],
+    ])(
+      'writes the notice of a year that %s from the year as it is now',
+      async (_what, cancelAtPeriodEnd, continues) => {
+        mockPrismaService.foundingCreatorApplication.findUnique.mockResolvedValue(
+          year({ cancelAtPeriodEnd }),
+        );
+        mockNotifications.create.mockResolvedValue({ id: 'n_1' });
+
+        await processor.process(job);
+
+        expect(
+          mockPrismaService.foundingCreatorApplication.findUnique,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { id: 'app_1' } }),
+        );
+        expect(mockNotifications.create).toHaveBeenCalledWith({
+          recipientId: 'prof_1',
+          type: 'SYSTEM',
+          notice: {
+            key: 'free_year_ending',
+            endsAt: YEAR_END,
+            priceCents: 499,
+            currency: 'EUR',
+            continues,
+          },
+          targetType: 'platform_subscription',
+          targetId: 'row_1',
+        });
+      },
+    );
+
+    it.each([
+      ['the application is gone', null],
+      ['its year is gone', { platformSubscription: null }],
+      ['its Profile is gone', year({ profileId: null })],
+      ['the year is no longer free', year({ status: 'CANCELLED' })],
+    ])('creates nothing when %s', async (_what, found) => {
+      mockPrismaService.foundingCreatorApplication.findUnique.mockResolvedValue(
+        found,
+      );
+
+      await expect(processor.process(job)).resolves.toBeUndefined();
+      expect(mockNotifications.create).not.toHaveBeenCalled();
+    });
+
+    it('fails the job, to be tried again, when the notice could not be created', async () => {
+      mockPrismaService.foundingCreatorApplication.findUnique.mockResolvedValue(
+        year(),
+      );
+      mockNotifications.create.mockResolvedValue(undefined);
+
+      await expect(processor.process(job)).rejects.toThrow(
+        'The free year notice app_1 was not created',
+      );
+    });
   });
 
   describe('process', () => {

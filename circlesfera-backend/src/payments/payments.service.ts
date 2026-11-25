@@ -1,7 +1,6 @@
 import {
   ErrorCode,
   FOUNDING_CREATOR_FREE_MONTHS,
-  type NotificationCreateEvent,
   type PaymentAlertEvent,
 } from '@circlesfera/shared';
 import {
@@ -14,7 +13,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { NotificationType, SubscriptionStatus } from '@prisma/client';
+import { SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
 import {
@@ -40,7 +39,10 @@ import {
   FREE_YEAR_ENDING_EMAIL_JOB,
   type FreeYearEndingEmailJob,
 } from '../email/email.service.js';
-import type { Notice } from '../notifications/notice-copy.js';
+import {
+  FREE_YEAR_ENDING_NOTICE_JOB,
+  type FreeYearEndingNoticeJob,
+} from '../notifications/free-year-notice.job.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -194,6 +196,11 @@ function isFreeYear(subscription: {
 // creation; each at most 20 s, tried three times), with the writes around
 // them. A request that dies lets it lapse.
 const FREE_YEAR_START_HOLD_MS = 10 * 60 * 1000;
+
+// How long the reminder's jobs wait before they run: a cancellation made
+// while the provider's notice came has landed by then, so each is written
+// from the year as it is.
+const FREE_YEAR_REMINDER_DELAY_MS = 60 * 1000;
 
 // The Profile holds a plan: it keeps it, and gets no second one.
 function planHeld() {
@@ -2140,27 +2147,23 @@ export class PaymentsService {
   // to keep it; it stays ending. Any other trial (none is sold now) is
   // left.
   //
-  // Each way once, and each retried on its own until it is given:
-  // - the email is queued through the outbox in the same transaction that
-  //   marks it sent, under a job id of the application, so it is delivered
-  //   even when the queue refuses it now, and never twice;
-  // - the notice in the app is marked, then created; a provider notice that
-  //   comes again finds each part done and gives only what is missing.
-  // A failure of the transaction fails the provider's notice, which it
-  // sends again.
+  // Both ways go the same way, durable and on their own: each is a job of
+  // the outbox, queued in one transaction with its marker, under a job id
+  // of the application, carrying ids only. The email and the notice are
+  // written when each job runs, from the year as it is then (a cancellation
+  // made meanwhile gives the ending text; an account erased meanwhile is
+  // skipped), and each job waits a minute so a cancellation in flight has
+  // landed. A failure of the transaction marks nothing and fails the
+  // provider's notice, which it sends again: neither way is ever skipped
+  // for the other, and the markers and job ids keep a retry from giving
+  // either twice.
   private async remindFreeYearEnding(named: { id: string }) {
     const row = await this.prisma.platformSubscription.findFirst({
       where: { stripeSubscriptionId: named.id, foundingCreatorYear: true },
       select: {
-        id: true,
         status: true,
-        cancelAtPeriodEnd: true,
-        currentPeriodEnd: true,
-        periodPriceCents: true,
         profileId: true,
         user: { select: { email: true } },
-        profile: { select: { username: true } },
-        plan: { select: { name: true, priceCents: true, currency: true } },
         foundingCreatorApplication: { select: { id: true } },
       },
     });
@@ -2171,62 +2174,56 @@ export class PaymentsService {
       );
       return;
     }
-    // A year set to end stays ending, as the person was told: never turned
-    // into one that charges here.
-    const continues = !row.cancelAtPeriodEnd;
-    const priceCents = row.periodPriceCents ?? row.plan.priceCents;
-
-    // The job carries ids only: the email is written when it is sent, from
-    // what is kept then, so no address or text waits in the outbox; an
-    // account erased meanwhile is skipped then.
-    if (row.user?.email && !this.outbox) {
+    const outbox = this.outbox;
+    if (!outbox) {
       this.logger.warn(
-        `The reminder email of free year ${application.id} cannot be queued: no outbox`,
+        `The reminder of free year ${application.id} cannot be queued: no outbox`,
       );
-    } else if (row.user?.email && this.outbox) {
-      const outbox = this.outbox;
-      await this.prisma.$transaction(async (tx) => {
+      return;
+    }
+    await this.prisma.$transaction(async (tx) => {
+      if (row.user?.email) {
         const { count } = await tx.foundingCreatorApplication.updateMany({
           where: { id: application.id, freeYearReminderSentAt: null },
           data: { freeYearReminderSentAt: new Date() },
         });
-        if (count === 0) return;
-        await outbox.enqueue(tx, {
-          queueName: QUEUE_NAMES.EMAIL_PROCESSING,
-          eventName: FREE_YEAR_ENDING_EMAIL_JOB,
-          payload: {
-            applicationId: application.id,
-            kind: 'free-year-ending',
-          } satisfies FreeYearEndingEmailJob,
-          options: { jobId: `free-year-ending-${application.id}` },
-        });
-      });
-      outbox.triggerImmediatePublish();
-    }
-
-    if (row.profileId) {
-      const { count } = await this.prisma.foundingCreatorApplication.updateMany(
-        {
+        if (count > 0) {
+          await outbox.enqueue(tx, {
+            queueName: QUEUE_NAMES.EMAIL_PROCESSING,
+            eventName: FREE_YEAR_ENDING_EMAIL_JOB,
+            payload: {
+              applicationId: application.id,
+              kind: 'free-year-ending',
+            } satisfies FreeYearEndingEmailJob,
+            options: {
+              jobId: `free-year-ending-${application.id}`,
+              delay: FREE_YEAR_REMINDER_DELAY_MS,
+            },
+          });
+        }
+      }
+      if (row.profileId) {
+        const { count } = await tx.foundingCreatorApplication.updateMany({
           where: { id: application.id, freeYearNoticeSentAt: null },
           data: { freeYearNoticeSentAt: new Date() },
-        },
-      );
-      if (count === 0) return;
-      const notice: Notice = {
-        key: 'free_year_ending',
-        endsAt: row.currentPeriodEnd,
-        priceCents,
-        currency: row.plan.currency,
-        continues,
-      };
-      this.eventEmitter.emit('notification.create', {
-        recipientId: row.profileId,
-        type: NotificationType.SYSTEM,
-        notice,
-        targetType: 'platform_subscription',
-        targetId: row.id,
-      } satisfies NotificationCreateEvent['payload']);
-    }
+        });
+        if (count > 0) {
+          await outbox.enqueue(tx, {
+            queueName: QUEUE_NAMES.NOTIFICATIONS_PROCESSING,
+            eventName: FREE_YEAR_ENDING_NOTICE_JOB,
+            payload: {
+              applicationId: application.id,
+              kind: 'free-year-ending-notice',
+            } satisfies FreeYearEndingNoticeJob,
+            options: {
+              jobId: `free-year-ending-notice-${application.id}`,
+              delay: FREE_YEAR_REMINDER_DELAY_MS,
+            },
+          });
+        }
+      }
+    });
+    outbox.triggerImmediatePublish();
   }
 
   // Whether the running plan (not an add-on) of a Profile gives the
