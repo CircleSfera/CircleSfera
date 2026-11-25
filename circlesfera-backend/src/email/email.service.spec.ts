@@ -588,24 +588,25 @@ describe('EmailService', () => {
       );
     });
 
-    it('enqueues the notice that a founding creator free year ends, with the day and the price a saved card pays', async () => {
-      await service.sendFreeYearEndingEmail(
-        'subscriber@example.com',
-        'Verified',
-        'ana',
-        new Date('2027-11-25T10:00:00.000Z'),
-        499,
-        'EUR',
-      );
-      expect(mockEmailQueue.add).toHaveBeenCalledWith(
-        'send-transactional-email',
-        expect.objectContaining({
-          to: 'subscriber@example.com',
-          subject:
-            'Tu año gratis de Verified termina el 25 de noviembre de 2027',
-          html: expect.stringMatching(/4,99\s€ al mes, IVA incluido/),
-        }),
-      );
+    it('answers, without sending it, the notice that a founding creator free year ends, linking the billing of its Profile', async () => {
+      const mail = await service.freeYearEndingMail({
+        email: 'subscriber@example.com',
+        planName: 'Verified',
+        username: 'ana',
+        profileId: 'prof_1',
+        endsAt: new Date('2027-11-25T10:00:00.000Z'),
+        priceCents: 499,
+        currency: 'EUR',
+        continues: true,
+      });
+      expect(mail).toEqual({
+        to: 'subscriber@example.com',
+        subject: 'Tu año gratis de Verified termina el 25 de noviembre de 2027',
+        html: expect.stringMatching(/4,99\s€ al mes, IVA incluido/),
+      });
+      expect(mail.html).toContain('/accounts/billing?profile=prof_1');
+      // The caller queues it with its own write.
+      expect(mockEmailQueue.add).not.toHaveBeenCalled();
     });
 
     it('should enqueue a subscription receipt email', async () => {

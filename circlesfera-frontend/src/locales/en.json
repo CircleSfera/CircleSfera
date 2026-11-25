@@ -345,8 +345,11 @@
       "pro_desc": "Elite creator upgrade",
       "status_active": "Active",
       "status_trialing": "Free trial",
-      "free_year_until": "Free as a founding creator until {{date}}. We charge you nothing during the year. When it ends, if you have a card saved, the plan continues with a charge of €4.99 a month, VAT included, until you cancel it; otherwise it ends by itself.",
+      "free_year_until": "Free as a founding creator until {{date}}. We charge you nothing during the year. When it ends, if you have a card saved, the plan continues with a charge of {{price}} a month, VAT included, until you cancel it; otherwise it ends by itself.",
       "free_year_ends": "Free as a founding creator until {{date}}. It ends that day and nothing is charged. To keep Verified after that, choose it in Plans.",
+      "free_year_ends_no_address": "Free as a founding creator until {{date}}. It ends that day and nothing is charged: we don't have a billing address to work out the VAT of a charge. To keep Verified after that, choose it in Plans, where you're asked for the address.",
+      "other_profile_link": "This notice is about the plan of @{{username}}, another of your profiles. Here you see the plan of the profile you're using now.",
+      "switch_to_profile": "See the plan of @{{username}}",
       "status_past_due": "Payment overdue: we keep trying and you keep your plan. Check your card in the billing portal.",
       "status_unpaid": "Unpaid: your plan is paused until you pay the open invoice in the billing portal.",
       "status_incomplete": "Payment pending",
@@ -6510,7 +6513,8 @@
       "FOUNDING_CREATOR_ALREADY_APPLIED": "This profile already has an application under review or approved.",
       "FOUNDING_CREATOR_NOT_FOUND": "There's no approved application to act on.",
       "FREE_YEAR_NOT_WITHDRAWABLE": "Nothing was paid for this free year, so there's nothing to withdraw from. You can cancel it instead.",
-      "FREE_YEAR_NOT_RENEWABLE": "This free year ends on its date. To keep Verified after that, choose it in Plans."
+      "FREE_YEAR_NOT_RENEWABLE": "This free year ends on its date. To keep Verified after that, choose it in Plans.",
+      "FREE_YEAR_STARTING": "Your free year is being started. Check again in a moment."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

@@ -418,30 +418,37 @@ export class EmailService {
   }
 
   // A founding creator's free year ends in a few days (BD-034): a notice
-  // of a charge to come, to the account's address.
-  async sendFreeYearEndingEmail(
-    email: string,
-    planName: string,
-    username: string,
-    endsAt: Date,
-    priceCents: number,
-    currency: string,
+  // of a charge to come, to the account's address. Answered, not sent: the
+  // caller queues it through the outbox with the write that marks it sent,
+  // so it is neither lost nor sent twice. Its link opens the billing of the
+  // Profile whose year it is.
+  async freeYearEndingMail(params: {
+    email: string;
+    planName: string;
+    username: string;
+    profileId: string | null;
+    endsAt: Date;
+    priceCents: number;
+    currency: string;
     // Whether it goes on with a saved card, or is set to end.
-    continues = true,
-  ) {
-    const ctx = await this.contextFor(email);
-    await this.send(
-      email,
-      EmailTemplates.freeYearEnding(
-        ctx,
-        planName,
-        username,
-        endsAt,
-        priceCents,
-        currency,
-        continues,
-      ),
+    continues: boolean;
+  }): Promise<SendMailOptions> {
+    const ctx = await this.contextFor(params.email);
+    const rendered = EmailTemplates.freeYearEnding(
+      ctx,
+      params.planName,
+      params.username,
+      params.endsAt,
+      params.priceCents,
+      params.currency,
+      params.continues,
+      params.profileId,
     );
+    return {
+      to: params.email,
+      subject: rendered.subject,
+      html: rendered.html,
+    };
   }
 
   // A plan was withdrawn from within 14 days: it ended at once and the

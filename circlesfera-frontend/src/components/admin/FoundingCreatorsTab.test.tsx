@@ -117,6 +117,41 @@ describe('FoundingCreatorsTab', () => {
     );
   });
 
+  it('reads the queue again when the application was decided by someone else meanwhile', async () => {
+    api.decide.mockRejectedValue({
+      response: {
+        status: 409,
+        data: { errorCode: 'FOUNDING_CREATOR_NOT_FOUND' },
+      },
+    });
+    const { i18n } = renderWithProviders(<FoundingCreatorsTab />);
+    fireEvent.click(
+      await screen.findByText(i18n!.t('admin.founding_creators.approve')),
+    );
+
+    await waitFor(() => expect(api.queue).toHaveBeenCalledTimes(2));
+    expect(adminToast).toHaveBeenCalledWith(
+      i18n!.t('admin.founding_creators.decide_failed'),
+      'error',
+    );
+  });
+
+  it('keeps the queue as it is after another failure', async () => {
+    api.decide.mockRejectedValue({ response: { status: 500, data: {} } });
+    const { i18n } = renderWithProviders(<FoundingCreatorsTab />);
+    fireEvent.click(
+      await screen.findByText(i18n!.t('admin.founding_creators.approve')),
+    );
+
+    await waitFor(() =>
+      expect(adminToast).toHaveBeenCalledWith(
+        i18n!.t('admin.founding_creators.decide_failed'),
+        'error',
+      ),
+    );
+    expect(api.queue).toHaveBeenCalledTimes(1);
+  });
+
   it('says when nothing waits', async () => {
     api.queue.mockResolvedValue({ items: [], total: 0 });
     const { i18n } = renderWithProviders(<FoundingCreatorsTab />);

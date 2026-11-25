@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { paymentsApi } from '../../services/payments.service';
+import { profileApi } from '../../services/profile.service';
 import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import BillingSettings from './BillingSettings';
@@ -24,8 +25,14 @@ vi.mock('react-router-dom', async (importOriginal) => ({
   useNavigate: () => navigate,
 }));
 
+vi.mock('../../services/profile.service', () => ({
+  profileApi: { getMyProfiles: vi.fn() },
+}));
+const switchProfileMock = vi.fn().mockResolvedValue(undefined);
+
 const originalLocation = window.location;
-const location = { href: '/' };
+const assign = vi.fn();
+const location = { href: '/', assign };
 
 describe('BillingSettings', () => {
   beforeEach(() => {
@@ -83,7 +90,8 @@ describe('BillingSettings', () => {
         planName: 'Verified',
         status: 'TRIALING',
         foundingCreatorYear: true,
-        priceCents: 499,
+        // The plan's own price, not one written in the text.
+        priceCents: 599,
         currency: 'EUR',
         billingInterval: 'month',
         currentPeriodEnd: '2027-11-25T10:00:00Z',
@@ -99,11 +107,15 @@ describe('BillingSettings', () => {
     expect(line).toHaveTextContent('2027');
     // What happens at its end (owner decision A): with a saved card it
     // continues at the monthly price with VAT; without one it ends.
-    expect(line).toHaveTextContent('VAT included');
+    expect(line).toHaveTextContent('€5.99 a month, VAT included');
+    expect(line).not.toHaveTextContent('4.99');
     expect(line).toHaveTextContent('ends by itself');
     // No price line of a running plan.
     expect(screen.queryByText(/a month$/)).toBeNull();
-    expect(screen.queryByText(t('settings.billing.renews_on'))).toBeNull();
+    // No renewal line either, with its date or without.
+    expect(
+      screen.queryByText(t('settings.billing.renews_on'), { exact: false }),
+    ).toBeNull();
     // It can be cancelled like any plan.
     expect(
       screen.getByRole('button', { name: t('settings.billing.cancel') }),
@@ -111,11 +123,19 @@ describe('BillingSettings', () => {
   });
 
   it.each([
-    ['whose VAT cannot be worked out, with no way to resume it', false, false],
-    ['cancelled by the person, which can be resumed', true, true],
+    [
+      'whose VAT cannot be worked out, with why and no way to resume it',
+      false,
+      false,
+      'billing address',
+    ],
+    ['cancelled by the person, which can be resumed', true, true, ''],
   ])(
     'shows a free year %s as ending, with nothing charged',
-    async (_what, renewable, resumable) => {
+    async (_what, renewable, resumable, why) => {
+      // Resume is offered only before the year's end: the clock is pinned.
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-25T10:00:00Z'));
       vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
         hasActiveSubscription: true,
         otherProfiles: [],
@@ -139,13 +159,78 @@ describe('BillingSettings', () => {
       const line = await screen.findByTestId('billing-free-year');
       expect(line).toHaveTextContent('nothing is charged');
       expect(line).toHaveTextContent('choose it in Plans');
+      // It never says it may go on: an ending year stays ending.
       expect(line).not.toHaveTextContent('VAT included');
+      expect(line).not.toHaveTextContent('continues');
+      if (why) expect(line).toHaveTextContent(why);
+      else expect(line).not.toHaveTextContent('billing address');
       expect(
         screen.queryByRole('button', { name: t('settings.billing.resume') }) !==
           null,
       ).toBe(resumable);
+      vi.useRealTimers();
     },
   );
+
+  it('offers to switch to the Profile a link names, when it is another of the person’s own', async () => {
+    useAuthStore.setState({
+      profile: { id: 'p-1', username: 'ana' } as never,
+      switchProfile: switchProfileMock,
+    });
+    vi.mocked(profileApi.getMyProfiles).mockResolvedValue({
+      data: [
+        { id: 'p-1', username: 'ana' },
+        { id: 'p-2', username: 'ana.edits' },
+      ],
+    } as never);
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: false,
+      otherProfiles: [],
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />, {
+      routerProps: {
+        initialEntries: ['/accounts/billing?profile=p-2'],
+      } as never,
+    });
+
+    const card = await screen.findByTestId('billing-other-profile');
+    expect(card).toHaveTextContent('@ana.edits');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('settings.billing.switch_to_profile', {
+          username: 'ana.edits',
+        }),
+      }),
+    );
+    await waitFor(() => expect(switchProfileMock).toHaveBeenCalledWith('p-2'));
+    expect(assign).toHaveBeenCalledWith('/accounts/billing');
+  });
+
+  it.each([
+    ['a Profile that is not the person’s', 'p-9'],
+    ['the Profile in use', 'p-1'],
+  ])('offers nothing for %s', async (_what, named) => {
+    useAuthStore.setState({
+      profile: { id: 'p-1', username: 'ana' } as never,
+      switchProfile: switchProfileMock,
+    });
+    vi.mocked(profileApi.getMyProfiles).mockResolvedValue({
+      data: [{ id: 'p-1', username: 'ana' }],
+    } as never);
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: false,
+      otherProfiles: [],
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />, {
+      routerProps: {
+        initialEntries: [`/accounts/billing?profile=${named}`],
+      } as never,
+    });
+
+    await screen.findByText(i18n!.t('settings.billing.free'));
+    expect(screen.queryByTestId('billing-other-profile')).toBeNull();
+    expect(switchProfileMock).not.toHaveBeenCalled();
+  });
 
   it('shows no list of other profiles when none has a plan', async () => {
     vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({

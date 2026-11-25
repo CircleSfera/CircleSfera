@@ -290,6 +290,50 @@ describe('FoundingCreatorsService', () => {
       });
     });
 
+    it('waits for another request that is starting the year, and answers with the year it started', async () => {
+      vi.useFakeTimers();
+      prisma.foundingCreatorApplication.findFirst
+        .mockResolvedValueOnce({ id: 'app_1', platformSubscriptionId: null })
+        // Not started yet at the first two looks; started at the third.
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'app_1' });
+      payments.startFoundingYear.mockRejectedValueOnce(
+        Object.assign(new Error('starting'), {
+          errorCode: ErrorCode.FREE_YEAR_STARTING,
+        }),
+      );
+
+      const res = service.startFreeYear('u_1', 'prof_1');
+      await vi.advanceTimersByTimeAsync(1000);
+      await expect(res).resolves.toMatchObject({ isOwner: true });
+      vi.useRealTimers();
+    });
+
+    it('gives up waiting after a few seconds and says the year is being started', async () => {
+      vi.useFakeTimers();
+      prisma.foundingCreatorApplication.findFirst
+        .mockResolvedValueOnce({ id: 'app_1', platformSubscriptionId: null })
+        .mockResolvedValue(null);
+      payments.startFoundingYear.mockRejectedValueOnce(
+        Object.assign(new Error('starting'), {
+          errorCode: ErrorCode.FREE_YEAR_STARTING,
+        }),
+      );
+
+      const res = service.startFreeYear('u_1', 'prof_1');
+      const settled = expect(res).rejects.toMatchObject({
+        errorCode: ErrorCode.FREE_YEAR_STARTING,
+      });
+      await vi.advanceTimersByTimeAsync(10_000);
+      await settled;
+      // The first look and 19 more, half a second apart.
+      expect(prisma.foundingCreatorApplication.findFirst).toHaveBeenCalledTimes(
+        21,
+      );
+      vi.useRealTimers();
+    });
+
     it('passes on the error of a start when no year was started', async () => {
       prisma.foundingCreatorApplication.findFirst.mockResolvedValueOnce({
         id: 'app_1',

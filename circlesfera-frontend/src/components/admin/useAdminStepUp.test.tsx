@@ -140,6 +140,32 @@ describe('the second confirmation of a staff member', () => {
     expect(action).toHaveBeenCalledTimes(1);
   });
 
+  it('does not send the action when the dialog is closed while the code is being checked', async () => {
+    action.mockRejectedValueOnce(asksToConfirm).mockResolvedValue('approved');
+    let verified = () => {};
+    vi.mocked(adminAuthApi.stepUp).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          verified = () => resolve({} as never);
+        }),
+    );
+    start();
+    await screen.findByRole('dialog');
+    type('123456');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(adminAuthApi.stepUp).toHaveBeenCalled());
+
+    // Closed with Escape while the code is checked; then the check passes.
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    await waitFor(() => expect(failed).toHaveBeenCalledTimes(1));
+    verified();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(isStepUpCancelled(failed.mock.calls[0][0])).toBe(true);
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(done).not.toHaveBeenCalled();
+  });
+
   it('passes on what the action answers after the confirmation, a refusal included', async () => {
     const conflict = { response: { status: 409, data: {} } };
     action.mockRejectedValueOnce(asksToConfirm).mockRejectedValue(conflict);

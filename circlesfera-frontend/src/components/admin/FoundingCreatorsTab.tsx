@@ -8,6 +8,7 @@ import {
   foundingCreatorsStaffApi,
   type StaffFoundingCreatorApplication,
 } from '../../services/foundingCreators.service';
+import { apiErrorStatus } from '../../utils/apiErrorMessage';
 import { formatDay } from '../../utils/format';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
@@ -131,6 +132,13 @@ function ApplicationCard({
       // Closing the confirmation is not a failure.
       if (isStepUpCancelled(err)) return;
       adminToast(t('admin.founding_creators.decide_failed'), 'error');
+      // Decided by someone else meanwhile (or no longer decidable): the
+      // queue is read again, so the card does not stay to be acted on.
+      if (apiErrorStatus(err) === 409) {
+        queryClient.invalidateQueries({
+          queryKey: ['admin', 'founding-creators'],
+        });
+      }
     },
   });
 

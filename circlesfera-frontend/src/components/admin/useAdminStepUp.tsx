@@ -98,6 +98,8 @@ export function useAdminStepUp(): {
     try {
       await adminAuthApi.stepUp({ totpCode: code });
     } catch {
+      // Closed meanwhile: nothing is left waiting.
+      if (waiting.current !== pending) return;
       // A wrong code stays in the dialog: the action is still waiting.
       setChecking(false);
       setWrong(true);
@@ -105,6 +107,9 @@ export function useAdminStepUp(): {
       field.current?.focus();
       return;
     }
+    // The dialog was closed while the code was being checked: the staff
+    // member gave the action up, so it is not sent.
+    if (waiting.current !== pending) return;
     close();
     pending.action().then(pending.resolve, pending.reject);
   };

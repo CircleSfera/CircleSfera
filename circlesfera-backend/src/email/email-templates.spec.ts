@@ -225,6 +225,22 @@ describe('EmailTemplates', () => {
     expect(es_.html).toMatch(/4,99\s€ al mes, IVA incluido/);
   });
 
+  it('the end of a free year links the billing of the Profile whose year it is', () => {
+    const mail = EmailTemplates.freeYearEnding(
+      en,
+      'Verified',
+      'ana',
+      new Date('2027-11-25T10:00:00.000Z'),
+      499,
+      'EUR',
+      true,
+      'prof 1',
+    );
+    expect(mail.html).toContain(
+      'href="https://circlesfera.com/accounts/billing?profile=prof%201"',
+    );
+  });
+
   it('the end of a free year set to end says nothing is charged and where to keep Verified, in each language', () => {
     const endsAt = new Date('2027-11-25T10:00:00.000Z');
     const ends = (ctx: typeof en) =>

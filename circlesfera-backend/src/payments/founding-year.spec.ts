@@ -5,6 +5,7 @@ import type Stripe from 'stripe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FREE_YEAR_CONSENT_VERSION } from '../common/consumer/withdrawal-consent.js';
 import type { EmailService } from '../email/email.service.js';
+import type { OutboxService } from '../outbox/outbox.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { StripeService } from '../stripe/stripe.service.js';
 import type { UsersService } from '../users/users.service.js';
@@ -71,8 +72,14 @@ describe('PaymentsService: the free year of a founding creator', () => {
   let prisma: Record<string, any>;
   let stripe: Record<string, ReturnType<typeof vi.fn>>;
   let users: { syncUserTier: ReturnType<typeof vi.fn> };
-  let email: { sendFreeYearEndingEmail: ReturnType<typeof vi.fn> };
+  let email: { freeYearEndingMail: ReturnType<typeof vi.fn> };
   let events: { emit: ReturnType<typeof vi.fn> };
+  let outbox: {
+    enqueue: ReturnType<typeof vi.fn>;
+    triggerImmediatePublish: ReturnType<typeof vi.fn>;
+  };
+  // The reminder email, as the email service answers it.
+  const MAIL = { to: 'ana@example.com', subject: 's', html: 'h' };
   let service: PaymentsService;
   let warn: ReturnType<typeof vi.fn>;
   // The acceptance kept on the application, as the database would.
@@ -147,6 +154,8 @@ describe('PaymentsService: the free year of a founding creator', () => {
       listSubscriptionsForCustomer: vi.fn().mockResolvedValue([]),
       canTaxCustomer: vi.fn().mockResolvedValue(true),
       setCustomerTaxLocationFromIp: vi.fn().mockResolvedValue(undefined),
+      assertPaymentsEnabled: vi.fn().mockResolvedValue(undefined),
+      endDuplicateSubscription: vi.fn().mockResolvedValue({}),
       createFreeYearSubscription: vi.fn(
         async (params: { automaticTax: boolean; endAtTrialEnd: boolean }) => ({
           ...trialing,
@@ -162,8 +171,12 @@ describe('PaymentsService: the free year of a founding creator', () => {
       resumeSubscription: vi.fn().mockResolvedValue({}),
     };
     users = { syncUserTier: vi.fn().mockResolvedValue(undefined) };
-    email = { sendFreeYearEndingEmail: vi.fn().mockResolvedValue(undefined) };
+    email = { freeYearEndingMail: vi.fn().mockResolvedValue(MAIL) };
     events = { emit: vi.fn() };
+    outbox = {
+      enqueue: vi.fn().mockResolvedValue({}),
+      triggerImmediatePublish: vi.fn(),
+    };
     service = new PaymentsService(
       prisma as unknown as PrismaService,
       stripe as unknown as StripeService,
@@ -171,6 +184,8 @@ describe('PaymentsService: the free year of a founding creator', () => {
       users as unknown as UsersService,
       {} as PaymentEventsService,
       events as never,
+      undefined,
+      outbox as unknown as OutboxService,
     );
     const logger = (
       service as unknown as {
@@ -504,8 +519,163 @@ describe('PaymentsService: the free year of a founding creator', () => {
         id: 'row_1',
       });
 
-      await expect(start()).rejects.toThrow('unique');
+      // The one-plan index refused it: told as a plan the Profile holds.
+      await expect(start()).rejects.toMatchObject({
+        errorCode: ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+      });
       expect(stripe.endSubscriptionNow).not.toHaveBeenCalled();
+    });
+
+    it('gives no year beside a plan the Profile came to hold during the start (a checkout that completed meanwhile), and ends the trial made', async () => {
+      prisma.platformSubscription.count
+        // None when the start began…
+        .mockResolvedValueOnce(0)
+        // …one, from the checkout, when the year is written.
+        .mockResolvedValueOnce(1);
+
+      await expect(start()).rejects.toMatchObject({
+        errorCode: ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+      });
+      expect(prisma.platformSubscription.count).toHaveBeenLastCalledWith({
+        where: {
+          profileId: 'prof_1',
+          addOn: false,
+          status: {
+            in: [
+              SubscriptionStatus.ACTIVE,
+              SubscriptionStatus.TRIALING,
+              SubscriptionStatus.PAST_DUE,
+              SubscriptionStatus.UNPAID,
+            ],
+          },
+          NOT: { stripeSubscriptionId: 'sub_free' },
+        },
+      });
+      expect(prisma.platformSubscription.upsert).not.toHaveBeenCalled();
+      expect(stripe.endSubscriptionNow).toHaveBeenCalledWith('sub_free');
+    });
+
+    it('lets a checkout completing after the year started find it, and refunds that second plan, keeping the year', async () => {
+      prisma.platformSubscription.findMany = vi
+        .fn()
+        .mockResolvedValue([{ stripeSubscriptionId: 'sub_free' }]);
+      stripe.getSubscription.mockResolvedValue(trialing);
+      stripe.latestPaidInvoice.mockResolvedValue(null);
+
+      const refunded = await (
+        service as unknown as {
+          refundDuplicatePlan: (
+            profileId: string,
+            subscription: object,
+            addOn: boolean,
+          ) => Promise<boolean>;
+        }
+      ).refundDuplicatePlan(
+        'prof_1',
+        { id: 'sub_paid', status: 'active', metadata: {} },
+        false,
+      );
+
+      expect(refunded).toBe(true);
+      expect(stripe.endDuplicateSubscription).toHaveBeenCalledWith('sub_paid');
+      expect(stripe.endSubscriptionNow).not.toHaveBeenCalledWith('sub_free');
+    });
+
+    it('is refused while payments are paused, before anything reaches the provider', async () => {
+      stripe.assertPaymentsEnabled.mockRejectedValue(new Error('paused'));
+
+      await expect(start()).rejects.toThrow('paused');
+      expect(stripe.canTaxCustomer).not.toHaveBeenCalled();
+      expect(stripe.createFreeYearSubscription).not.toHaveBeenCalled();
+      expect(accepted).toBeNull();
+    });
+
+    it('lets one request at a time start the year: another meanwhile is told it is being started, with nothing done', async () => {
+      prisma.foundingCreatorApplication.updateMany = vi
+        .fn()
+        .mockResolvedValue({ count: 0 });
+
+      await expect(start()).rejects.toMatchObject({
+        errorCode: ErrorCode.FREE_YEAR_STARTING,
+      });
+      expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
+        {
+          where: {
+            id: 'app_1',
+            platformSubscriptionId: null,
+            OR: [
+              { freeYearStartingUntil: null },
+              { freeYearStartingUntil: { lt: NOW } },
+            ],
+          },
+          data: { freeYearStartingUntil: new Date(NOW.getTime() + 300_000) },
+        },
+      );
+      expect(stripe.canTaxCustomer).not.toHaveBeenCalled();
+      expect(stripe.createFreeYearSubscription).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['it started', () => {}],
+      [
+        'it failed',
+        () =>
+          stripe.createFreeYearSubscription.mockRejectedValueOnce(
+            new Error('down'),
+          ),
+      ],
+    ])('lets go of the start once %s', async (_what, arrange) => {
+      arrange();
+      await start().catch(() => undefined);
+
+      expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
+        {
+          where: {
+            id: 'app_1',
+            freeYearStartingUntil: new Date(NOW.getTime() + 300_000),
+          },
+          data: { freeYearStartingUntil: null },
+        },
+      );
+    });
+
+    it('keeps the start, which lapses by itself, when it cannot be let go', async () => {
+      const claim = prisma.foundingCreatorApplication.updateMany;
+      prisma.foundingCreatorApplication.updateMany = vi.fn(
+        (args: { data: Record<string, unknown> }) =>
+          args.data.freeYearStartingUntil === null
+            ? Promise.reject(new Error('db down'))
+            : claim(args),
+      );
+
+      await expect(start()).resolves.toMatchObject({
+        stripeSubscriptionId: 'sub_free',
+      });
+      expect(warn).toHaveBeenCalledWith(
+        'The start of free year app_1 was not let go; it lapses by itself',
+        expect.any(Error),
+      );
+    });
+
+    it('keeps the acceptance a subscription made by an earlier try says, not this request’s', async () => {
+      const earlier = '2026-11-25T09:00:00.000Z';
+      stripe.listSubscriptionsForCustomer.mockResolvedValue([
+        {
+          ...trialing,
+          metadata: {
+            ...trialing.metadata,
+            free_year_consent_at: earlier,
+            free_year_consent_version: '2026-11-25',
+          },
+        },
+      ]);
+
+      await start();
+
+      expect(linked()).toMatchObject({
+        freeYearAcceptedAt: new Date(earlier),
+        freeYearConsentVersion: '2026-11-25',
+      });
     });
 
     it('reports a subscription left without a row that could not be ended', async () => {
@@ -759,30 +929,48 @@ describe('PaymentsService: the free year of a founding creator', () => {
           },
         }),
       );
-      // Marked before it is told.
+      // The email: built for the Profile whose year it is, and queued
+      // through the outbox in the transaction that marks it sent, under a
+      // job id of the application.
+      expect(email.freeYearEndingMail).toHaveBeenCalledWith({
+        email: 'ana@example.com',
+        planName: 'Verified',
+        username: 'ana',
+        profileId: 'prof_1',
+        endsAt: YEAR_END,
+        priceCents: 499,
+        currency: 'EUR',
+        continues: true,
+      });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
         {
           where: { id: 'app_1', freeYearReminderSentAt: null },
           data: { freeYearReminderSentAt: NOW },
         },
       );
+      expect(outbox.enqueue).toHaveBeenCalledWith(prisma, {
+        queueName: 'email-processing',
+        eventName: 'send-transactional-email',
+        payload: MAIL,
+        options: { jobId: 'free-year-ending-app_1' },
+      });
+      expect(outbox.triggerImmediatePublish).toHaveBeenCalled();
+      // The notice in the app: marked on its own, then given.
+      expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
+        {
+          where: { id: 'app_1', freeYearNoticeSentAt: null },
+          data: { freeYearNoticeSentAt: NOW },
+        },
+      );
       expect(events.emit).toHaveBeenCalledWith(
         'notification.create',
         notice(true),
       );
-      expect(email.sendFreeYearEndingEmail).toHaveBeenCalledWith(
-        'ana@example.com',
-        'Verified',
-        'ana',
-        YEAR_END,
-        499,
-        'EUR',
-        true,
-      );
       expect(sentry.captureMessage).not.toHaveBeenCalled();
     });
 
-    it('never tells twice: a notice that comes again, or at the same time, finds it told', async () => {
+    it('never tells twice: a notice that comes again, or at the same time, finds each way done', async () => {
       prisma.platformSubscription.findFirst.mockResolvedValue(row());
       prisma.foundingCreatorApplication.updateMany = vi
         .fn()
@@ -790,8 +978,39 @@ describe('PaymentsService: the free year of a founding creator', () => {
 
       await remind();
 
+      expect(outbox.enqueue).not.toHaveBeenCalled();
       expect(events.emit).not.toHaveBeenCalled();
-      expect(email.sendFreeYearEndingEmail).not.toHaveBeenCalled();
+    });
+
+    it('gives only what is missing when the notice comes again: the email queued, the notice in the app not yet', async () => {
+      prisma.platformSubscription.findFirst.mockResolvedValue(row());
+      prisma.foundingCreatorApplication.updateMany = vi.fn(
+        async ({ where }: { where: Record<string, unknown> }) => ({
+          count: 'freeYearReminderSentAt' in where ? 0 : 1,
+        }),
+      );
+
+      await remind();
+
+      expect(outbox.enqueue).not.toHaveBeenCalled();
+      expect(events.emit).toHaveBeenCalledWith(
+        'notification.create',
+        notice(true),
+      );
+    });
+
+    it('fails the provider notice, with nothing marked, when the email cannot be queued, so it is sent again', async () => {
+      prisma.platformSubscription.findFirst.mockResolvedValue(row());
+      outbox.enqueue.mockRejectedValueOnce(new Error('db down'));
+      prisma.$transaction.mockImplementationOnce(
+        async (work: (tx: unknown) => unknown) => {
+          // The transaction is undone with the failure.
+          await work(prisma);
+        },
+      );
+
+      await expect(remind()).rejects.toThrow('db down');
+      expect(events.emit).not.toHaveBeenCalled();
     });
 
     it('tells a year set to end that it ends with nothing charged', async () => {
@@ -805,14 +1024,8 @@ describe('PaymentsService: the free year of a founding creator', () => {
         'notification.create',
         notice(false),
       );
-      expect(email.sendFreeYearEndingEmail).toHaveBeenCalledWith(
-        'ana@example.com',
-        'Verified',
-        'ana',
-        YEAR_END,
-        499,
-        'EUR',
-        false,
+      expect(email.freeYearEndingMail).toHaveBeenCalledWith(
+        expect.objectContaining({ continues: false }),
       );
     });
 
@@ -829,18 +1042,15 @@ describe('PaymentsService: the free year of a founding creator', () => {
       expect(stripe.listSubscriptionsForCustomer).not.toHaveBeenCalled();
       expect(stripe.createFreeYearSubscription).not.toHaveBeenCalled();
       expect(stripe.resumeSubscription).not.toHaveBeenCalled();
-      expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalled();
-      // Only the reminder is marked; nothing about the year changes.
+      // Only the reminder is marked, each way; nothing about the year
+      // changes.
       expect(
-        prisma.foundingCreatorApplication.updateMany,
-      ).toHaveBeenCalledTimes(1);
-      expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
-        {
-          where: { id: 'app_1', freeYearReminderSentAt: null },
-          data: { freeYearReminderSentAt: NOW },
-        },
-      );
+        prisma.foundingCreatorApplication.updateMany.mock.calls.map(
+          ([args]: [{ data: Record<string, unknown> }]) =>
+            Object.keys(args.data),
+        ),
+      ).toEqual([['freeYearReminderSentAt'], ['freeYearNoticeSentAt']]);
       expect(events.emit).toHaveBeenCalledWith(
         'notification.create',
         notice(false),
@@ -855,15 +1065,17 @@ describe('PaymentsService: the free year of a founding creator', () => {
       await remind();
 
       expect(events.emit).not.toHaveBeenCalled();
-      expect(email.sendFreeYearEndingEmail).toHaveBeenCalledWith(
-        'ana@example.com',
-        'Verified',
-        '',
-        YEAR_END,
-        499,
-        'EUR',
-        true,
-      );
+      expect(email.freeYearEndingMail).toHaveBeenCalledWith({
+        email: 'ana@example.com',
+        planName: 'Verified',
+        username: '',
+        profileId: null,
+        endsAt: YEAR_END,
+        priceCents: 499,
+        currency: 'EUR',
+        continues: true,
+      });
+      expect(outbox.enqueue).toHaveBeenCalled();
     });
 
     it.each([
@@ -876,20 +1088,20 @@ describe('PaymentsService: the free year of a founding creator', () => {
       await remind();
 
       expect(events.emit).not.toHaveBeenCalled();
-      expect(email.sendFreeYearEndingEmail).not.toHaveBeenCalled();
+      expect(outbox.enqueue).not.toHaveBeenCalled();
       expect(sentry.captureMessage).not.toHaveBeenCalled();
     });
 
-    it('does not fail the notice when the email cannot be sent', async () => {
+    it('gives the notice in the app alone when the account has no email', async () => {
       prisma.platformSubscription.findFirst.mockResolvedValue(
         row({ user: null }),
       );
-      await remind();
-      expect(email.sendFreeYearEndingEmail).not.toHaveBeenCalled();
 
-      prisma.platformSubscription.findFirst.mockResolvedValue(row());
-      email.sendFreeYearEndingEmail.mockRejectedValueOnce(new Error('smtp'));
-      await expect(remind()).resolves.toBeUndefined();
+      await remind();
+
+      expect(email.freeYearEndingMail).not.toHaveBeenCalled();
+      expect(outbox.enqueue).not.toHaveBeenCalled();
+      expect(events.emit).toHaveBeenCalled();
     });
   });
 

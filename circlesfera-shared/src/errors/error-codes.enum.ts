@@ -237,6 +237,8 @@ export enum ErrorCode {
   // A free year whose VAT the provider cannot work out ends at its end: it
   // is not resumed into a charge. Verified is chosen in Plans instead.
   FREE_YEAR_NOT_RENEWABLE = 'FREE_YEAR_NOT_RENEWABLE',
+  // Another request is starting the free year right now.
+  FREE_YEAR_STARTING = 'FREE_YEAR_STARTING',
   CAPTCHA_FAILED = 'CAPTCHA_FAILED',
   CAPTCHA_REQUIRED = 'CAPTCHA_REQUIRED',
 }

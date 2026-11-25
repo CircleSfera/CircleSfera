@@ -104,8 +104,15 @@ export class FoundingCreatorsReviewService {
 
     const declineReason = dto.approve ? null : (dto.reason ?? 'OTHER');
     await this.prisma.$transaction(async (tx) => {
+      // An approval is written only while the Profile can still be decided
+      // on: a suspension or a deletion that began meanwhile leaves it
+      // waiting.
       const { count } = await tx.foundingCreatorApplication.updateMany({
-        where: { id, status: FoundingCreatorStatus.PENDING },
+        where: {
+          id,
+          status: FoundingCreatorStatus.PENDING,
+          ...(dto.approve && { profile: decidableProfileWhere(new Date()) }),
+        },
         data: {
           status: dto.approve
             ? FoundingCreatorStatus.APPROVED

@@ -83,9 +83,15 @@ describe('FoundingCreatorsReviewService', () => {
     it('records the approval and its audit together, and gives nothing by itself: the person starts the year accepting its terms', async () => {
       const res = await service.decide('admin_1', 'app_1', { approve: true });
 
+      // Written only while the Profile can still be decided on: a
+      // suspension that began after the first check leaves it waiting.
       expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
         {
-          where: { id: 'app_1', status: 'PENDING' },
+          where: {
+            id: 'app_1',
+            status: 'PENDING',
+            profile: decidableProfileWhere(NOW),
+          },
           data: {
             status: 'APPROVED',
             decidedAt: NOW,

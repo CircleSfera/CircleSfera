@@ -56,6 +56,11 @@ export function freeYearEnd(from: Date): Date {
   return end;
 }
 
+// How long a start waits for another request that is starting the same
+// year: 20 looks, half a second apart.
+const START_WAITS = 20;
+const START_WAIT_MS = 500;
+
 // The links as the person gave them, each once.
 export function distinctLinks(links: readonly string[]): string[] {
   return [...new Set(links.map((link) => link.trim()).filter(Boolean))];
@@ -188,14 +193,34 @@ export class FoundingCreatorsService {
           clientIp,
         });
       } catch (err) {
-        const started = await this.prisma.foundingCreatorApplication.findFirst({
-          where: { id: application.id, platformSubscriptionId: { not: null } },
-          select: { id: true },
-        });
-        if (!started) throw err;
+        if (!(await this.startedMeanwhile(application.id, err))) throw err;
       }
     }
     return this.status(userId, profileId);
+  }
+
+  // Whether the year was started by another request at the same time. While
+  // that request holds the start, it is waited for a few seconds.
+  private async startedMeanwhile(
+    applicationId: string,
+    err: unknown,
+  ): Promise<boolean> {
+    const looks =
+      (err as { errorCode?: string })?.errorCode ===
+      ErrorCode.FREE_YEAR_STARTING
+        ? START_WAITS
+        : 1;
+    for (let look = 0; look < looks; look++) {
+      if (look > 0) {
+        await new Promise((resolve) => setTimeout(resolve, START_WAIT_MS));
+      }
+      const started = await this.prisma.foundingCreatorApplication.findFirst({
+        where: { id: applicationId, platformSubscriptionId: { not: null } },
+        select: { id: true },
+      });
+      if (started) return true;
+    }
+    return false;
   }
 
   private async freeYearState(

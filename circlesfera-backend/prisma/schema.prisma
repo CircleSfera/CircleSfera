@@ -3609,9 +3609,15 @@ model FoundingCreatorApplication {
   // it cannot, the year ends at its end and never turns into a charge.
   // Null until the year starts.
   freeYearTaxable        Boolean?
-  // When the person was told the year ends in a few days: told once, also
-  // when the provider's notice comes twice.
+  // Until when one request is starting the free year: one at a time, so no
+  // two ask the provider with different keys or undo each other's work.
+  freeYearStartingUntil  DateTime?
+  // When the reminder that the year ends in a few days was given, each way
+  // on its own: the email (queued with the outbox in the same transaction)
+  // and the notice in the app. Each once, also when the provider's notice
+  // comes twice.
   freeYearReminderSentAt DateTime?
+  freeYearNoticeSentAt   DateTime?
   // The free year, once started.
   platformSubscriptionId String?                       @unique
   createdAt              DateTime                      @default(now())

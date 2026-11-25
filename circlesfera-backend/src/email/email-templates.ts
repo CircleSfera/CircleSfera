@@ -569,9 +569,15 @@ export const EmailTemplates = {
     priceCents: number,
     currency: string,
     continues = true,
+    // The Profile whose year it is: the link opens its billing, which the
+    // app shows only to its owner.
+    profileId: string | null = null,
   ): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];
     const language = ctx.locale === 'es' ? 'es-ES' : 'en-GB';
+    const billing = profileId
+      ? `${ctx.frontendUrl}/accounts/billing?profile=${encodeURIComponent(profileId)}`
+      : `${ctx.frontendUrl}/accounts/billing`;
     const date = endsAt.toLocaleDateString(language, {
       day: 'numeric',
       month: 'long',
@@ -595,10 +601,7 @@ export const EmailTemplates = {
             price: escapeHtml(price),
           },
         ),
-        button: {
-          text: copy.freeYearEnding.button,
-          url: `${ctx.frontendUrl}/accounts/billing`,
-        },
+        button: { text: copy.freeYearEnding.button, url: billing },
       }),
     };
   },
