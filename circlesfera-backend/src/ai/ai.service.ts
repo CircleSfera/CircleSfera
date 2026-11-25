@@ -126,6 +126,28 @@ export class AIService {
     }
   }
 
+  // The embeddings of several texts in one request, in their order: the same
+  // model as generateEmbedding, so they compare with the posts' own.
+  async generateEmbeddings(texts: string[]): Promise<number[][]> {
+    if (!this.openai) {
+      return texts.map(() => this.getMockEmbedding());
+    }
+
+    const release = await this.aiConcurrencySemaphore.acquire();
+    try {
+      const response = await this.openai.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: texts,
+        encoding_format: 'float',
+      });
+      return [...response.data]
+        .sort((a, b) => a.index - b.index)
+        .map((item) => item.embedding);
+    } finally {
+      release();
+    }
+  }
+
   // Generate a random 1536-dimension mock embedding for development use.
   private getMockEmbedding(): number[] {
     return Array.from({ length: 1536 }, () => (Math.random() * 2 - 1) * 0.1);

@@ -107,6 +107,7 @@ describe('PostsService', () => {
   const mockPostDistributionService = {
     dispatchPostPublished: vi.fn().mockResolvedValue(undefined),
     moderateEditedCaption: vi.fn().mockResolvedValue(undefined),
+    reembedEditedCaption: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockFrameCover = {
@@ -2116,6 +2117,38 @@ describe('PostsService', () => {
       expect(
         mockPostDistributionService.moderateEditedCaption,
       ).toHaveBeenCalledWith('post-1', 'new caption');
+      // And embedded again, so its topic follows the new words.
+      expect(
+        mockPostDistributionService.reembedEditedCaption,
+      ).toHaveBeenCalledWith('post-1', 'new caption');
+    });
+
+    it('embeds an emptied caption again as no words', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        caption: null,
+        media: [],
+      });
+
+      await service.update('post-1', { caption: '' });
+
+      expect(
+        mockPostDistributionService.reembedEditedCaption,
+      ).toHaveBeenCalledWith('post-1', '');
+    });
+
+    it('does not embed the post again when only its cover changes', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        caption: 'kept',
+        media: [],
+      });
+
+      await service.update('post-1', { coverTimeMs: 1200 });
+
+      expect(
+        mockPostDistributionService.reembedEditedCaption,
+      ).not.toHaveBeenCalled();
     });
 
     it('turns comments and the like count off or on after posting', async () => {

@@ -10,6 +10,10 @@ import {
 } from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService, classifyOpenAIError } from '../ai.service.js';
+import { PostTopicsService } from '../post-topics/post-topics.service.js';
+
+// The recurring sweep that gives a topic to the posts with none yet.
+export const ASSIGN_POST_TOPICS_JOB = 'assign-post-topics';
 
 // How a report filed by a moderation rule starts.
 const RULE_REPORT_PREFIX = '[Moderation rule]:';
@@ -38,6 +42,7 @@ export class AIProcessor extends WorkerHost {
     @Inject(AIService) private readonly aiService: AIService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(PostTopicsService) private readonly postTopics: PostTopicsService,
   ) {
     super();
   }
@@ -63,6 +68,8 @@ export class AIProcessor extends WorkerHost {
         return this.handleGenerateEmbedding(
           job as Job<{ postId: string; text: string }, any, string>,
         );
+      case ASSIGN_POST_TOPICS_JOB:
+        return this.handleAssignPostTopics();
       case 'generate-profile-embedding':
         return this.handleGenerateProfileEmbedding(
           job as Job<{ profileId: string; text: string }, any, string>,
@@ -174,15 +181,24 @@ export class AIProcessor extends WorkerHost {
     job: Job<{ postId: string; text: string }, any, string>,
   ) {
     const { postId, text } = job.data ?? {};
-    if (!postId || !text) {
-      throw new UnrecoverableError(
-        'Missing postId or text for generate-embedding',
-      );
+    if (!postId) {
+      throw new UnrecoverableError('Missing postId for generate-embedding');
+    }
+    // A post with no words (none written, or its caption emptied): nothing
+    // to embed, and an embedding of words it no longer has is dropped. Its
+    // topic is `other`.
+    if (!text?.trim()) {
+      await this.prisma.$executeRaw`
+        DELETE FROM post_embeddings WHERE "postId" = ${postId}
+      `;
+      await this.postTopics.assignWithoutWords(postId);
+      return;
     }
     this.logger.log(`Processing embedding for post: ${postId}`);
 
+    let embedding: number[];
     try {
-      const embedding = await this.aiService.generateEmbedding(text);
+      embedding = await this.aiService.generateEmbedding(text);
 
       await this.prisma.$executeRaw`
         INSERT INTO post_embeddings ("postId", vector)
@@ -199,6 +215,17 @@ export class AIProcessor extends WorkerHost {
         `Failed to process embedding for post ${postId}: ${errorMessage}`,
       );
       this.rethrowClassified(error, `Embedding failed for post ${postId}`);
+    }
+
+    // Its topic, from the embedding just stored (never fails the job).
+    await this.postTopics.assignFromEmbedding(postId, embedding);
+  }
+
+  private async handleAssignPostTopics() {
+    try {
+      return await this.postTopics.sweep();
+    } catch (error: unknown) {
+      this.rethrowClassified(error, 'Post topic sweep failed');
     }
   }
 
