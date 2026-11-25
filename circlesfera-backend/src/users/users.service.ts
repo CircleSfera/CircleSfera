@@ -463,8 +463,8 @@ export class UsersService {
   // The rest of what is kept about the person, for the export: warnings and
   // strikes, spam review cases, searches, what they viewed and did, support
   // requests, plans, company verifications (never their documents),
-  // experiments, the notes staff wrote about them and their answers about
-  // ads. Who on the staff
+  // founding creator applications, experiments, the notes staff wrote about
+  // them and their answers about ads. Who on the staff
   // wrote or decided is not included.
   private async heldAboutTheAccount(userId: string) {
     const byProfile = { profile: { userId } };
@@ -478,6 +478,7 @@ export class UsersService {
       supportRequests,
       plans,
       companyVerifications,
+      foundingCreatorApplications,
       experiments,
       staffNotes,
       webPushDevices,
@@ -571,6 +572,7 @@ export class UsersService {
           currentPeriodStart: true,
           currentPeriodEnd: true,
           cancelAtPeriodEnd: true,
+          foundingCreatorYear: true,
           createdAt: true,
           plan: { select: { name: true } },
         },
@@ -594,6 +596,23 @@ export class UsersService {
           rejectionReason: true,
           rejectionNote: true,
           createdAt: true,
+        },
+      }),
+      // Applications to be a founding creator (BD-034), with the decision
+      // and its reason.
+      this.prisma.foundingCreatorApplication.findMany({
+        where: byProfile,
+        orderBy: { createdAt: 'asc' },
+        select: {
+          profileId: true,
+          status: true,
+          links: true,
+          city: true,
+          note: true,
+          createdAt: true,
+          decidedAt: true,
+          declineReason: true,
+          declineNote: true,
         },
       }),
       this.prisma.userExperiment.findMany({
@@ -637,6 +656,7 @@ export class UsersService {
       supportRequests,
       platformPlans: plans,
       companyVerifications,
+      foundingCreatorApplications,
       experiments,
       staffNotes,
       pushDevices: { browsers: webPushDevices, apps: appPushDevices },

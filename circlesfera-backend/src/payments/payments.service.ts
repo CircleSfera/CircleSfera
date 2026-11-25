@@ -1,4 +1,8 @@
-import { ErrorCode, type PaymentAlertEvent } from '@circlesfera/shared';
+import {
+  ErrorCode,
+  FOUNDING_CREATOR_FREE_MONTHS,
+  type PaymentAlertEvent,
+} from '@circlesfera/shared';
 import {
   HttpStatus,
   Inject,
@@ -16,7 +20,10 @@ import {
   ENTITLED_STATUSES,
   isEntitled,
 } from '../common/constants/plan-features.constants.js';
+import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import {
+  FREE_YEAR_CONSENT_VERSION,
+  freeYearConsentMetadata,
   PLAN_START_CONSENT_VERSION,
   planStartConsentMetadata,
   withdrawalDeadline,
@@ -27,7 +34,16 @@ import {
   assertIdentityForBadge,
 } from '../common/policies/adult-payer.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
-import { EmailService } from '../email/email.service.js';
+import {
+  EmailService,
+  FREE_YEAR_ENDING_EMAIL_JOB,
+  type FreeYearEndingEmailJob,
+} from '../email/email.service.js';
+import {
+  FREE_YEAR_ENDING_NOTICE_JOB,
+  type FreeYearEndingNoticeJob,
+} from '../notifications/free-year-notice.job.js';
+import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   classifyStripeError,
@@ -89,6 +105,8 @@ type StripeSubscriptionState = {
   metadata?: Record<string, string> | null;
   // When it started (the purchase), in seconds.
   start_date?: number;
+  // Whether the provider works out the VAT of its charges.
+  automatic_tax?: { enabled?: boolean } | null;
 } & SubscriptionWithItems;
 
 // A subscription read or changed to move it to another price: whether a
@@ -149,6 +167,71 @@ const STANDING_STATUSES = [
   'paused',
 ];
 
+// The mark the free year of a founding creator carries at the provider: the
+// application it was given for, so a later try finds it instead of making a
+// second one.
+export const FOUNDING_APPLICATION_METADATA_KEY = 'foundingCreatorApplicationId';
+
+// How long an acceptance of the free year is shared by the tries that start
+// it at the same time; an older one, of a try that never finished, is
+// replaced.
+const FREE_YEAR_ACCEPTANCE_HOLD_MS = 60 * 60 * 1000;
+
+// A founding creator's free year still in its free period (BD-034): nothing
+// was paid for it. Once a payment method added meanwhile pays its first
+// period, it is a plan like any other.
+function isFreeYear(subscription: {
+  foundingCreatorYear: boolean;
+  status: SubscriptionStatus;
+}): boolean {
+  return (
+    subscription.foundingCreatorYear &&
+    subscription.status === SubscriptionStatus.TRIALING
+  );
+}
+
+// How long one request holds the start of a free year: longer than its whole
+// sequence of calls to the provider (up to five: the tax check, placing the
+// customer, the check again, the list of its subscriptions and the
+// creation; each at most 20 s, tried three times), with the writes around
+// them. A request that dies lets it lapse.
+const FREE_YEAR_START_HOLD_MS = 10 * 60 * 1000;
+
+// How long the reminder's jobs wait before they run: a cancellation made
+// while the provider's notice came has landed by then, so each is written
+// from the year as it is.
+const FREE_YEAR_REMINDER_DELAY_MS = 60 * 1000;
+
+// The Profile holds a plan: it keeps it, and gets no second one.
+function planHeld() {
+  return AppException.Conflict(
+    ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+    'This profile already has a plan.',
+  );
+}
+
+// When the free year of a subscription was accepted, and in which wording,
+// as its metadata at the provider says: for one an earlier try made, its
+// own acceptance, not this request's. This request's when it says none.
+function acceptanceOf(
+  subscription: { metadata?: Record<string, string> | null },
+  fallback: Date,
+): { acceptedAt: Date; version: string } {
+  const at = new Date(subscription.metadata?.free_year_consent_at ?? '');
+  const version = subscription.metadata?.free_year_consent_version;
+  return Number.isNaN(at.getTime()) || !version
+    ? { acceptedAt: fallback, version: FREE_YEAR_CONSENT_VERSION }
+    : { acceptedAt: at, version };
+}
+
+// The plans a Profile holds while they run or are owed: one at a time.
+const HELD_STATUSES: SubscriptionStatus[] = [
+  SubscriptionStatus.ACTIVE,
+  SubscriptionStatus.TRIALING,
+  SubscriptionStatus.PAST_DUE,
+  SubscriptionStatus.UNPAID,
+];
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -168,6 +251,10 @@ export class PaymentsService {
     @Optional()
     @Inject(ConfigService)
     private readonly configService?: ConfigService,
+    // Emails that must go with a write (the free year's reminder).
+    @Optional()
+    @Inject(OutboxService)
+    private readonly outbox?: OutboxService,
   ) {}
 
   private get frontendUrl(): string {
@@ -450,14 +537,26 @@ export class PaymentsService {
               [CHECKOUT_ADD_ON_METADATA_KEY]: String(buyingAddOn),
               ...planStartConsentMetadata(),
             },
+            // The subscription itself says whose plan it is, so it can be
+            // told apart at the provider before its notice arrives (a free
+            // year starting meanwhile refuses beside it).
+            subscription_data: {
+              metadata: {
+                userId,
+                planId: plan.id,
+                profileId: profile.id,
+                [CHECKOUT_ADD_ON_METADATA_KEY]: String(buyingAddOn),
+              },
+            },
           },
           {
             // A new prefix whenever the parameters change (here the
-            // consent wording, by its version): a key reused with other
-            // parameters is refused. The minute keeps a retry of the same
-            // request on the same session, and a purchase made again later
-            // (after a withdrawal) on a new one.
-            idempotencyKey: `checkout_sub_tax_${PLAN_START_CONSENT_VERSION}_${intentKey}:${Math.floor(Date.now() / 60_000)}`,
+            // consent wording, by its version, and the subscription's own
+            // metadata): a key reused with other parameters is refused. The
+            // minute keeps a retry of the same request on the same session,
+            // and a purchase made again later (after a withdrawal) on a new
+            // one.
+            idempotencyKey: `checkout_sub_meta_${PLAN_START_CONSENT_VERSION}_${intentKey}:${Math.floor(Date.now() / 60_000)}`,
           },
         );
         // One payment page open per Profile for a plan (and one for the
@@ -488,7 +587,8 @@ export class PaymentsService {
 
   // Only pages opened before the kept one are expired, so two pages opened
   // at once never expire each other. A page opened before the add-on mark
-  // existed is told apart by its plan.
+  // existed is told apart by its plan. A free year starting keeps none of
+  // them (no page of its own; every earlier one is expired).
   private async expireOtherOpenCheckouts(
     customerId: string,
     kept: Pick<Stripe.Checkout.Session, 'id' | 'created'>,
@@ -587,6 +687,419 @@ export class PaymentsService {
     return customer.id;
   }
 
+  // Gives an approved founding creator's Profile the Verified plan free for
+  // twelve months (BD-034), given by the product, with no coupon, once the
+  // person has accepted its terms (FREE_YEAR_CONSENT_VERSION): a
+  // subscription at the provider to the Verified plan's monthly price, in
+  // trial for the year. Nothing is charged during it. At its end, with a
+  // payment method saved, it continues at that price, VAT worked out by the
+  // provider (automatic tax) as at Checkout; with none, the provider
+  // cancels it and that notice ends it here (customer.subscription.deleted).
+  // When the provider cannot work out the VAT of the person's address, the
+  // year ends at its end whatever is saved, so no charge without VAT is ever
+  // possible. Its row is the one every plan has, so what the plan gives, the
+  // badge, cancelling and the provider's notices work as for any plan; it is
+  // marked, so it is never withdrawn from nor refunded, and while free it
+  // counts as no income (TRIALING). A few days before it ends the person is
+  // reminded (customer.subscription.trial_will_end).
+  //
+  // Refused, with nothing made at the provider: for a Test Account where
+  // money is real, for whoever is not an adult payer (it can renew into a
+  // charge), and while the person's identity is not verified, which the
+  // badge needs (PD-076): the year does not start, so none of it is lost
+  // waiting for the badge. A Profile that already holds a plan (each gives
+  // Verified or a higher badge) keeps it and gets no second one.
+  //
+  // Paused payments stop it. One request at a time starts it (a few minutes'
+  // hold on the application; another meanwhile is told FREE_YEAR_STARTING).
+  // Safe to repeat: the year counts from the acceptance kept on the
+  // application, so a retry within the hour asks the provider for the same
+  // subscription with the same key; one the provider already holds for the
+  // application is used again, with its own acceptance; the row and the
+  // application are written together, once, and only while the Profile
+  // holds no other plan (a checkout that completed meanwhile keeps its plan
+  // alone). When that write fails, the subscription just made is ended at
+  // the provider, so none is left without its row.
+  async startFoundingYear(params: {
+    userId: string;
+    profileId: string;
+    applicationId: string;
+    // The IP address of the request in which the person accepted, resolved
+    // through the trusted proxies: places a customer with no address for
+    // its VAT. Never logged.
+    clientIp?: string | null;
+  }): Promise<{ stripeSubscriptionId: string; freeUntil: Date }> {
+    const { userId, profileId, applicationId } = params;
+    await assertRealMoneyAllowed(this.prisma, userId);
+    await assertAdultPayer(this.prisma, userId);
+
+    // The Verified plan: the plan on sale for any Profile with the Verified
+    // badge and the lowest price, told by what the catalog sets, never by
+    // its name.
+    const plan = await this.prisma.platformPlan.findFirst({
+      where: {
+        isActive: true,
+        addOn: false,
+        badge: 'VERIFIED',
+        forAccountType: null,
+      },
+      orderBy: { priceCents: 'asc' },
+    });
+    if (!plan) {
+      throw AppException.NotFound(
+        ErrorCode.PLAN_NOT_FOUND,
+        'The Verified plan is not on sale',
+      );
+    }
+    await assertIdentityForBadge(this.prisma, userId, plan.features);
+
+    const held = await this.prisma.platformSubscription.count({
+      where: { profileId, addOn: false, status: { in: HELD_STATUSES } },
+    });
+    if (held > 0) throw planHeld();
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, stripeCustomerId: true },
+    });
+    if (!user) {
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
+    }
+    // Paused payments stop it too, before anything reaches the provider: it
+    // is a plan that can renew into a charge.
+    await this.stripeService.assertPaymentsEnabled();
+    const customerId = await this.ensureStripeCustomer(user);
+
+    // One request at a time starts it: none asks the provider under another
+    // key, lets go of an acceptance another uses, or ends a subscription
+    // another linked.
+    const startingUntil = await this.holdFreeYearStart(applicationId);
+    try {
+      return await this.startHeldFreeYear({
+        ...params,
+        customerId,
+        plan,
+      });
+    } finally {
+      await this.releaseFreeYearStart(applicationId, startingUntil);
+    }
+  }
+
+  // Marks the application as being started by this request, for ten
+  // minutes: longer than the whole sequence of calls to the provider the
+  // start makes. Refused while another request holds it, or once the year
+  // started.
+  private async holdFreeYearStart(applicationId: string): Promise<Date> {
+    const now = new Date();
+    const until = new Date(now.getTime() + FREE_YEAR_START_HOLD_MS);
+    const { count } = await this.prisma.foundingCreatorApplication.updateMany({
+      where: {
+        id: applicationId,
+        platformSubscriptionId: null,
+        OR: [
+          { freeYearStartingUntil: null },
+          { freeYearStartingUntil: { lt: now } },
+        ],
+      },
+      data: { freeYearStartingUntil: until },
+    });
+    if (count === 0) {
+      throw AppException.Conflict(
+        ErrorCode.FREE_YEAR_STARTING,
+        'The free year is being started.',
+      );
+    }
+    return until;
+  }
+
+  private async releaseFreeYearStart(applicationId: string, until: Date) {
+    await this.prisma.foundingCreatorApplication
+      .updateMany({
+        where: { id: applicationId, freeYearStartingUntil: until },
+        data: { freeYearStartingUntil: null },
+      })
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `The start of free year ${applicationId} was not let go; it lapses by itself`,
+          err,
+        ),
+      );
+  }
+
+  // The start itself, by the request that holds it.
+  private async startHeldFreeYear(params: {
+    userId: string;
+    profileId: string;
+    applicationId: string;
+    clientIp?: string | null;
+    customerId: string;
+    plan: { id: string; stripePriceId: string };
+  }): Promise<{ stripeSubscriptionId: string; freeUntil: Date }> {
+    const { userId, profileId, applicationId, customerId, plan } = params;
+    const acceptedAt = await this.acceptFreeYear(applicationId);
+    const trialEnd = new Date(acceptedAt);
+    trialEnd.setUTCMonth(trialEnd.getUTCMonth() + FOUNDING_CREATOR_FREE_MONTHS);
+    let subscription: StripeSubscriptionState;
+    try {
+      const taxable = await this.taxableCustomer(customerId, params.clientIp);
+      // A plan payment page of the Profile opened earlier is expired first,
+      // so it cannot be paid after the year and make a second plan; one
+      // paid just before is a plan the provider holds, which refuses the
+      // year (freeYearAtProvider).
+      await this.expireOtherOpenCheckouts(
+        customerId,
+        { id: '', created: Number.MAX_SAFE_INTEGER },
+        profileId,
+        false,
+      );
+      subscription = (await this.freeYearAtProvider(customerId, {
+        applicationId,
+        priceId: plan.stripePriceId,
+        trialEnd,
+        taxable,
+        idempotencyKey: `founding_year_${applicationId}_${acceptedAt.getTime()}`,
+        metadata: {
+          userId,
+          profileId,
+          planId: plan.id,
+          [FOUNDING_APPLICATION_METADATA_KEY]: applicationId,
+          ...freeYearConsentMetadata(acceptedAt),
+        },
+      })) as unknown as StripeSubscriptionState;
+    } catch (err) {
+      // The next try asks the provider afresh, under a new key.
+      await this.forgetFreeYearAcceptance(applicationId, acceptedAt);
+      throw err;
+    }
+    const period = subscriptionPeriod(subscription);
+    // Taxed or not as the subscription is, also one made by an earlier try,
+    // and accepted when and in which wording it says.
+    const taxable = subscription.automatic_tax?.enabled === true;
+    const consent = acceptanceOf(subscription, acceptedAt);
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // A plan the Profile came to hold meanwhile (a checkout that
+        // completed during the start) keeps it alone: no second plan.
+        const others = await tx.platformSubscription.count({
+          where: {
+            profileId,
+            addOn: false,
+            status: { in: HELD_STATUSES },
+            NOT: { stripeSubscriptionId: subscription.id },
+          },
+        });
+        if (others > 0) throw planHeld();
+        const row = await tx.platformSubscription.upsert({
+          where: { stripeSubscriptionId: subscription.id },
+          update: {},
+          create: {
+            userId,
+            planId: plan.id,
+            profileId,
+            status: this.mapStripeStatus(subscription.status),
+            stripeSubscriptionId: subscription.id,
+            currentPeriodStart: period.start,
+            currentPeriodEnd: period.end,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            addOn: false,
+            foundingCreatorYear: true,
+            ...providerStart(subscription),
+            ...providerInterval(subscription),
+          },
+          select: { id: true },
+        });
+        // The acceptance is written again with the year it started: a try
+        // at the same time that failed and let it go never leaves the year
+        // without it.
+        await tx.foundingCreatorApplication.updateMany({
+          where: { id: applicationId, platformSubscriptionId: null },
+          data: {
+            platformSubscriptionId: row.id,
+            freeYearTaxable: taxable,
+            freeYearAcceptedAt: consent.acceptedAt,
+            freeYearConsentVersion: consent.version,
+          },
+        });
+      });
+    } catch (err) {
+      await this.undoFreeYear(applicationId, acceptedAt, subscription.id, err);
+      // The one-plan index refused it: a plan written at the same time.
+      if ((err as { code?: string })?.code === 'P2002') throw planHeld();
+      throw err;
+    }
+    // The year stands once written: a badge not synced now is synced by the
+    // next sync of the person.
+    try {
+      await this.usersService.syncUserTier(userId);
+    } catch (err) {
+      this.logger.error(
+        `The benefits of the free year ${subscription.id} were not synced`,
+        err,
+      );
+    }
+    return { stripeSubscriptionId: subscription.id, freeUntil: period.end };
+  }
+
+  // Whether the provider can work out the VAT of the customer. One with no
+  // address it can place is placed by the IP address of the request in which
+  // the person accepted, and checked again; a failure to place it leaves it
+  // untaxable (the year then ends at its end), never fails the start.
+  private async taxableCustomer(
+    customerId: string,
+    clientIp: string | null | undefined,
+  ): Promise<boolean> {
+    if (await this.stripeService.canTaxCustomer(customerId)) return true;
+    if (!clientIp) return false;
+    try {
+      await this.stripeService.setCustomerTaxLocationFromIp(
+        customerId,
+        clientIp,
+      );
+    } catch (err) {
+      // The address itself is never written to the log.
+      this.logger.warn(
+        `Customer ${customerId} could not be placed for its VAT (${classifyStripeError(err)})`,
+      );
+      return false;
+    }
+    return this.stripeService.canTaxCustomer(customerId);
+  }
+
+  // Keeps when the person accepted the free year: once, so requests at the
+  // same time count the year from the same moment. An acceptance of a try
+  // that never finished, older than an hour, is replaced by this one.
+  private async acceptFreeYear(applicationId: string): Promise<Date> {
+    const now = new Date();
+    await this.prisma.foundingCreatorApplication.updateMany({
+      where: {
+        id: applicationId,
+        platformSubscriptionId: null,
+        OR: [
+          { freeYearAcceptedAt: null },
+          {
+            freeYearAcceptedAt: {
+              lt: new Date(now.getTime() - FREE_YEAR_ACCEPTANCE_HOLD_MS),
+            },
+          },
+        ],
+      },
+      data: {
+        freeYearAcceptedAt: now,
+        freeYearConsentVersion: FREE_YEAR_CONSENT_VERSION,
+      },
+    });
+    const kept = await this.prisma.foundingCreatorApplication.findFirst({
+      where: { id: applicationId },
+      select: { freeYearAcceptedAt: true },
+    });
+    return kept?.freeYearAcceptedAt ?? now;
+  }
+
+  // A try that failed: its acceptance is let go, so the next one asks the
+  // provider under a new key, never for an answer kept under the old one.
+  private async forgetFreeYearAcceptance(
+    applicationId: string,
+    acceptedAt: Date,
+  ) {
+    await this.prisma.foundingCreatorApplication
+      .updateMany({
+        where: {
+          id: applicationId,
+          platformSubscriptionId: null,
+          freeYearAcceptedAt: acceptedAt,
+        },
+        data: { freeYearAcceptedAt: null, freeYearConsentVersion: null },
+      })
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `The acceptance of free year ${applicationId} was not let go`,
+          err,
+        ),
+      );
+  }
+
+  // The free year was made at the provider but its row could not be
+  // written. Unless a request at the same time wrote it, the subscription is
+  // ended at the provider now, so none is left there without its row; a
+  // failure to end it is reported for staff.
+  private async undoFreeYear(
+    applicationId: string,
+    acceptedAt: Date,
+    stripeSubscriptionId: string,
+    cause: unknown,
+  ) {
+    try {
+      const written = await this.prisma.platformSubscription.findFirst({
+        where: { stripeSubscriptionId },
+        select: { id: true },
+      });
+      if (written) return;
+      await this.stripeService.endSubscriptionNow(stripeSubscriptionId);
+      await this.forgetFreeYearAcceptance(applicationId, acceptedAt);
+      this.logger.error(
+        `Free year ${stripeSubscriptionId} was ended at the provider: its row could not be written`,
+        cause,
+      );
+    } catch (err) {
+      const message = `Free year ${stripeSubscriptionId} has no row and could not be ended at the provider`;
+      this.logger.error(message, err);
+      Sentry.captureMessage(message, {
+        level: 'error',
+        tags: { area: 'founding-year' },
+        extra: { applicationId, stripeSubscriptionId },
+      });
+    }
+  }
+
+  // The free year at the provider: the one it already holds for the
+  // application, or a new one.
+  private async freeYearAtProvider(
+    customerId: string,
+    params: {
+      applicationId: string;
+      priceId: string;
+      trialEnd: Date;
+      taxable: boolean;
+      idempotencyKey: string;
+      metadata: Record<string, string>;
+    },
+  ): Promise<Stripe.Subscription> {
+    const held =
+      await this.stripeService.listSubscriptionsForCustomer(customerId);
+    // A plan of this Profile the provider already holds and may charge (a
+    // checkout paid whose notice has not arrived yet) keeps it alone: the
+    // year is refused before it is made, so that paid plan is never taken
+    // for a second one and refunded. An add-on is held beside a plan.
+    const paidPlan = held.find(
+      (subscription) =>
+        subscription.metadata?.profileId === params.metadata.profileId &&
+        STANDING_STATUSES.includes(subscription.status) &&
+        !subscription.metadata?.[FOUNDING_APPLICATION_METADATA_KEY] &&
+        subscription.metadata?.[CHECKOUT_ADD_ON_METADATA_KEY] !== 'true',
+    );
+    if (paidPlan) throw planHeld();
+    const earlier = held.find(
+      (subscription) =>
+        subscription.metadata?.[FOUNDING_APPLICATION_METADATA_KEY] ===
+          params.applicationId &&
+        STANDING_STATUSES.includes(subscription.status),
+    );
+    if (earlier) return earlier;
+
+    return this.stripeService.createFreeYearSubscription({
+      customerId,
+      priceId: params.priceId,
+      trialEnd: params.trialEnd,
+      automaticTax: params.taxable,
+      // A charge whose VAT cannot be worked out is never made: without an
+      // address to tax, the year ends at its end.
+      endAtTrialEnd: !params.taxable,
+      metadata: params.metadata,
+      idempotencyKey: params.idempotencyKey,
+    });
+  }
+
   // The plan of the Profile in use and its add-on (Edits Studio Pro), and
   // which other Profiles of the person have a plan: the person pays for all
   // of them.
@@ -680,6 +1193,14 @@ export class PaymentsService {
         ? subscription.plan.yearlyPriceCents
         : null,
       currency: subscription.plan.currency,
+      // The free year of a founding creator (BD-034): nothing is charged
+      // until its period ends, and then only with a payment method added.
+      foundingCreatorYear: subscription.foundingCreatorYear,
+      // Whether that free year can go on past its end: not when its VAT
+      // cannot be worked out (resuming it is then refused).
+      ...(subscription.foundingCreatorYear && {
+        freeYearRenewable: !(await this.freeYearUntaxed(subscription.id)),
+      }),
       // Until when the payer can withdraw from it (14 days from the purchase
       // at the provider, decided as the server decides), while it runs; null
       // once that has passed or while the purchase cannot be known.
@@ -695,6 +1216,7 @@ export class PaymentsService {
     yearlyStartedAt: Date | null;
     withdrawnAt: Date | null;
     status: SubscriptionStatus;
+    foundingCreatorYear: boolean;
   }): Promise<Date | null> {
     const running: SubscriptionStatus[] = [
       SubscriptionStatus.ACTIVE,
@@ -704,6 +1226,8 @@ export class PaymentsService {
     if (!running.includes(subscription.status) || subscription.withdrawnAt) {
       return null;
     }
+    // A free year paid nothing: there is nothing to withdraw from.
+    if (isFreeYear(subscription)) return null;
     const now = Date.now();
     // A plan moved to the yearly price: its 14 days count from the move.
     if (subscription.yearlyStartedAt) {
@@ -866,6 +1390,14 @@ export class PaymentsService {
       throw AppException.NotFound(
         ErrorCode.SUBSCRIPTION_NOT_FOUND,
         'This profile has no plan to withdraw from',
+      );
+    }
+    // A free year paid nothing: it is cancelled, never withdrawn from, so
+    // nothing is ever refunded on it.
+    if (isFreeYear(subscription)) {
+      throw AppException.BadRequest(
+        ErrorCode.FREE_YEAR_NOT_WITHDRAWABLE,
+        'Nothing was paid for this free year: it can be cancelled, not withdrawn from.',
       );
     }
 
@@ -1192,6 +1724,17 @@ export class PaymentsService {
       // Resuming means the plan is charged again on its date: whoever pays
       // must be an adult, as for a new plan.
       await assertAdultPayer(this.prisma, userId);
+      // A free year whose VAT cannot be worked out ends at its end: never
+      // resumed into a charge without it.
+      if (
+        subscription.foundingCreatorYear &&
+        (await this.freeYearUntaxed(subscription.id))
+      ) {
+        throw AppException.BadRequest(
+          ErrorCode.FREE_YEAR_NOT_RENEWABLE,
+          'This free year ends at its end. Choose Verified in Plans to keep it.',
+        );
+      }
       // The add-on is not resumed beside a plan that already includes it.
       if (addOn && (await this.planIncludesStudioPro(profileId))) {
         throw AppException.Conflict(
@@ -1467,6 +2010,9 @@ export class PaymentsService {
   // so the row is never seen running again.
   private async applyStripeSubscription(subscription: StripeSubscriptionState) {
     const period = subscriptionPeriod(subscription);
+    const cancelAtPeriodEnd =
+      (await this.keepUntaxedFreeYearEnding(subscription)) ||
+      subscription.cancel_at_period_end;
     await this.prisma.$transaction(async (tx) => {
       await this.keepYearlyMove(tx, subscription, period);
       // A copy read before a move to the yearly price, written after it,
@@ -1483,7 +2029,7 @@ export class PaymentsService {
           status: this.mapStripeStatus(subscription.status),
           currentPeriodStart: period.start,
           currentPeriodEnd: period.end,
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          cancelAtPeriodEnd,
           ...providerStart(subscription),
           ...providerInterval(subscription),
         },
@@ -1497,6 +2043,35 @@ export class PaymentsService {
     if (platformSub?.userId) {
       await this.usersService.syncUserTier(platformSub.userId);
     }
+  }
+
+  // A founding creator's free year whose VAT cannot be worked out (no
+  // automatic tax) must end at its end; when the provider shows it going on
+  // in trial (a cancellation taken back in the billing portal), it is set to
+  // end again there, and its row keeps it ending. Whether it did.
+  private async keepUntaxedFreeYearEnding(
+    subscription: StripeSubscriptionState,
+  ): Promise<boolean> {
+    if (
+      subscription.status !== 'trialing' ||
+      subscription.cancel_at_period_end ||
+      subscription.automatic_tax?.enabled !== false
+    ) {
+      return false;
+    }
+    const freeYear = await this.prisma.platformSubscription.findFirst({
+      where: {
+        stripeSubscriptionId: subscription.id,
+        foundingCreatorYear: true,
+      },
+      select: { id: true },
+    });
+    if (!freeYear) return false;
+    await this.stripeService.cancelSubscription(subscription.id, true);
+    this.logger.warn(
+      `Free year ${subscription.id} without VAT was set to go on; it ends at its end again`,
+    );
+    return true;
   }
 
   // A monthly plan moved to the yearly price in the app (BD-016) starts its
@@ -1561,6 +2136,105 @@ export class PaymentsService {
       ErrorCode.SUBSCRIPTION_NOT_FOUND,
       'This plan has ended',
     );
+  }
+
+  // Whether a free year was started for a person whose VAT the provider
+  // could not work out (it ends at its end).
+  private async freeYearUntaxed(platformSubscriptionId: string) {
+    const application = await this.prisma.foundingCreatorApplication.findFirst({
+      where: { platformSubscriptionId },
+      select: { freeYearTaxable: true },
+    });
+    return application?.freeYearTaxable === false;
+  }
+
+  // A few days before a founding creator's free year ends (the provider's
+  // customer.subscription.trial_will_end), the person is told in the app
+  // and by email, to the account's address, once. A year that goes on: on
+  // which day it ends, that with a card saved it then continues at the
+  // monthly price, VAT included, and how to cancel it (a transactional
+  // notice of a charge, not marketing). A year set to end (cancelled, or
+  // without VAT): on which day it ends, and that Verified is chosen in Plans
+  // to keep it; it stays ending. Any other trial (none is sold now) is
+  // left.
+  //
+  // Both ways go the same way, durable and on their own: each is a job of
+  // the outbox, queued in one transaction with its marker, under a job id
+  // of the application, carrying ids only. The email and the notice are
+  // written when each job runs, from the year as it is then (a cancellation
+  // made meanwhile gives the ending text; an account erased meanwhile is
+  // skipped), and each job waits a minute so a cancellation in flight has
+  // landed. A failure of the transaction marks nothing and fails the
+  // provider's notice, which it sends again: neither way is ever skipped
+  // for the other, and the markers and job ids keep a retry from giving
+  // either twice.
+  private async remindFreeYearEnding(named: { id: string }) {
+    const row = await this.prisma.platformSubscription.findFirst({
+      where: { stripeSubscriptionId: named.id, foundingCreatorYear: true },
+      select: {
+        status: true,
+        profileId: true,
+        user: { select: { email: true } },
+        foundingCreatorApplication: { select: { id: true } },
+      },
+    });
+    const application = row?.foundingCreatorApplication;
+    if (!row || !application || row.status !== SubscriptionStatus.TRIALING) {
+      this.logger.log(
+        `Trial of subscription ${named.id} ending: no founding creator year to tell about`,
+      );
+      return;
+    }
+    const outbox = this.outbox;
+    if (!outbox) {
+      this.logger.warn(
+        `The reminder of free year ${application.id} cannot be queued: no outbox`,
+      );
+      return;
+    }
+    await this.prisma.$transaction(async (tx) => {
+      if (row.user?.email) {
+        const { count } = await tx.foundingCreatorApplication.updateMany({
+          where: { id: application.id, freeYearReminderSentAt: null },
+          data: { freeYearReminderSentAt: new Date() },
+        });
+        if (count > 0) {
+          await outbox.enqueue(tx, {
+            queueName: QUEUE_NAMES.EMAIL_PROCESSING,
+            eventName: FREE_YEAR_ENDING_EMAIL_JOB,
+            payload: {
+              applicationId: application.id,
+              kind: 'free-year-ending',
+            } satisfies FreeYearEndingEmailJob,
+            options: {
+              jobId: `free-year-ending-${application.id}`,
+              delay: FREE_YEAR_REMINDER_DELAY_MS,
+            },
+          });
+        }
+      }
+      if (row.profileId) {
+        const { count } = await tx.foundingCreatorApplication.updateMany({
+          where: { id: application.id, freeYearNoticeSentAt: null },
+          data: { freeYearNoticeSentAt: new Date() },
+        });
+        if (count > 0) {
+          await outbox.enqueue(tx, {
+            queueName: QUEUE_NAMES.NOTIFICATIONS_PROCESSING,
+            eventName: FREE_YEAR_ENDING_NOTICE_JOB,
+            payload: {
+              applicationId: application.id,
+              kind: 'free-year-ending-notice',
+            } satisfies FreeYearEndingNoticeJob,
+            options: {
+              jobId: `free-year-ending-notice-${application.id}`,
+              delay: FREE_YEAR_REMINDER_DELAY_MS,
+            },
+          });
+        }
+      }
+    });
+    outbox.triggerImmediatePublish();
   }
 
   // Whether the running plan (not an add-on) of a Profile gives the
@@ -2044,6 +2718,13 @@ export class PaymentsService {
         const named = data.object as unknown as StripeSubscriptionState;
         await this.applyStripeSubscription(
           await this.currentSubscription(named),
+        );
+        break;
+      }
+
+      case 'customer.subscription.trial_will_end': {
+        await this.remindFreeYearEnding(
+          data.object as unknown as StripeSubscriptionState,
         );
         break;
       }

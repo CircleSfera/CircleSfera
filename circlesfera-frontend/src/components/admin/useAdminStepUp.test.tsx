@@ -140,6 +140,125 @@ describe('the second confirmation of a staff member', () => {
     expect(action).toHaveBeenCalledTimes(1);
   });
 
+  it('does not send the action when the dialog is closed while the code is being checked', async () => {
+    action.mockRejectedValueOnce(asksToConfirm).mockResolvedValue('approved');
+    let verified = () => {};
+    vi.mocked(adminAuthApi.stepUp).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          verified = () => resolve({} as never);
+        }),
+    );
+    start();
+    await screen.findByRole('dialog');
+    type('123456');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(adminAuthApi.stepUp).toHaveBeenCalled());
+
+    // Closed with Escape while the code is checked; then the check passes.
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    await waitFor(() => expect(failed).toHaveBeenCalledTimes(1));
+    verified();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(isStepUpCancelled(failed.mock.calls[0][0])).toBe(true);
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(done).not.toHaveBeenCalled();
+  });
+
+  it('settles an action still waiting as cancelled when another asks to confirm, and confirms the newer one', async () => {
+    const second = vi.fn();
+    const secondDone = vi.fn();
+    function TwoActions() {
+      const stepUp = useAdminStepUp();
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => stepUp.run(() => action()).then(done, failed)}
+          >
+            First
+          </button>
+          <button
+            type="button"
+            onClick={() => stepUp.run(() => second()).then(secondDone, failed)}
+          >
+            Second
+          </button>
+          {stepUp.dialog}
+        </>
+      );
+    }
+    action.mockRejectedValue(asksToConfirm);
+    second.mockRejectedValueOnce(asksToConfirm).mockResolvedValue('second');
+    renderWithProviders(<TwoActions />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+
+    // The first is settled, never left pending.
+    await waitFor(() => expect(failed).toHaveBeenCalledTimes(1));
+    expect(isStepUpCancelled(failed.mock.calls[0][0])).toBe(true);
+
+    type('123456');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(secondDone).toHaveBeenCalledWith('second'));
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(done).not.toHaveBeenCalled();
+  });
+
+  it('starts the dialog again for a second action that asks to confirm while the first one’s code is being checked', async () => {
+    const second = vi.fn();
+    const secondDone = vi.fn();
+    function TwoActions() {
+      const stepUp = useAdminStepUp();
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => stepUp.run(() => action()).then(done, failed)}
+          >
+            First
+          </button>
+          <button
+            type="button"
+            onClick={() => stepUp.run(() => second()).then(secondDone, failed)}
+          >
+            Second
+          </button>
+          {stepUp.dialog}
+        </>
+      );
+    }
+    action.mockRejectedValue(asksToConfirm);
+    second.mockRejectedValueOnce(asksToConfirm).mockResolvedValue('second');
+    // The first code's check never answers.
+    vi.mocked(adminAuthApi.stepUp).mockImplementationOnce(
+      () => new Promise(() => {}),
+    );
+    renderWithProviders(<TwoActions />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
+    await screen.findByRole('dialog');
+    type('111111');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(adminAuthApi.stepUp).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+    await waitFor(() => expect(failed).toHaveBeenCalledTimes(1));
+
+    // Not stuck: Cancel works and a new code can be given.
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    type('222222');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(secondDone).toHaveBeenCalledWith('second'));
+    expect(adminAuthApi.stepUp).toHaveBeenLastCalledWith({
+      totpCode: '222222',
+    });
+  });
+
   it('passes on what the action answers after the confirmation, a refusal included', async () => {
     const conflict = { response: { status: 409, data: {} } };
     action.mockRejectedValueOnce(asksToConfirm).mockRejectedValue(conflict);

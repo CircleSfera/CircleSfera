@@ -84,6 +84,15 @@ export type Notice =
       key: 'company_rejected';
       reason: CompanyRejectionReason;
       note?: string | null;
+    }
+  // A founding creator's free year of Verified ends in a few days (BD-034).
+  | {
+      key: 'free_year_ending';
+      endsAt: Date;
+      priceCents: number;
+      currency: string;
+      // Whether it goes on with a saved card, or is set to end.
+      continues: boolean;
     };
 
 export type NoticeKey = Notice['key'];
@@ -97,6 +106,14 @@ function day(locale: Locale, date: Date): string {
     year: 'numeric',
     timeZone: 'UTC',
   });
+}
+
+// An amount in cents, as the reader writes money ("4,99 €", "€4.99").
+function money(locale: Locale, cents: number, currency: string): string {
+  return new Intl.NumberFormat(DATE_LOCALE[locale], {
+    style: 'currency',
+    currency: currency.toUpperCase(),
+  }).format(cents / 100);
 }
 
 function contentType(value: string): ContentType {
@@ -439,6 +456,10 @@ function renderEn(n: Notice): string {
       return 'Your company is verified. This profile shows "Verified company" while it has the Business plan.';
     case 'company_rejected':
       return `Your company verification was not approved. ${COMPANY_REJECTION.en[n.reason]}${n.note ? ` ${n.note}` : ''} You can apply again from Settings.`;
+    case 'free_year_ending':
+      return n.continues
+        ? `Your free year of Verified ends on ${day('en', n.endsAt)}. If you have a card saved on CircleSfera, the plan continues at ${money('en', n.priceCents, n.currency)} a month, VAT included, until you cancel it. Without a card, it ends by itself. You can cancel it at any time in Settings → Subscription.`
+        : `Your free year of Verified ends on ${day('en', n.endsAt)}, and nothing is charged. To keep Verified after that, choose it in Plans.`;
     case 'support_resources':
       return 'Someone who saw what you shared is worried about you. If you are going through something hard, you are not alone. In immediate danger, call 112 or your local emergency number. To talk to someone for free, find a helpline in your country at findahelpline.com.';
   }
@@ -590,6 +611,10 @@ function renderEs(n: Notice): string {
       return 'Tu empresa está verificada. Este perfil muestra «Empresa verificada» mientras tenga el plan Business.';
     case 'company_rejected':
       return `Tu verificación de empresa no se ha aprobado. ${COMPANY_REJECTION.es[n.reason]}${n.note ? ` ${n.note}` : ''} Puedes volver a solicitarla desde Ajustes.`;
+    case 'free_year_ending':
+      return n.continues
+        ? `Tu año gratis de Verified termina el ${day('es', n.endsAt)}. Si tienes una tarjeta guardada en CircleSfera, el plan seguirá con un cobro de ${money('es', n.priceCents, n.currency)} al mes, IVA incluido, hasta que lo canceles. Si no tienes tarjeta, el plan termina solo. Puedes cancelarlo cuando quieras en Ajustes → Suscripción.`
+        : `Tu año gratis de Verified termina el ${day('es', n.endsAt)} y no se cobra nada. Para seguir con Verified después, elígelo en Planes.`;
     case 'support_resources':
       return 'Alguien que ha visto lo que compartiste se preocupa por ti. Si estás pasando por algo difícil, no estás solo ni sola. Si estás en peligro inmediato, llama al 112. Para hablar con alguien, llama al 024: es gratis, confidencial y atiende a cualquier hora.';
   }

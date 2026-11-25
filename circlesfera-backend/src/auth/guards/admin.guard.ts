@@ -28,6 +28,7 @@ export type StaffPermission =
   | 'plans'
   | 'review'
   | 'company_verification'
+  | 'founding_creators'
   | 'admins.manage';
 
 export const STAFF_PERMISSIONS_KEY = 'staff_permissions';

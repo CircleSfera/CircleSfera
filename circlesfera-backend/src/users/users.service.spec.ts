@@ -57,6 +57,7 @@ describe('UsersService', () => {
     platformSubscription: { findMany: vi.fn() },
     userExperiment: { findMany: vi.fn() },
     companyVerification: { findMany: vi.fn().mockResolvedValue([]) },
+    foundingCreatorApplication: { findMany: vi.fn().mockResolvedValue([]) },
     staffNote: { findMany: vi.fn() },
     pushSubscription: { findMany: vi.fn() },
     nativePushToken: { findMany: vi.fn() },
@@ -506,7 +507,15 @@ describe('UsersService', () => {
         { reference: 7, messages: [{ visibility: 'INTERNAL', body: 'n' }] },
       ]);
       heldModels.platformSubscription.findMany.mockResolvedValue([
-        { status: 'ACTIVE', plan: { name: 'Pro' } },
+        { status: 'ACTIVE', foundingCreatorYear: false, plan: { name: 'Pro' } },
+      ]);
+      heldModels.foundingCreatorApplication.findMany.mockResolvedValue([
+        {
+          status: 'DECLINED',
+          links: ['https://vimeo.com/ana'],
+          city: 'Valencia',
+          declineReason: 'NOT_VIDEO_WORK',
+        },
       ]);
       heldModels.userExperiment.findMany.mockResolvedValue([
         { experimentKey: 'feed', variant: 'b' },
@@ -540,6 +549,38 @@ describe('UsersService', () => {
         heldModels.companyVerification.findMany.mock.calls[0][0].select
           .documents,
       ).toBeUndefined();
+      // The founding creator applications of its Profiles (BD-034): what was
+      // sent and the decision with its reason, never who on the staff
+      // decided.
+      expect(res.foundingCreatorApplications[0]).toEqual({
+        status: 'DECLINED',
+        links: ['https://vimeo.com/ana'],
+        city: 'Valencia',
+        declineReason: 'NOT_VIDEO_WORK',
+      });
+      expect(
+        heldModels.foundingCreatorApplication.findMany,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { profile: { userId: 'u_exp' } },
+          select: expect.objectContaining({
+            links: true,
+            city: true,
+            note: true,
+            declineReason: true,
+            declineNote: true,
+          }),
+        }),
+      );
+      expect(
+        heldModels.foundingCreatorApplication.findMany.mock.calls[0][0].select
+          .decidedById,
+      ).toBeUndefined();
+      // Whether a plan was a free year is said with the plans.
+      expect(
+        heldModels.platformSubscription.findMany.mock.calls[0][0].select
+          .foundingCreatorYear,
+      ).toBe(true);
       expect(res.experiments[0].variant).toBe('b');
       expect(res.staffNotes[0].body).toBe('Asked twice about a refund');
       expect(res.pushDevices.browsers).toHaveLength(1);

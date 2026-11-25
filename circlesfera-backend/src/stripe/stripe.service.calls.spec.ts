@@ -18,10 +18,15 @@ const client = {
   paymentIntents: { retrieve: vi.fn() },
   invoices: { list: vi.fn(), voidInvoice: vi.fn() },
   invoicePayments: { list: vi.fn() },
-  customers: { create: vi.fn() },
+  customers: { create: vi.fn(), retrieve: vi.fn(), update: vi.fn() },
   billingPortal: { sessions: { create: vi.fn() } },
   webhooks: { constructEvent: vi.fn() },
-  subscriptions: { retrieve: vi.fn(), update: vi.fn(), cancel: vi.fn() },
+  subscriptions: {
+    retrieve: vi.fn(),
+    update: vi.fn(),
+    cancel: vi.fn(),
+    create: vi.fn(),
+  },
   charges: { retrieve: vi.fn() },
   events: { list: vi.fn() },
   identity: { verificationSessions: { create: vi.fn(), retrieve: vi.fn() } },
@@ -242,6 +247,83 @@ describe('StripeService checkout, customers and subscriptions', () => {
     await service.getSubscriptionWithInvoice('sub_1');
     expect(client.subscriptions.retrieve).toHaveBeenCalledWith('sub_1', {
       expand: ['latest_invoice'],
+    });
+  });
+
+  it('starts the free year of a founding creator as a trial to its end with VAT worked out: it continues with a saved payment method, and is cancelled at its end without one', async () => {
+    await service.createFreeYearSubscription({
+      customerId: 'cus_1',
+      priceId: 'price_verified',
+      trialEnd: new Date('2027-11-25T10:00:00.000Z'),
+      automaticTax: true,
+      endAtTrialEnd: false,
+      metadata: { foundingCreatorApplicationId: 'app_1' },
+      idempotencyKey: 'founding_year_app_1_1',
+    });
+    expect(client.subscriptions.create).toHaveBeenCalledWith(
+      {
+        customer: 'cus_1',
+        items: [{ price: 'price_verified', quantity: 1 }],
+        trial_end: new Date('2027-11-25T10:00:00.000Z').getTime() / 1000,
+        trial_settings: {
+          end_behavior: { missing_payment_method: 'cancel' },
+        },
+        automatic_tax: { enabled: true },
+        cancel_at_period_end: false,
+        metadata: { foundingCreatorApplicationId: 'app_1' },
+      },
+      { idempotencyKey: 'founding_year_app_1_1' },
+    );
+    // Nothing is charged now: no invoice is paid, no payment is asked for.
+    const [params] = client.subscriptions.create.mock.calls[0];
+    expect(params).not.toHaveProperty('payment_behavior');
+    expect(params).not.toHaveProperty('default_payment_method');
+  });
+
+  it('ends a free year at its end whatever is saved when the VAT cannot be worked out', async () => {
+    await service.createFreeYearSubscription({
+      customerId: 'cus_1',
+      priceId: 'price_verified',
+      trialEnd: new Date('2027-11-25T10:00:00.000Z'),
+      automaticTax: false,
+      endAtTrialEnd: true,
+      metadata: {},
+      idempotencyKey: 'k',
+    });
+    expect(client.subscriptions.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        automatic_tax: { enabled: false },
+        cancel_at_period_end: true,
+      }),
+      { idempotencyKey: 'k' },
+    );
+  });
+
+  it.each([
+    ['supported', true],
+    ['not_collecting', true],
+    ['unrecognized_location', false],
+    ['failed', false],
+  ])(
+    'can tax a customer whose location is %s: %s',
+    async (automatic_tax, taxable) => {
+      client.customers.retrieve.mockResolvedValue({ tax: { automatic_tax } });
+      await expect(service.canTaxCustomer('cus_1')).resolves.toBe(taxable);
+      expect(client.customers.retrieve).toHaveBeenCalledWith('cus_1', {
+        expand: ['tax'],
+      });
+    },
+  );
+
+  it('cannot tax a deleted customer', async () => {
+    client.customers.retrieve.mockResolvedValue({ deleted: true });
+    await expect(service.canTaxCustomer('cus_1')).resolves.toBe(false);
+  });
+
+  it('places a customer with no address by the IP address of the request, checked when used', async () => {
+    await service.setCustomerTaxLocationFromIp('cus_1', '203.0.113.7');
+    expect(client.customers.update).toHaveBeenCalledWith('cus_1', {
+      tax: { ip_address: '203.0.113.7', validate_location: 'deferred' },
     });
   });
 

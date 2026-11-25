@@ -3,6 +3,7 @@ export * from './business-profile.js';
 export * from './chat-pins.js';
 export * from './comments.js';
 export * from './favorites.js';
+export * from './founding-creators.js';
 export * from './frame-look.js';
 export * from './gifs.js';
 export * from './hidden-words.js';

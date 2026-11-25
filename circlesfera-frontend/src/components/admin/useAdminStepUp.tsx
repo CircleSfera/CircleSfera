@@ -75,6 +75,15 @@ export function useAdminStepUp(): {
     return action().catch((err: unknown) => {
       if (!isStepUpRequired(err)) throw err;
       return new Promise<T>((resolve, reject) => {
+        // One action waits at a time: an earlier one still waiting is
+        // settled as cancelled, so its caller never stays pending, and the
+        // dialog now confirms this one.
+        waiting.current?.reject(new StepUpCancelled());
+        // A code of the earlier one still being checked no longer counts:
+        // the dialog starts again for this one, never stuck disabled.
+        setChecking(false);
+        setWrong(false);
+        setCode('');
         waiting.current = {
           action,
           resolve: resolve as (value: unknown) => void,
@@ -98,6 +107,8 @@ export function useAdminStepUp(): {
     try {
       await adminAuthApi.stepUp({ totpCode: code });
     } catch {
+      // Closed meanwhile: nothing is left waiting.
+      if (waiting.current !== pending) return;
       // A wrong code stays in the dialog: the action is still waiting.
       setChecking(false);
       setWrong(true);
@@ -105,6 +116,9 @@ export function useAdminStepUp(): {
       field.current?.focus();
       return;
     }
+    // The dialog was closed while the code was being checked: the staff
+    // member gave the action up, so it is not sent.
+    if (waiting.current !== pending) return;
     close();
     pending.action().then(pending.resolve, pending.reject);
   };

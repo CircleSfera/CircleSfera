@@ -538,6 +538,64 @@ export class StripeService implements OnModuleInit {
     });
   }
 
+  // Whether the provider can work out the VAT of a customer from the address
+  // it holds: its location is supported, or one where the account collects
+  // no tax (the VAT is then nothing). An unknown or failed location, or a
+  // deleted customer, cannot be taxed.
+  async canTaxCustomer(customerId: string): Promise<boolean> {
+    const customer = await this.stripe.customers.retrieve(customerId, {
+      expand: ['tax'],
+    });
+    if ((customer as { deleted?: boolean }).deleted) return false;
+    const status = (customer as Stripe.Customer).tax?.automatic_tax;
+    return status === 'supported' || status === 'not_collecting';
+  }
+
+  // Gives the provider the place of a customer with no address, from the IP
+  // address of the request in which they accepted a plan, so it can work out
+  // their VAT. Checked when it is used, not now: an address the provider
+  // cannot place leaves the customer untaxable, never fails here.
+  async setCustomerTaxLocationFromIp(
+    customerId: string,
+    ipAddress: string,
+  ): Promise<void> {
+    await this.stripe.customers.update(customerId, {
+      tax: { ip_address: ipAddress, validate_location: 'deferred' },
+    });
+  }
+
+  // The free year of a founding creator (BD-034): a subscription to the
+  // plan's price whose trial lasts until `trialEnd`, nothing charged during
+  // it. When the trial ends without a payment method the provider cancels
+  // it; with one saved it continues at the price, its VAT worked out by the
+  // provider (`automaticTax`), as at Checkout. `endAtTrialEnd` ends it at
+  // the trial's end whatever is saved: for a customer whose VAT cannot be
+  // worked out, so no charge without it is ever made.
+  async createFreeYearSubscription(params: {
+    customerId: string;
+    priceId: string;
+    trialEnd: Date;
+    automaticTax: boolean;
+    endAtTrialEnd: boolean;
+    metadata: Record<string, string>;
+    idempotencyKey: string;
+  }): Promise<Stripe.Subscription> {
+    return this.stripe.subscriptions.create(
+      {
+        customer: params.customerId,
+        items: [{ price: params.priceId, quantity: 1 }],
+        trial_end: Math.floor(params.trialEnd.getTime() / 1000),
+        trial_settings: {
+          end_behavior: { missing_payment_method: 'cancel' },
+        },
+        automatic_tax: { enabled: params.automaticTax },
+        cancel_at_period_end: params.endAtTrialEnd,
+        metadata: params.metadata,
+      },
+      { idempotencyKey: params.idempotencyKey },
+    );
+  }
+
   // Moves a subscription to another price now (BD-016: monthly to yearly).
   // What is left of the period paid is credited, the new period starts
   // today and the difference is invoiced and charged at once. The change

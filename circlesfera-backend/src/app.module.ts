@@ -63,6 +63,7 @@ import { ExperimentsModule } from './experiments/experiments.module.js';
 import { FavoritesModule } from './favorites/favorites.module.js';
 import { FeedModule } from './feed/feed.module.js';
 import { FollowsModule } from './follows/follows.module.js';
+import { FoundingCreatorsModule } from './founding-creators/founding-creators.module.js';
 import { GifsModule } from './gifs/gifs.module.js';
 import { HealthModule } from './health/health.module.js';
 import { helpdeskFor } from './helpdesk/helpdesk.module.js';
@@ -244,6 +245,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     TeamModule,
     CompanyVerificationModule,
     BusinessStatsModule,
+    FoundingCreatorsModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [
