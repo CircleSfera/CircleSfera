@@ -35,6 +35,23 @@ function stored(name: string, bytes: number, modified: Date) {
   fs.utimesSync(file, modified, modified);
 }
 
+/**
+ * MediaReferencesService.inUse as rows that name these values answer it: a
+ * key is used when a row names it or a file in its folder (a video's stream
+ * or cover in /uploads/<base>/...).
+ */
+const inUseBy = (named: string[]) =>
+  vi.fn(async (keys: string[]) => {
+    const used = new Set<string>();
+    for (const key of keys) {
+      const folder = `${key.slice(0, -path.extname(key).length)}/`;
+      if (named.some((value) => value === key || value.startsWith(folder))) {
+        used.add(key);
+      }
+    }
+    return used;
+  });
+
 function setup(
   referenced: string[],
   records: { key: string; profileId: string | null }[],
@@ -45,6 +62,7 @@ function setup(
   };
   const references = {
     referencedKeys: vi.fn().mockResolvedValue(new Set(referenced)),
+    inUse: inUseBy(referenced),
   };
   const storedFiles = {
     detachedSince: vi.fn().mockResolvedValue(new Set(keptDeleted)),
@@ -166,7 +184,14 @@ describe('OrphanFilesReportService', () => {
     }
     stored(own(9), 5, RECENT);
     stored('README', 5, OLD);
-    const referenced = [`/uploads/${own(1)}`, own(2), `/uploads/${own(3)}`];
+    const referenced = [
+      `/uploads/${own(1)}`,
+      own(2),
+      `/uploads/${own(3)}`,
+      // A video named only through its stream's folder: used, the sweep
+      // keeps it.
+      `/uploads/${own(6).replace(/\.jpg$/, '')}/master.m3u8`,
+    ];
     const kept = [`/uploads/${own(4)}`];
     const { service, uploadsService } = setup(referenced, [], kept);
 
@@ -177,7 +202,7 @@ describe('OrphanFilesReportService', () => {
       const sweep = new MediaReconciliationService(
         {
           referencedKeys: vi.fn().mockResolvedValue(new Set(referenced)),
-          inUse: vi.fn().mockResolvedValue(new Set()),
+          inUse: inUseBy(referenced),
         } as never,
         { ...uploadsService, scheduleMediaDeletion } as never,
         { listFiles: () => listStoredFilesOnDisk(uploads) } as never,
@@ -190,13 +215,13 @@ describe('OrphanFilesReportService', () => {
       const result = await sweep.detectAndReconcileOrphans({ dryRun: false });
 
       const swept: string[] = scheduleMediaDeletion.mock.calls[0][0];
+      expect(swept.sort()).toEqual([5, 7, 8].map((n) => `/uploads/${own(n)}`));
       expect(report.nextRun.count).toBe(swept.length);
-      expect(report.orphans.count).toBe(result.orphanCount);
-      expect(report.foreign).toBe(result.foreignCount);
       expect(report.nextRun.bytes).toBe(result.deletedBytes);
-      expect(swept.sort()).toEqual(
-        [5, 6, 7, 8].map((n) => `/uploads/${own(n)}`),
-      );
+      // All of them fit in one night: what is unused is what goes.
+      expect(report.orphans.count).toBe(swept.length);
+      expect(report.foreign).toBe(result.foreignCount);
+      expect(report.used).toBe(4);
     } finally {
       vi.useRealTimers();
     }

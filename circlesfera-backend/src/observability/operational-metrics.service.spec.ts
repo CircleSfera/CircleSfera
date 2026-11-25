@@ -193,16 +193,16 @@ describe('OperationalMetricsService', () => {
   });
 
   describe('escalation once per threshold per UTC day', () => {
-    /** A Redis that keeps what SET NX is given, as the real one does. */
+    /** A Redis that keeps the keys it is given. */
     const fakeRedis = () => {
       const keys = new Map<string, string>();
       return {
         keys,
         set: vi.fn(async (key: string, value: string) => {
-          if (keys.has(key)) return null;
           keys.set(key, value);
           return 'OK';
         }),
+        exists: vi.fn(async (key: string) => (keys.has(key) ? 1 : 0)),
       };
     };
     const incidents = () =>
@@ -220,6 +220,12 @@ describe('OperationalMetricsService', () => {
 
     beforeEach(() => {
       redis = fakeRedis();
+      // Slack receives every incident and says so.
+      mockEventEmitter.emit.mockImplementation(
+        (_event: string, payload: { onDelivered?: (ok: boolean) => void }) => {
+          payload?.onDelivered?.(true);
+        },
+      );
       service = new OperationalMetricsService(
         mockEventEmitter as unknown as EventEmitter2,
         mockPresenceService as unknown as SocketPresenceService,
@@ -254,7 +260,6 @@ describe('OperationalMetricsService', () => {
         '1',
         'EX',
         2 * 24 * 60 * 60,
-        'NX',
       );
 
       vi.setSystemTime(new Date('2026-11-26T08:00:00Z'));
@@ -298,6 +303,30 @@ describe('OperationalMetricsService', () => {
       expect(incidents()).toHaveLength(2);
       expect(incidents()[1][1].message).toContain('excessive failures');
       expect(incidents()[1][1].message).not.toContain('backlog critical');
+    });
+
+    it('tells again later the same day a backlog Slack did not receive', async () => {
+      backlog(600);
+      mockEventEmitter.emit.mockImplementation(
+        (_event: string, payload: { onDelivered?: (ok: boolean) => void }) => {
+          payload?.onDelivered?.(false);
+        },
+      );
+      vi.setSystemTime(new Date('2026-11-25T08:00:00Z'));
+      await service.collectMetrics();
+      expect(redis.keys.size).toBe(0);
+
+      mockEventEmitter.emit.mockImplementation(
+        (_event: string, payload: { onDelivered?: (ok: boolean) => void }) => {
+          payload?.onDelivered?.(true);
+        },
+      );
+      vi.setSystemTime(new Date('2026-11-25T08:01:00Z'));
+      await service.collectMetrics();
+      vi.setSystemTime(new Date('2026-11-25T08:02:00Z'));
+      await service.collectMetrics();
+
+      expect(incidents()).toHaveLength(2);
     });
   });
 });

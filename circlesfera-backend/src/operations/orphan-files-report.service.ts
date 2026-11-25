@@ -137,11 +137,24 @@ export class OrphanFilesReportService {
     const bytes = (items: { sizeBytes?: number }[]) =>
       items.reduce((sum, item) => sum + (item.sizeBytes ?? 0), 0);
 
+    // Before it deletes, the sweep asks again which of its candidates a row
+    // uses, through a video's stream or cover folder too (inUse). The report
+    // asks the same of every unused file, in batches of a night's size, and
+    // counts those as used: the sweep keeps them.
+    const inUse = new Set<string>();
+    const unusedUrls = plan.orphans.map((orphan) => orphan.url);
+    for (let i = 0; i < unusedUrls.length; i += ORPHAN_DELETIONS_PER_NIGHT) {
+      const batch = unusedUrls.slice(i, i + ORPHAN_DELETIONS_PER_NIGHT);
+      for (const key of await this.references.inUse(batch)) inUse.add(key);
+    }
+    const orphans = plan.orphans.filter((orphan) => !inUse.has(orphan.url));
+    const nextRun = plan.toDelete.filter((orphan) => !inUse.has(orphan.url));
+
     const owned = records.filter((record) => record.profileId);
     const owners = new Set(owned.map((record) => record.key));
     const recorded = new Set(records.map((record) => record.key));
     const onDisk = new Set(files.map((file) => file.url));
-    const orphanUrls = new Set(plan.orphans.map((orphan) => orphan.url));
+    const orphanUrls = new Set(orphans.map((orphan) => orphan.url));
     const orphanFiles = files.filter((file) => orphanUrls.has(file.url));
 
     return {
@@ -150,17 +163,17 @@ export class OrphanFilesReportService {
       policy: this.policy(),
       files: { count: files.length, bytes: bytes(files) },
       foreign: plan.foreign,
-      used: plan.used,
+      used: plan.used + inUse.size,
       keptDeleted: plan.keptDeleted,
       unusedRecent: plan.unusedRecent,
       orphans: {
-        count: plan.orphans.length,
-        bytes: bytes(plan.orphans),
+        count: orphans.length,
+        bytes: bytes(orphans),
         nights: plan.hold
           ? 0
-          : Math.ceil(plan.orphans.length / ORPHAN_DELETIONS_PER_NIGHT),
+          : Math.ceil(orphans.length / ORPHAN_DELETIONS_PER_NIGHT),
       },
-      nextRun: { count: plan.toDelete.length, bytes: bytes(plan.toDelete) },
+      nextRun: { count: nextRun.length, bytes: bytes(nextRun) },
       heldBack: plan.hold ?? null,
       breakdown: breakdownUnusedFiles(orphanFiles, owners, now),
       record: {

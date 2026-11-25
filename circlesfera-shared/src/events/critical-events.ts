@@ -41,6 +41,11 @@ export interface SystemIncidentEvent {
     statusCode?: number;
     timestamp?: string;
     correlationId?: string;
+    /**
+     * Told by the owner (SlackService) whether the alert reached the
+     * channel, so an alert sent once a day is marked sent only when it was.
+     */
+    onDelivered?: (delivered: boolean) => void;
   };
 }
 

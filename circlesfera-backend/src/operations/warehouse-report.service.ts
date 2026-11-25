@@ -70,18 +70,36 @@ export function classifyFailure(reason: string): WarehouseFailureKind {
   return 'other';
 }
 
-/** Rows of a CSV with a header line, counted without reading it at once. */
-async function csvRows(file: string): Promise<number> {
-  let lines = 0;
-  let last = -1;
+const QUOTE = 0x22;
+const LF = 0x0a;
+const CR = 0x0d;
+
+/**
+ * Records of a CSV with a header line, counted as the export writes them
+ * (writeCsvFile): a line break inside a quoted field belongs to its record.
+ * Read as a stream, never at once. A last record without its line break
+ * counts too.
+ */
+export async function csvRows(file: string): Promise<number> {
+  let records = 0;
+  let inQuotes = false;
+  let open = false; // the current record has started
   for await (const chunk of fs.createReadStream(file)) {
-    const bytes = chunk as Buffer;
-    for (let i = 0; i < bytes.length; i++) if (bytes[i] === 10) lines++;
-    if (bytes.length > 0) last = bytes[bytes.length - 1];
+    for (const byte of chunk as Buffer) {
+      if (byte === QUOTE) {
+        // A doubled quote inside a field toggles twice: it stays inside.
+        inQuotes = !inQuotes;
+        open = true;
+      } else if (byte === LF && !inQuotes) {
+        if (open) records++;
+        open = false;
+      } else if (byte !== CR || inQuotes) {
+        open = true;
+      }
+    }
   }
-  // A last line without its newline is a line too.
-  if (last !== -1 && last !== 10) lines++;
-  return Math.max(0, lines - 1);
+  if (open) records++;
+  return Math.max(0, records - 1);
 }
 
 /**
@@ -162,7 +180,9 @@ export class WarehouseReportService {
     try {
       const [row] =
         (await this.clickHouse.select<{ newest: string | null }>(
-          `SELECT if(count() = 0, NULL, toString(max(updatedAt))) AS newest FROM ${table}`,
+          // In UTC whatever the warehouse's own time zone: the page reads it
+          // as UTC.
+          `SELECT if(count() = 0, NULL, toString(max(updatedAt), 'UTC')) AS newest FROM ${table}`,
         )) ?? [];
       return { newestRowAt: row?.newest ?? null, newestRowUnknown: false };
     } catch {

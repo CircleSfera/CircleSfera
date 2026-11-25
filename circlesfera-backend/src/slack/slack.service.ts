@@ -87,15 +87,16 @@ export class SlackService {
   private static readonly SEND_MAX_ATTEMPTS = 3;
   private static readonly SEND_BACKOFF_MS = 300;
 
+  // Answers whether the message reached Slack.
   private async sendMessage(
     webhookUrl: string | undefined,
     payload: any,
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (!webhookUrl) {
       this.logger.warn(
         'No Slack Webhook URL configured. Skipping Slack notification.',
       );
-      return;
+      return false;
     }
 
     for (
@@ -105,7 +106,7 @@ export class SlackService {
     ) {
       try {
         await axios.post(webhookUrl, payload, { timeout: 5_000 });
-        return;
+        return true;
       } catch (error) {
         // A malformed payload (400) or a deleted/invalid webhook URL (404)
         // will fail identically on retry -- only network errors, 429, and
@@ -122,7 +123,7 @@ export class SlackService {
             `SLACK_DELIVERY_FAILED after ${attempt} attempt(s) -- notification lost`,
             error,
           );
-          return;
+          return false;
         }
         this.logger.warn(
           `Slack message delivery failed (attempt ${attempt}/${SlackService.SEND_MAX_ATTEMPTS}), retrying`,
@@ -133,16 +134,25 @@ export class SlackService {
         );
       }
     }
+    return false;
   }
 
+  // The producer is told whether the alert reached Slack (onDelivered), so
+  // an alert sent once a day is marked sent only when it was.
   @OnEvent('system.incident', { async: true })
   async handleSystemIncident(event: {
     message: string;
     stack?: string;
     path?: string;
     correlationId?: string;
+    onDelivered?: (delivered: boolean) => void;
   }): Promise<void> {
-    await this.sendProductionAlert(event);
+    let delivered = false;
+    try {
+      delivered = await this.sendProductionAlert(event);
+    } finally {
+      event.onDelivered?.(delivered);
+    }
   }
 
   async sendProductionAlert(errorInfo: {
@@ -150,7 +160,7 @@ export class SlackService {
     stack?: string;
     path?: string;
     correlationId?: string;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const sanitizedPath = errorInfo.path
       ? sanitizeUrl(errorInfo.path)
       : 'Unknown';
@@ -193,7 +203,7 @@ export class SlackService {
           : []),
       ],
     };
-    await this.sendMessage(this.alertsWebhookUrl, payload);
+    return this.sendMessage(this.alertsWebhookUrl, payload);
   }
 
   @OnEvent('moderation.report_filed', { async: true })

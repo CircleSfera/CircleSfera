@@ -6,8 +6,10 @@ import {
   ClickHouseLoadService,
   SELECT_TIMEOUT_MS,
 } from '../warehouse/clickhouse-load.service.js';
+import { writeCsvFile } from '../warehouse/utils/csv.util.js';
 import {
   classifyFailure,
+  csvRows,
   WarehouseReportService,
 } from './warehouse-report.service.js';
 
@@ -215,6 +217,48 @@ describe('WarehouseReportService', () => {
 
     expect(report.exportFolder).toBe('not_writable');
     access.mockRestore();
+  });
+
+  it('counts the records the export wrote, a line break inside a quoted field included', async () => {
+    // The export's own writer, with a value that spans lines and quotes.
+    await expect(
+      writeCsvFile(
+        root,
+        'feature_flags',
+        ['id', 'name'],
+        [
+          { id: 'f1', name: 'first\nsecond' },
+          { id: 'f2', name: 'say "hi",\r\nthen go' },
+          { id: 'f3', name: 'plain' },
+        ],
+      ),
+    ).resolves.toBe(3);
+    await expect(csvRows(path.join(root, 'feature_flags.csv'))).resolves.toBe(
+      3,
+    );
+
+    const write = (name: string, content: string) => {
+      fs.writeFileSync(path.join(root, name), content);
+      return csvRows(path.join(root, name));
+    };
+    // A last record without its line break, and Windows line breaks.
+    await expect(write('a.csv', 'id\r\n1\r\n2')).resolves.toBe(2);
+    // Only the header, or nothing at all.
+    await expect(write('b.csv', 'id\n')).resolves.toBe(0);
+    await expect(write('c.csv', '')).resolves.toBe(0);
+  });
+
+  it('asks the warehouse for the newest row in UTC', async () => {
+    const select = vi.fn(async (query: string) =>
+      query.includes('system.tables')
+        ? [{ name: 'reports', rows: 1, bytes: 1 }]
+        : [{ newest: '2026-11-24 01:00:00' }],
+    );
+    await setup({ select, queues: [] }).report();
+
+    expect(select).toHaveBeenCalledWith(
+      "SELECT if(count() = 0, NULL, toString(max(updatedAt), 'UTC')) AS newest FROM reports",
+    );
   });
 
   it('gives the kind of a failure, never its message', () => {

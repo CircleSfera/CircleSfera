@@ -6,7 +6,7 @@ import type { Queue } from 'bullmq';
 import type { Redis } from 'ioredis';
 import { REDIS_CLIENT } from '../common/redis/redis.module.js';
 import { SocketPresenceService } from '../socket/services/socket-presence.service.js';
-import { DailyAlertGate, utcDay } from './daily-alert-gate.js';
+import { type AlertClaim, DailyAlertGate, utcDay } from './daily-alert-gate.js';
 
 export interface MetricThresholds {
   queueWaitingWarn: number;
@@ -348,12 +348,17 @@ export class OperationalMetricsService {
     // queue, metric and threshold tier at most once per UTC day: a lasting
     // backlog is told once a day, not every minute.
     if (hasCriticalAlert) {
-      const day = utcDay(new Date(snapshot.timestamp));
+      const now = new Date(snapshot.timestamp);
+      const day = utcDay(now);
       const fresh: ThresholdAlert[] = [];
+      const claims: AlertClaim[] = [];
       for (const alert of alerts) {
         if (alert.severity !== 'ALERT') continue;
         const key = `${alert.component}:${alert.identifier}:${alert.metric}:${alert.severity}:${alert.threshold}`;
-        if (await this.alertGate.firstToday(key, day)) fresh.push(alert);
+        const claim = await this.alertGate.claim(key, day, now.getTime());
+        if (!claim) continue;
+        fresh.push(alert);
+        claims.push(claim);
       }
 
       if (fresh.length > 0) {
@@ -364,6 +369,13 @@ export class OperationalMetricsService {
           statusCode: 503,
           path: 'operational://metrics',
           timestamp: snapshot.timestamp,
+          // Marked sent for the day only once it reached Slack.
+          onDelivered: (delivered: boolean) => {
+            for (const claim of claims) {
+              if (delivered) void claim.delivered();
+              else claim.failed();
+            }
+          },
         });
       }
     }

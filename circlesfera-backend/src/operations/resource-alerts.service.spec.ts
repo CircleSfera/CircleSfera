@@ -4,6 +4,7 @@ import {
   HEAP_ALERT_BYTES,
   RSS_ALERT_BYTES,
 } from '../health/resource-budgets.js';
+import { ALERT_PENDING_MS } from '../observability/daily-alert-gate.js';
 import {
   crossedThresholds,
   ResourceAlertsService,
@@ -56,24 +57,44 @@ const overBudget = () =>
     },
   });
 
-/** A Redis that keeps what SET NX is given, as the real one does. */
+/** A Redis that keeps the keys it is given; `down` makes it fail. */
 function fakeRedis() {
   const keys = new Map<string, string>();
+  const state = { down: false };
+  const fail = () => {
+    if (state.down) throw new Error('redis down');
+  };
   return {
     keys,
+    state,
     set: vi.fn(async (key: string, value: string) => {
-      if (keys.has(key)) return null;
+      fail();
       keys.set(key, value);
       return 'OK';
     }),
+    exists: vi.fn(async (key: string) => {
+      fail();
+      return keys.has(key) ? 1 : 0;
+    }),
   };
+}
+
+/** Slack as the incident channel: it says whether each alert reached it. */
+function slack() {
+  const state = { delivers: true, answers: true };
+  const emit = vi.fn(
+    (_event: string, payload: { onDelivered?: (ok: boolean) => void }) => {
+      if (state.answers) payload.onDelivered?.(state.delivers);
+    },
+  );
+  return { state, emit };
 }
 
 function setup(
   collect: () => Promise<ServerResources>,
   redis: object = fakeRedis(),
 ) {
-  const events = { emit: vi.fn() };
+  const events = slack();
   const service = new ResourceAlertsService(
     { collect: vi.fn(collect) } as never,
     redis as never,
@@ -161,17 +182,87 @@ describe('ResourceAlertsService', () => {
       path: 'operational://resources',
       statusCode: 503,
       timestamp: MORNING.toISOString(),
+      onDelivered: expect.any(Function),
     });
     expect(redis.set).toHaveBeenCalledWith(
       'ops:resource-alert:disk:2026-11-25',
       '1',
       'EX',
       2 * 24 * 60 * 60,
-      'NX',
     );
 
     await expect(service.checkThresholds(NEXT_DAY)).resolves.toEqual(['disk']);
     expect(events.emit).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends again later the same day an alert Slack did not receive', async () => {
+    const redis = fakeRedis();
+    const { service, events } = setup(async () => overBudget(), redis);
+
+    events.state.delivers = false;
+    await expect(service.checkThresholds(MORNING)).resolves.toEqual(['disk']);
+    expect(redis.keys.size).toBe(0);
+
+    events.state.delivers = true;
+    await expect(service.checkThresholds(EVENING)).resolves.toEqual(['disk']);
+    await expect(
+      service.checkThresholds(new Date('2026-11-25T21:00:00Z')),
+    ).resolves.toEqual([]);
+    expect(events.emit).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not send twice when two checks overlap', async () => {
+    const redis = fakeRedis();
+    let release: () => void = () => {};
+    redis.exists.mockImplementationOnce(
+      () =>
+        new Promise<0 | 1>((resolve) => {
+          release = () => resolve(0);
+        }),
+    );
+    const { service, events } = setup(async () => overBudget(), redis);
+    events.state.answers = false; // Slack has not answered yet
+
+    const first = service.checkThresholds(MORNING);
+    const second = service.checkThresholds(MORNING);
+    await new Promise((resolve) => setImmediate(resolve));
+    release();
+
+    const sent = [...(await first), ...(await second)];
+    expect(sent).toEqual(['disk']);
+    expect(events.emit).toHaveBeenCalledTimes(1);
+  });
+
+  it('frees a claim no channel answered for, after a while', async () => {
+    const { service, events } = setup(async () => overBudget());
+    events.state.answers = false;
+
+    await service.checkThresholds(MORNING);
+    await expect(
+      service.checkThresholds(new Date(MORNING.getTime() + 60_000)),
+    ).resolves.toEqual([]);
+    await expect(
+      service.checkThresholds(new Date(MORNING.getTime() + ALERT_PENDING_MS)),
+    ).resolves.toEqual(['disk']);
+  });
+
+  it('does not send again what another instance or a restart sent today', async () => {
+    const redis = fakeRedis();
+    redis.keys.set('ops:resource-alert:disk:2026-11-25', '1');
+    const { service, events } = setup(async () => overBudget(), redis);
+
+    await expect(service.checkThresholds(MORNING)).resolves.toEqual([]);
+    expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it('does not send again an alert sent through Redis when Redis then fails', async () => {
+    const redis = fakeRedis();
+    const { service, events } = setup(async () => overBudget(), redis);
+
+    await expect(service.checkThresholds(MORNING)).resolves.toEqual(['disk']);
+    redis.state.down = true;
+    await expect(service.checkThresholds(EVENING)).resolves.toEqual([]);
+    expect(events.emit).toHaveBeenCalledTimes(1);
   });
 
   it('says nothing while every resource is within budget', async () => {
@@ -182,7 +273,8 @@ describe('ResourceAlertsService', () => {
   });
 
   it('still alerts once a day when Redis is down, remembering it itself', async () => {
-    const down = { set: vi.fn().mockRejectedValue(new Error('redis down')) };
+    const down = fakeRedis();
+    down.state.down = true;
     const { service, events } = setup(
       async () =>
         reading({
@@ -208,23 +300,17 @@ describe('ResourceAlertsService', () => {
   });
 
   it('does not send again, once Redis is back, what it sent from memory that day', async () => {
-    const back = fakeRedis();
-    let redisDown = true;
-    const redis = {
-      set: vi.fn(async (key: string, value: string) => {
-        if (redisDown) throw new Error('redis down');
-        return back.set(key, value);
-      }),
-    };
+    const redis = fakeRedis();
+    redis.state.down = true;
     const { service, events } = setup(async () => overBudget(), redis);
 
     await expect(service.checkThresholds(MORNING)).resolves.toEqual(['disk']);
-    redisDown = false;
+    redis.state.down = false;
     await expect(service.checkThresholds(EVENING)).resolves.toEqual([]);
 
     expect(events.emit).toHaveBeenCalledTimes(1);
     // The mark reaches Redis, for the other instances.
-    expect(back.keys.has('ops:resource-alert:disk:2026-11-25')).toBe(true);
+    expect(redis.keys.has('ops:resource-alert:disk:2026-11-25')).toBe(true);
     // A new day is a new alert.
     await expect(service.checkThresholds(NEXT_DAY)).resolves.toEqual(['disk']);
   });

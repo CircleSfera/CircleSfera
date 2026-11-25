@@ -100,12 +100,16 @@ export class ResourceAlertsService {
     const day = utcDay(now);
     const sent: ResourceAlertKey[] = [];
     for (const alert of alerts) {
-      if (!(await this.gate.firstToday(alert.key, day))) continue;
+      const claim = await this.gate.claim(alert.key, day, now.getTime());
+      if (!claim) continue;
       this.events.emit('system.incident', {
         message: `[Resource alert] ${alert.message}`,
         path: 'operational://resources',
         statusCode: 503,
         timestamp: now.toISOString(),
+        // Marked sent for the day only once it reached Slack.
+        onDelivered: (delivered: boolean) =>
+          delivered ? void claim.delivered() : claim.failed(),
       });
       sent.push(alert.key);
     }

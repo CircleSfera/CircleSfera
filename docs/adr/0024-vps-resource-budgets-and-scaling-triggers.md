@@ -88,9 +88,13 @@ work: `ObservabilityModule` registered none of the queues `OperationalMetricsSer
 never fired. The module now registers them (`OBSERVED_QUEUES`, with a test that resolves them),
 so that tier works from this update on, still only when a Slack webhook is configured. It still
 evaluates every minute, but each queue, metric and threshold tier is sent to Slack at most once per
-UTC day (`DailyAlertGate`, `observability/daily-alert-gate.ts`: a Redis `SET NX` mark, with this
-instance's memory read first and used while Redis does not answer). A lasting backlog is told once
-a day; a higher tier, or another metric, crossed later the same day is told once too. The page and
+UTC day (`DailyAlertGate`, `observability/daily-alert-gate.ts`). An alert counts as sent only when
+`SlackService` reports that it reached Slack (`onDelivered` on the `system.incident` payload); one
+that did not (Slack down, no webhook) is tried again on a later check the same day. The day's mark
+is kept in this instance's memory, read first, and in Redis for restarts and other instances; a
+claim is recorded in memory before anything is awaited, so overlapping checks never both send. A
+lasting backlog is told once a day; a higher tier, or another metric, crossed later the same day is
+told once too. The page and
 the snapshot still show every threshold crossed on every evaluation.
 
 The first known gap is closed for disk, RAM, database and Redis: `ResourceAlertsService`
