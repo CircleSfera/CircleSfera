@@ -543,28 +543,12 @@ export class StripeService implements OnModuleInit {
   // no tax (the VAT is then nothing). An unknown or failed location, or a
   // deleted customer, cannot be taxed.
   async canTaxCustomer(customerId: string): Promise<boolean> {
-    return (await this.customerBillingState(customerId)).taxable;
-  }
-
-  // Whether the VAT of a customer can be worked out (as canTaxCustomer
-  // says), and whether a payment method is saved on it to charge.
-  async customerBillingState(
-    customerId: string,
-  ): Promise<{ taxable: boolean; hasPaymentMethod: boolean }> {
-    const found = await this.stripe.customers.retrieve(customerId, {
+    const customer = await this.stripe.customers.retrieve(customerId, {
       expand: ['tax'],
     });
-    if ((found as { deleted?: boolean }).deleted) {
-      return { taxable: false, hasPaymentMethod: false };
-    }
-    const customer = found as Stripe.Customer;
-    const status = customer.tax?.automatic_tax;
-    return {
-      taxable: status === 'supported' || status === 'not_collecting',
-      hasPaymentMethod:
-        !!customer.invoice_settings?.default_payment_method ||
-        !!customer.default_source,
-    };
+    if ((customer as { deleted?: boolean }).deleted) return false;
+    const status = (customer as Stripe.Customer).tax?.automatic_tax;
+    return status === 'supported' || status === 'not_collecting';
   }
 
   // Gives the provider the place of a customer with no address, from the IP
@@ -577,16 +561,6 @@ export class StripeService implements OnModuleInit {
   ): Promise<void> {
     await this.stripe.customers.update(customerId, {
       tax: { ip_address: ipAddress, validate_location: 'deferred' },
-    });
-  }
-
-  // A free year that ends at its end because its VAT could not be worked
-  // out goes on like any other once it can: VAT worked out by the provider,
-  // and continuing at the end of the trial.
-  async continueFreeYear(subscriptionId: string): Promise<Stripe.Subscription> {
-    return this.stripe.subscriptions.update(subscriptionId, {
-      automatic_tax: { enabled: true },
-      cancel_at_period_end: false,
     });
   }
 

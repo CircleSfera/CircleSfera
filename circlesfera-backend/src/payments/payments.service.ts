@@ -1989,11 +1989,10 @@ export class PaymentsService {
   // and by email, to the account's address, once. A year that goes on: on
   // which day it ends, that with a card saved it then continues at the
   // monthly price, VAT included, and how to cancel it (a transactional
-  // notice of a charge, not marketing). A year set to end: on which day it
-  // ends, and that Verified is chosen in Plans to keep it. A year set to end
-  // because its VAT could not be worked out goes on first, as the person
-  // accepted, when it now can be and a card is saved. Any other trial (none
-  // is sold now) is left. Telling is marked before it is done, so a notice
+  // notice of a charge, not marketing). A year set to end (cancelled, or
+  // without VAT): on which day it ends, and that Verified is chosen in Plans
+  // to keep it; it stays ending. Any other trial (none is sold now) is
+  // left. Telling is marked before it is done, so a notice
   // that comes twice, or at the same time, never tells twice; a failure to
   // tell is logged.
   private async remindFreeYearEnding(named: { id: string }) {
@@ -2001,18 +2000,15 @@ export class PaymentsService {
       where: { stripeSubscriptionId: named.id, foundingCreatorYear: true },
       select: {
         id: true,
-        stripeSubscriptionId: true,
         status: true,
         cancelAtPeriodEnd: true,
         currentPeriodEnd: true,
         periodPriceCents: true,
         profileId: true,
-        user: { select: { email: true, stripeCustomerId: true } },
+        user: { select: { email: true } },
         profile: { select: { username: true } },
         plan: { select: { name: true, priceCents: true, currency: true } },
-        foundingCreatorApplication: {
-          select: { id: true, freeYearTaxable: true },
-        },
+        foundingCreatorApplication: { select: { id: true } },
       },
     });
     const application = row?.foundingCreatorApplication;
@@ -2022,15 +2018,9 @@ export class PaymentsService {
       );
       return;
     }
-    let continues = !row.cancelAtPeriodEnd;
-    if (!continues && application.freeYearTaxable === false) {
-      continues = await this.continueFreeYearNowTaxable({
-        rowId: row.id,
-        applicationId: application.id,
-        stripeSubscriptionId: row.stripeSubscriptionId,
-        customerId: row.user?.stripeCustomerId ?? null,
-      });
-    }
+    // A year set to end stays ending, as the person was told: never turned
+    // into one that charges here.
+    const continues = !row.cancelAtPeriodEnd;
     const { count } = await this.prisma.foundingCreatorApplication.updateMany({
       where: { id: application.id, freeYearReminderSentAt: null },
       data: { freeYearReminderSentAt: new Date() },
@@ -2069,36 +2059,6 @@ export class PaymentsService {
           this.logger.error('Failed to send the free year ending email', err),
         );
     }
-  }
-
-  // A free year set to end because its VAT could not be worked out, whose
-  // customer now has an address the provider can tax and a card saved, goes
-  // on as the person accepted: VAT worked out, continuing at the end of the
-  // trial. Whether it does. The provider is changed first; its notice then
-  // finds the year taxed and leaves it going on.
-  private async continueFreeYearNowTaxable(year: {
-    rowId: string;
-    applicationId: string;
-    stripeSubscriptionId: string;
-    customerId: string | null;
-  }): Promise<boolean> {
-    if (!year.customerId) return false;
-    const state = await this.stripeService.customerBillingState(
-      year.customerId,
-    );
-    if (!state.taxable || !state.hasPaymentMethod) return false;
-    await this.stripeService.continueFreeYear(year.stripeSubscriptionId);
-    await this.prisma.$transaction(async (tx) => {
-      await tx.foundingCreatorApplication.updateMany({
-        where: { id: year.applicationId },
-        data: { freeYearTaxable: true },
-      });
-      await tx.platformSubscription.updateMany({
-        where: { id: year.rowId },
-        data: { cancelAtPeriodEnd: false },
-      });
-    });
-    return true;
   }
 
   // Whether the running plan (not an add-on) of a Profile gives the

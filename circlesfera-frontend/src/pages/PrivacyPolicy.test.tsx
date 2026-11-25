@@ -40,4 +40,25 @@ describe('PrivacyPolicy', () => {
       expect(text).toContain('legal@circlesfera.com');
     },
   );
+
+  // Owner-approved wording, 2026-11-25 (BD-034): a founding creator with no
+  // address gives Stripe the IP address of the connection, only to place
+  // the VAT; Stripe's review of the platform no longer claims it never sees
+  // an IP address.
+  it('says what IP address a founding creator gives Stripe, and what Stripe does not see in its review', () => {
+    expect(es.legal.privacy.sections.s2_content).toContain(
+      '• Pagos: si compras un plan o una promoción, los identificadores de Stripe y el historial de pagos. Los datos de tu tarjeta los gestiona Stripe; nosotros no los vemos. Si eres creador fundador y Stripe no tiene tu dirección, al empezar tu año gratis le enviamos la dirección IP de tu conexión, solo para saber en qué país calcular el IVA.\n',
+    );
+    expect(es.legal.privacy.sections.s5_content).toContain(
+      'para cumplir sus obligaciones como proveedor de pagos. En esa revisión no ve tu correo ni tus mensajes. No vendemos tus datos.',
+    );
+    expect(es.legal.privacy.sections.s5_content).not.toContain('dirección IP');
+    expect(en.legal.privacy.sections.s2_content).toContain(
+      'we send it the IP address of your connection, only to know which country to work out the VAT for.',
+    );
+    expect(en.legal.privacy.sections.s5_content).toContain(
+      'In that review it does not see your email or your messages.',
+    );
+    expect(en.legal.privacy.sections.s5_content).not.toContain('IP address');
+  });
 });

@@ -146,11 +146,7 @@ describe('PaymentsService: the free year of a founding creator', () => {
     stripe = {
       listSubscriptionsForCustomer: vi.fn().mockResolvedValue([]),
       canTaxCustomer: vi.fn().mockResolvedValue(true),
-      customerBillingState: vi
-        .fn()
-        .mockResolvedValue({ taxable: true, hasPaymentMethod: true }),
       setCustomerTaxLocationFromIp: vi.fn().mockResolvedValue(undefined),
-      continueFreeYear: vi.fn().mockResolvedValue({}),
       createFreeYearSubscription: vi.fn(
         async (params: { automaticTax: boolean; endAtTrialEnd: boolean }) => ({
           ...trialing,
@@ -728,10 +724,10 @@ describe('PaymentsService: the free year of a founding creator', () => {
       currentPeriodEnd: YEAR_END,
       periodPriceCents: 499,
       profileId: 'prof_1',
-      user: { email: 'ana@example.com', stripeCustomerId: 'cus_1' },
+      user: { email: 'ana@example.com' },
       profile: { username: 'ana' },
       plan: { name: 'Verified', priceCents: 499, currency: 'EUR' },
-      foundingCreatorApplication: { id: 'app_1', freeYearTaxable: true },
+      foundingCreatorApplication: { id: 'app_1' },
       ...over,
     });
     const remind = () =>
@@ -805,7 +801,6 @@ describe('PaymentsService: the free year of a founding creator', () => {
 
       await remind();
 
-      expect(stripe.customerBillingState).not.toHaveBeenCalled();
       expect(events.emit).toHaveBeenCalledWith(
         'notification.create',
         notice(false),
@@ -821,70 +816,31 @@ describe('PaymentsService: the free year of a founding creator', () => {
       );
     });
 
-    it('lets a year without VAT go on as the person accepted once its customer can be taxed and has a card saved', async () => {
+    it('never switches a year set to end into one that charges, also when its customer could now be taxed and has a card', async () => {
+      // Whatever the customer's address or card now: the year was set to
+      // end, the person was told so, and it stays ending.
       prisma.platformSubscription.findFirst.mockResolvedValue(
-        row({
-          cancelAtPeriodEnd: true,
-          foundingCreatorApplication: { id: 'app_1', freeYearTaxable: false },
-        }),
+        row({ cancelAtPeriodEnd: true }),
       );
 
       await remind();
 
-      expect(stripe.customerBillingState).toHaveBeenCalledWith('cus_1');
-      expect(stripe.continueFreeYear).toHaveBeenCalledWith('sub_free');
+      expect(stripe.canTaxCustomer).not.toHaveBeenCalled();
+      expect(stripe.listSubscriptionsForCustomer).not.toHaveBeenCalled();
+      expect(stripe.createFreeYearSubscription).not.toHaveBeenCalled();
+      expect(stripe.resumeSubscription).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalled();
+      // Only the reminder is marked; nothing about the year changes.
+      expect(
+        prisma.foundingCreatorApplication.updateMany,
+      ).toHaveBeenCalledTimes(1);
       expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
         {
-          where: { id: 'app_1' },
-          data: { freeYearTaxable: true },
+          where: { id: 'app_1', freeYearReminderSentAt: null },
+          data: { freeYearReminderSentAt: NOW },
         },
       );
-      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
-        where: { id: 'row_1' },
-        data: { cancelAtPeriodEnd: false },
-      });
-      expect(events.emit).toHaveBeenCalledWith(
-        'notification.create',
-        notice(true),
-      );
-    });
-
-    it.each([
-      [{ taxable: false, hasPaymentMethod: true }],
-      [{ taxable: true, hasPaymentMethod: false }],
-    ])(
-      'keeps a year without VAT ending when its customer is %o',
-      async (state) => {
-        stripe.customerBillingState.mockResolvedValue(state);
-        prisma.platformSubscription.findFirst.mockResolvedValue(
-          row({
-            cancelAtPeriodEnd: true,
-            foundingCreatorApplication: { id: 'app_1', freeYearTaxable: false },
-          }),
-        );
-
-        await remind();
-
-        expect(stripe.continueFreeYear).not.toHaveBeenCalled();
-        expect(events.emit).toHaveBeenCalledWith(
-          'notification.create',
-          notice(false),
-        );
-      },
-    );
-
-    it('keeps a year without VAT ending when the person has no customer at the provider', async () => {
-      prisma.platformSubscription.findFirst.mockResolvedValue(
-        row({
-          cancelAtPeriodEnd: true,
-          user: { email: 'ana@example.com', stripeCustomerId: null },
-          foundingCreatorApplication: { id: 'app_1', freeYearTaxable: false },
-        }),
-      );
-
-      await remind();
-
-      expect(stripe.customerBillingState).not.toHaveBeenCalled();
       expect(events.emit).toHaveBeenCalledWith(
         'notification.create',
         notice(false),
