@@ -13,11 +13,12 @@ import { Link } from 'react-router-dom';
 import { profileApi } from '../../services';
 import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
+import { useExperimentStore } from '../../stores/useExperimentStore';
 import AboutAccountDialog, {
   aboutAccountFromProfile,
 } from '../profile/AboutAccountDialog';
 import UserAvatar from '../UserAvatar';
-import { SETTINGS_NAV_GROUPS, type SettingsNavItem } from './settingsNav';
+import { type SettingsNavItem, visibleSettingsNavGroups } from './settingsNav';
 
 export default function SettingsHubIndex() {
   const { t } = useTranslation();
@@ -51,17 +52,21 @@ export default function SettingsHubIndex() {
     return aboutLabel.toLowerCase().includes(q) || hint.includes(q);
   }, [filter, aboutLabel, t]);
 
+  const flags = useExperimentStore((state) => state.flags);
   const filteredGroups = useMemo(() => {
+    const groups = visibleSettingsNavGroups(flags);
     const q = filter.trim().toLowerCase();
-    if (!q) return SETTINGS_NAV_GROUPS;
-    return SETTINGS_NAV_GROUPS.map((group) => ({
-      ...group,
-      items: group.items.filter((item) => {
-        const label = t(item.labelKey).toLowerCase();
-        return label.includes(q) || item.id.includes(q);
-      }),
-    })).filter((g) => g.items.length > 0);
-  }, [filter, t]);
+    if (!q) return groups;
+    return groups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => {
+          const label = t(item.labelKey).toLowerCase();
+          return label.includes(q) || item.id.includes(q);
+        }),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [filter, flags, t]);
 
   const showLogoutRow = useMemo(() => {
     const q = filter.trim().toLowerCase();

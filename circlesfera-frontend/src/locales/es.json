@@ -13,6 +13,61 @@
     "accept": "Aceptar todas",
     "dismiss": "Cerrar"
   },
+  "adsConsent": {
+    "title": "¿Cómo quieres que se elijan tus anuncios?",
+    "text": "CircleSfera es gratis y se paga con anuncios. Tú eliges cómo se seleccionan. Puedes cambiarlo cuando quieras en Ajustes.",
+    "personalised": {
+      "label": "Personalizar con mi actividad en otras webs y apps",
+      "hint": "Los anunciantes pueden mostrarte anuncios según lo que hiciste en sus webs y apps, e incluirte en sus audiencias."
+    },
+    "general": {
+      "label": "Solo anuncios generales",
+      "hint": "Anuncios elegidos según lo que estás viendo, tu ciudad, tu idioma y los intereses que tú eliges."
+    },
+    "what_this_means": "Qué significa esto",
+    "privacy_policy": "Política de privacidad",
+    "options_label": "Cómo se eligen tus anuncios",
+    "saving": "Guardando tu elección…",
+    "save_error": "No se ha podido guardar tu elección. Vuelve a intentarlo.",
+    "explain": {
+      "title": "Qué significa esto",
+      "intro": "CircleSfera muestra anuncios para seguir siendo gratis. Elijas lo que elijas, la app funciona exactamente igual y ves anuncios en los mismos sitios. Lo que cambia es la información que se usa para elegirlos.",
+      "general_title": "Solo anuncios generales",
+      "general_text": "Los anuncios se eligen con esto, y nada más:",
+      "general_items": {
+        "topic": "El tema de lo que estás viendo",
+        "city": "Tu ciudad",
+        "language": "Tu idioma",
+        "time": "La hora del día",
+        "interests": "Los intereses que eliges en Ajustes"
+      },
+      "personalised_title": "Personalizar con mi actividad en otras webs y apps",
+      "personalised_text": "Además de lo anterior, y solo si lo eliges:",
+      "personalised_items": {
+        "activity": "Lo que hiciste en las webs y apps de los anunciantes (por ejemplo, una página que visitaste o algo que compraste), que ellos envían a CircleSfera mediante el Píxel de CircleSfera y la API de Conversiones",
+        "audiences": "Los anunciantes pueden incluirte en sus audiencias, como las personas que visitaron su web o que ya son sus clientes"
+      },
+      "never_title": "Nunca",
+      "never_items": {
+        "sensitive": "Los datos sensibles (como la salud, la religión, las opiniones políticas o la orientación sexual) nunca se usan para elegir anuncios.",
+        "minors": "Nadie menor de 18 años recibe anuncios personalizados: siempre recibe anuncios generales."
+      },
+      "change": "Puedes cambiar tu elección cuando quieras en Ajustes → Anuncios. Si dejas de personalizar, se deja de hacer desde ese momento.",
+      "close": "Cerrar"
+    },
+    "settings": {
+      "title": "Cómo se eligen tus anuncios",
+      "current": "Tu elección: {{choice}}",
+      "since": "Desde el {{date}}",
+      "none": "Aún no has elegido. Hasta que lo hagas, solo recibes anuncios generales.",
+      "change_hint": "Toca la otra opción para cambiarla. Se aplica al momento.",
+      "minor": "Solo recibes anuncios generales: los anuncios nunca se personalizan para menores de 18 años.",
+      "no_birth_date": "Solo recibes anuncios generales porque tu cuenta no tiene fecha de nacimiento, y los anuncios nunca se personalizan para menores de 18 años. Al verificar tu identidad se añade la de tu documento.",
+      "add_birth_date": "Verifica tu identidad en Ajustes → Cuenta",
+      "saved": "Tu elección se ha guardado",
+      "load_error": "No se ha podido cargar tu elección."
+    }
+  },
   "nav": {
     "home": "Inicio",
     "home_logo": "CircleSfera, inicio",
@@ -108,6 +163,10 @@
       "feed_prefs": {
         "label": "Preferencias de Feed",
         "desc": "Personaliza tu contenido"
+      },
+      "ads": {
+        "label": "Anuncios",
+        "desc": "Cómo se eligen tus anuncios"
       },
       "profiles": {
         "label": "Perfiles",
@@ -6610,6 +6669,8 @@
       "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde.",
       "PROMOTIONS_NOT_ON_SALE": "Las promociones aún no están a la venta.",
       "PAYER_UNDER_AGE": "Puedes pagar a partir de los {{minAge}} años, según la fecha de nacimiento de tu cuenta.",
+      "AD_PERSONALISATION_UNDER_AGE": "Los anuncios nunca se personalizan para menores de {{minAge}} años.",
+      "AD_CONSENT_TEXT_OUTDATED": "Estos textos han cambiado. Vuelve a cargar la app para ver los actuales.",
       "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes.",
       "CONTENT_UNDER_REVIEW": "Este contenido todavía se está revisando. Podrás promocionarlo en cuanto termine: vuelve a intentarlo en unos minutos.",
       "COLLAB_NOT_ALLOWED": "Solo una publicación pública puede tener un colaborador, y nunca su autor.",

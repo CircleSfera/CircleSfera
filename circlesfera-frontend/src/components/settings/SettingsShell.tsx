@@ -2,10 +2,11 @@ import { ArrowLeft } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink } from 'react-router-dom';
+import { useExperimentStore } from '../../stores/useExperimentStore';
 import {
   findSettingsNavItem,
-  SETTINGS_NAV_GROUPS,
   type SettingsSectionId,
+  visibleSettingsNavGroups,
 } from './settingsNav';
 
 interface SettingsShellProps {
@@ -19,6 +20,8 @@ export default function SettingsShell({
 }: SettingsShellProps) {
   const { t } = useTranslation();
   const mainRef = useRef<HTMLDivElement>(null);
+  const flags = useExperimentStore((state) => state.flags);
+  const navGroups = visibleSettingsNavGroups(flags);
   const navItem = section ? findSettingsNavItem(section) : null;
   const title = navItem ? t(navItem.labelKey) : t('settings.hub.title');
   const isHub = section === null;
@@ -66,7 +69,7 @@ export default function SettingsShell({
               className="hidden md:block w-56 shrink-0"
             >
               <div className="sticky top-24 space-y-5">
-                {SETTINGS_NAV_GROUPS.map((group) => (
+                {navGroups.map((group) => (
                   <div key={group.id}>
                     <p className="text-xs font-semibold text-white/45 mb-1.5 px-2">
                       {t(group.labelKey)}

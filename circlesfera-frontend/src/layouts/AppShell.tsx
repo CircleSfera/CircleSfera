@@ -5,6 +5,7 @@ import {
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
+import AdsConsentGate from '../components/ads/AdsConsentGate';
 import { AppLockScreen } from '../components/auth/AppLockScreen';
 import CookieConsent from '../components/CookieConsent';
 import ScrollToTop from '../components/common/ScrollToTop';
@@ -63,6 +64,7 @@ export default function AppShell() {
       <ScrollToTop />
       <GlobalCallContainer />
       <CookieConsent />
+      <AdsConsentGate />
       <AppLockScreen />
       <CreateBottomSheet />
       <GlobalCreateHighlightModal />

@@ -1,8 +1,10 @@
+import { ADS_CONSENT_FLAG } from '@circlesfera/shared';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { profileApi } from '../../services';
 import { paymentsApi } from '../../services/payments.service';
+import { useExperimentStore } from '../../stores/useExperimentStore';
 import { renderWithProviders } from '../../test/test-utils';
 import SettingsHubIndex from './SettingsHubIndex';
 import SettingsShell from './SettingsShell';
@@ -22,6 +24,7 @@ vi.mock('../../services/payments.service', () => ({
 describe('SettingsHubIndex', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useExperimentStore.setState({ flags: {}, isLoaded: true });
     vi.mocked(profileApi.getMyProfile).mockResolvedValue({
       data: {
         username: 'EasyFeliu',
@@ -74,6 +77,31 @@ describe('SettingsHubIndex', () => {
     ).toBeInTheDocument();
   });
 
+  it('lists Ads only while its flag is on (PD-084)', async () => {
+    useExperimentStore.setState({ flags: {}, isLoaded: true });
+    const off = renderWithProviders(<SettingsHubIndex />);
+    await screen.findByRole('link', {
+      name: off.i18n!.t('settings.tabs.feed_prefs.label'),
+    });
+    expect(
+      screen.queryByRole('link', {
+        name: off.i18n!.t('settings.tabs.ads.label'),
+      }),
+    ).not.toBeInTheDocument();
+    off.unmount();
+
+    useExperimentStore.setState({
+      flags: { [ADS_CONSENT_FLAG]: true },
+      isLoaded: true,
+    });
+    const on = renderWithProviders(<SettingsHubIndex />);
+    expect(
+      await screen.findByRole('link', {
+        name: on.i18n!.t('settings.tabs.ads.label'),
+      }),
+    ).toHaveAttribute('href', '/accounts/ads');
+  });
+
   it('shows log out at the bottom of the hub list', async () => {
     const { i18n } = renderWithProviders(<SettingsHubIndex />);
 
@@ -123,5 +151,27 @@ describe('SettingsShell', () => {
       }),
     ).toHaveAttribute('href', '/accounts');
     expect(screen.getByTestId('settings-column')).toHaveClass('max-w-5xl');
+  });
+
+  it('leaves Ads out of the section rail while its flag is off', () => {
+    useExperimentStore.setState({ flags: {}, isLoaded: true });
+    const { i18n } = renderWithProviders(
+      <SettingsShell section="profile">
+        <div>profile</div>
+      </SettingsShell>,
+    );
+
+    expect(
+      screen.getByRole('link', {
+        name: i18n!.t('settings.tabs.feed_prefs.label'),
+        hidden: true,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {
+        name: i18n!.t('settings.tabs.ads.label'),
+        hidden: true,
+      }),
+    ).not.toBeInTheDocument();
   });
 });

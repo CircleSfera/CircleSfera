@@ -1,3 +1,4 @@
+export * from './ads-consent.js';
 export * from './business-profile.js';
 export * from './chat-pins.js';
 export * from './comments.js';
