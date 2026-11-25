@@ -4,7 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../common/errors/app.exception.js';
 import { FakeRedis } from '../common/testing/fake-redis.js';
 import { ActionLimitsService, trustKeys } from './action-limits.service.js';
-import type { LimitedAction } from './trust.constants.js';
+import {
+  ACTION_WINDOWS,
+  type LimitedAction,
+  VELOCITY_THRESHOLDS,
+} from './trust.constants.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Start of an hour, so fixed windows do not roll over during a test.
@@ -174,5 +178,86 @@ describe('ActionLimitsService', () => {
     expect(await service.tryEvaluationLock('p-1')).toBe(false);
     vi.setSystemTime(new Date(NOW.getTime() + 61_000));
     expect(await service.tryEvaluationLock('p-1')).toBe(true);
+  });
+
+  it('does not evaluate when the evaluation lock cannot be taken', async () => {
+    redis.failing = true;
+    expect(await service.tryEvaluationLock('p-1')).toBe(false);
+  });
+
+  it('keeps no fingerprint when the text cannot be hashed', async () => {
+    // Without the hashing key there is nothing safe to store.
+    hash.hash.mockReturnValue(null);
+    const spam = 'Click here to win a free phone today!!';
+
+    for (let i = 0; i < 5; i++) await service.recordText('p-1', spam);
+
+    expect(redis.keys()).toEqual([]);
+    expect(trigger).not.toHaveBeenCalled();
+  });
+
+  describe('setRestricted and clearRestricted', () => {
+    it('a restriction that already ended clears the reduced caps', async () => {
+      await service.setRestricted('p-1', new Date(NOW.getTime() + DAY_MS));
+      await service.setRestricted('p-1', new Date(NOW.getTime() - 1));
+
+      expect(await redis.exists(trustKeys.restricted('p-1'))).toBe(0);
+      await expect(consumeTimes(6, 'message_request')).resolves.toBeUndefined();
+    });
+
+    it('never fails the caller when Redis is unavailable', async () => {
+      redis.failing = true;
+
+      await expect(
+        service.setRestricted('p-1', new Date(NOW.getTime() + DAY_MS)),
+      ).resolves.toBeUndefined();
+      await expect(service.clearRestricted('p-1')).resolves.toBeUndefined();
+    });
+
+    it('keeps the normal caps when the restriction cannot be read', async () => {
+      await service.setRestricted('p-1', new Date(NOW.getTime() + DAY_MS));
+      vi.spyOn(redis, 'exists').mockRejectedValue(new Error('redis down'));
+
+      // Restricted, the daily cap would refuse the sixth.
+      await expect(consumeTimes(6, 'message_request')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('when Redis is unavailable', () => {
+    it('reads no signal rather than failing the evaluation', async () => {
+      await consumeTimes(3, 'comment');
+      redis.failing = true;
+
+      expect(await service.readSignals('p-1')).toEqual({
+        velocity: {},
+        repeatedText: 0,
+        coordinatedText: 0,
+        writesToday: 0,
+      });
+    });
+
+    it('finds no recently active Profile for the nightly run', async () => {
+      await consumeTimes(1, 'comment');
+      redis.failing = true;
+
+      expect(await service.recentlyActiveProfiles()).toEqual([]);
+    });
+  });
+
+  it('reads no velocity for an action whose threshold names a window it does not count', async () => {
+    const windows = ACTION_WINDOWS.follow;
+    ACTION_WINDOWS.follow = windows.filter(
+      (w) => w.name !== VELOCITY_THRESHOLDS.follow.window,
+    );
+    try {
+      await consumeTimes(3, 'comment');
+
+      const signals = await service.readSignals('p-1');
+
+      expect(signals.velocity).not.toHaveProperty('follow');
+      expect(signals.velocity).toHaveProperty('comment', 3);
+    } finally {
+      ACTION_WINDOWS.follow = windows;
+    }
   });
 });

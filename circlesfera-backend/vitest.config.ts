@@ -111,7 +111,7 @@ export default defineConfig({
 
         // Data Lifecycle: GDPR personal data export and account deletion
         'src/users/data-export.service.ts': {
-          statements: 99,
+          statements: 100,
           lines: 100,
         },
         'src/users/data-export.processor.ts': {
@@ -125,8 +125,8 @@ export default defineConfig({
 
         // Moderation: warnings, strikes, appeals, reports, spam detection
         'src/strikes/**': {
-          statements: 93,
-          lines: 94,
+          statements: 100,
+          lines: 100,
         },
         'src/appeals/**': {
           statements: 100,
@@ -137,8 +137,8 @@ export default defineConfig({
           lines: 100,
         },
         'src/trust/**': {
-          statements: 90,
-          lines: 91,
+          statements: 100,
+          lines: 100,
         },
         'src/admin/admin-risk-cases.*': {
           statements: 100,
@@ -155,7 +155,7 @@ export default defineConfig({
           lines: 100,
         },
         'src/common/policies/**': {
-          statements: 98,
+          statements: 100,
           lines: 100,
         },
         'src/security-reports/**': {

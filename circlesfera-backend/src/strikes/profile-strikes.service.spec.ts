@@ -493,4 +493,34 @@ describe('ProfileStrikesService', () => {
       expect(tx.profile.update).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('invalidateProfileCache', () => {
+    it('reads nothing and drops nothing when no Profile changed', async () => {
+      await service.invalidateProfileCache([]);
+
+      expect(prisma.profile.findMany).not.toHaveBeenCalled();
+      expect(cache.del).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('invalidateAccountProfileCache', () => {
+    // A ban or a bot label taken back on appeal changes what every Profile
+    // of the account shows, so each cached public profile is dropped.
+    it('drops the cached public profile of every Profile of the account', async () => {
+      prisma.profile.findMany.mockResolvedValue([
+        { username: 'Offender' },
+        { username: 'second' },
+      ]);
+
+      await service.invalidateAccountProfileCache('user-1');
+
+      expect(prisma.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        select: { username: true },
+      });
+      expect(cache.del).toHaveBeenCalledWith('profile:offender');
+      expect(cache.del).toHaveBeenCalledWith('profile:second');
+      expect(cache.del).toHaveBeenCalledTimes(2);
+    });
+  });
 });

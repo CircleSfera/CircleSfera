@@ -50,6 +50,26 @@ describe('authStore', () => {
     expect(useAuthStore.getState().profile).toEqual(mockProfile);
   });
 
+  // The creator mode the Profile page toggles survives a reload, and signing
+  // out turns it off so the next person does not start in it.
+  it('keeps the creator mode across reloads until signing out', async () => {
+    useAuthStore.getState().setCreatorMode(true);
+    expect(useAuthStore.getState().isCreatorModeActive).toBe(true);
+    expect(
+      JSON.parse(localStorage.getItem('auth-storage') ?? '{}').state,
+    ).toMatchObject({ isCreatorModeActive: true });
+
+    useAuthStore.getState().setCreatorMode(false);
+    expect(useAuthStore.getState().isCreatorModeActive).toBe(false);
+
+    useAuthStore.getState().setCreatorMode(true);
+    await useAuthStore.getState().logout();
+    expect(useAuthStore.getState().isCreatorModeActive).toBe(false);
+    expect(
+      JSON.parse(localStorage.getItem('auth-storage') ?? '{}').state,
+    ).toMatchObject({ isCreatorModeActive: false });
+  });
+
   it('should clear state on logout', async () => {
     useAuthStore.getState().setAuthenticated();
     const mockProfile = { id: '1', username: 'testuser' } as unknown as Profile;

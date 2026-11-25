@@ -158,8 +158,8 @@ export default defineConfig({
         'src/components/auth/AuthGuard.tsx': { statements: 100, lines: 100 },
         'src/components/auth/GuestGuard.tsx': { statements: 100, lines: 100 },
         'src/services/passkey.service.ts': { statements: 100, lines: 100 },
-        'src/stores/authStore.ts': { statements: 97, lines: 97 },
-        'src/stores/adminAuthStore.ts': { statements: 96, lines: 95 },
+        'src/stores/authStore.ts': { statements: 100, lines: 100 },
+        'src/stores/adminAuthStore.ts': { statements: 100, lines: 100 },
         'src/pages/Onboarding.tsx': { statements: 84, lines: 85 },
         'src/pages/Settings.tsx': { statements: 95, lines: 95 },
         'src/components/creator/CreatorPlansTab.tsx': {

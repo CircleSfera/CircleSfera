@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { PassThrough } from 'node:stream';
+import { PassThrough, Writable } from 'node:stream';
 import { getQueueToken } from '@nestjs/bullmq';
 import {
   BadRequestException,
@@ -538,6 +538,39 @@ describe('DataExportService', () => {
         'application/zip',
       );
       if (fs.existsSync(legacyDirPath)) fs.unlinkSync(legacyDirPath);
+    });
+
+    it('ends the download without an error when the person closes the connection', async () => {
+      mockPrismaService.dataExportRequest.findUnique.mockResolvedValue({
+        id: 'export-1',
+        userId: 'user-1',
+        status: 'COMPLETED',
+        url: 'http://localhost:3000/api/v1/users/gdpr/exports/export-1/download',
+        expiresAt: new Date(Date.now() + 3600 * 1000),
+      });
+      fs.mkdirSync(EXPORTS_DIR, { recursive: true });
+      fs.writeFileSync(testFilePath, 'mock zip data content');
+
+      // A client that takes the first bytes and never acknowledges them, so
+      // the response can never finish on its own.
+      const res: any = new Writable({ write: () => undefined });
+      res.setHeader = vi.fn();
+      res.status = vi.fn().mockReturnThis();
+      res.json = vi.fn().mockReturnThis();
+      res.headersSent = false;
+
+      const download = service.streamDataExport(
+        'export-1',
+        'user-1',
+        undefined,
+        res,
+      );
+      await vi.waitFor(() => expect(res.writableLength).toBeGreaterThan(0));
+      res.destroy();
+
+      await expect(download).resolves.toBeUndefined();
+      expect(res.writableFinished).toBe(false);
+      expect(res.status).not.toHaveBeenCalled();
     });
 
     it('handles stream error and returns 500 when headers not sent', async () => {

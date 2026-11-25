@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { NotificationType } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RiskDetectorService } from './risk-detector.service.js';
@@ -290,11 +291,97 @@ describe('RiskDetectorService', () => {
       expect(notifications.create).not.toHaveBeenCalled();
     });
 
+    it('raises the score of the open case when the Profile scores higher', async () => {
+      live({ velocity: { follow: 80 }, coordinatedText: 3, repeatedText: 5 });
+      const openCase = {
+        id: 'case-1',
+        score: 50,
+        restrictedUntil: null,
+        restrictedAt: null,
+      };
+      tx.riskCase.findFirst.mockResolvedValue(openCase);
+      tx.riskCase.update.mockImplementationOnce(async ({ data }) => ({
+        ...openCase,
+        ...data,
+      }));
+
+      await service.evaluateAndRecord('p-1');
+
+      expect(tx.riskCase.create).not.toHaveBeenCalled();
+      expect(tx.riskCase.update).toHaveBeenNthCalledWith(1, {
+        where: { id: 'case-1' },
+        data: { score: 70, signals: expect.any(Array) },
+      });
+      // Now at 70, the case restricts the Profile for the first time.
+      expect(limits.setRestricted).toHaveBeenCalledWith(
+        'p-1',
+        new Date(NOW.getTime() + 72 * 60 * 60 * 1000),
+      );
+    });
+
     it('evaluateSoon does nothing when the Profile was evaluated in the last minute', async () => {
       limits.tryEvaluationLock.mockResolvedValue(false);
       await service.evaluateSoon('p-1');
       expect(prisma.profile.findUnique).not.toHaveBeenCalled();
     });
+
+    it('evaluateSoon logs a failed evaluation instead of throwing', async () => {
+      const logError = vi
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation(() => undefined);
+      prisma.profile.findUnique.mockRejectedValueOnce(new Error('db down'));
+
+      await expect(service.evaluateSoon('p-1')).resolves.toBeUndefined();
+
+      expect(logError).toHaveBeenCalledWith('Risk evaluation failed: db down');
+      logError.mockRestore();
+    });
+  });
+
+  it('evaluates a Profile when the action limits report a crossed threshold', async () => {
+    service.onModuleInit();
+    const trigger = limits.onEvaluationNeeded.mock.calls[0][0] as (
+      profileId: string,
+    ) => void;
+
+    trigger('p-1');
+
+    await vi.waitFor(() =>
+      expect(prisma.profile.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'p-1' } }),
+      ),
+    );
+    expect(limits.tryEvaluationLock).toHaveBeenCalledWith('p-1');
+  });
+
+  it('a restriction stays in place when its notice cannot be sent', async () => {
+    const logError = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    const failure = new Error('notifications down');
+    notifications.create.mockRejectedValueOnce(failure);
+
+    await expect(
+      service.notifyRestriction('p-1', 'case-1', 'staff'),
+    ).resolves.toBeUndefined();
+
+    expect(notifications.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetType: 'profile_restriction_review',
+        notice: expect.objectContaining({ by: 'staff' }),
+      }),
+    );
+    expect(logError).toHaveBeenCalledWith(failure);
+    logError.mockRestore();
+  });
+
+  it('lifts nothing for an appeal whose case no longer exists', async () => {
+    tx.riskCase.findUnique.mockResolvedValue(null);
+
+    expect(
+      await service.liftRestrictionForAppeal(tx as never, 'case-gone'),
+    ).toBeNull();
+    expect(tx.riskCase.update).not.toHaveBeenCalled();
   });
 
   it('lifts a restriction after an approved appeal', async () => {
@@ -329,5 +416,45 @@ describe('RiskDetectorService', () => {
     await service.nightly();
     expect(prisma.profile.findUnique).toHaveBeenCalledTimes(2);
     expect(prisma.riskCase.deleteMany).toHaveBeenCalled();
+  });
+
+  it('the nightly run counts the cases it opened and goes on past a failed Profile', async () => {
+    const logError = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    const log = vi
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined);
+    limits.recentlyActiveProfiles.mockResolvedValue(['p-1', 'p-2', 'p-3']);
+    // p-1 scores 50 (a case), p-2 cannot be read, p-3 scores 0.
+    limits.readSignals
+      .mockResolvedValueOnce({
+        velocity: { follow: 80 },
+        repeatedText: 0,
+        coordinatedText: 3,
+        writesToday: 0,
+      })
+      .mockResolvedValue({
+        velocity: {},
+        repeatedText: 0,
+        coordinatedText: 0,
+        writesToday: 0,
+      });
+    prisma.profile.findUnique
+      .mockResolvedValueOnce(profile())
+      .mockRejectedValueOnce(new Error('db down'))
+      .mockResolvedValueOnce(profile({ id: 'p-3' }));
+
+    await service.nightly();
+
+    expect(tx.riskCase.create).toHaveBeenCalledTimes(1);
+    expect(logError).toHaveBeenCalledWith(
+      'Nightly risk evaluation failed: db down',
+    );
+    expect(log).toHaveBeenCalledWith(
+      'Nightly risk run: 3 evaluated, 1 at or above the review threshold, 2 closed cases purged',
+    );
+    logError.mockRestore();
+    log.mockRestore();
   });
 });
