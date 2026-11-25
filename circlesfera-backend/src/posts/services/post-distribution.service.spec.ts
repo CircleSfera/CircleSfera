@@ -285,4 +285,13 @@ describe('PostDistributionService', () => {
       targetType: 'POST',
     });
   });
+
+  it('embeds an edited caption again, and so gives its topic again', async () => {
+    await service.reembedEditedCaption('post-9', 'a new caption');
+
+    expect(mockAiQueue.add).toHaveBeenCalledWith('generate-embedding', {
+      postId: 'post-9',
+      text: 'a new caption',
+    });
+  });
 });

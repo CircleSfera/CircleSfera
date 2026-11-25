@@ -212,6 +212,10 @@ export class UsersService {
           profiles: {
             include: {
               posts: {
+                // What each post is about, inferred for ads (PD-084), is
+                // data about the person too: it is left out of every other
+                // read, never out of their copy.
+                omit: { topic: false },
                 include: {
                   media: true,
                   _count: { select: { likes: true, comments: true } },

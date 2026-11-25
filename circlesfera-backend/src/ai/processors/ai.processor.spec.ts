@@ -54,12 +54,14 @@ describe('AIProcessor', () => {
   };
   let postTopics: {
     assignFromEmbedding: ReturnType<typeof vi.fn>;
+    assignWithoutWords: ReturnType<typeof vi.fn>;
     sweep: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
     postTopics = {
       assignFromEmbedding: vi.fn().mockResolvedValue('music'),
+      assignWithoutWords: vi.fn().mockResolvedValue(undefined),
       sweep: vi.fn(),
     };
     aiService = {
@@ -260,20 +262,33 @@ describe('AIProcessor', () => {
   });
 
   describe('generate-embedding', () => {
-    it('throws UnrecoverableError when postId or text is missing', async () => {
+    it('throws UnrecoverableError when postId is missing', async () => {
       await expect(
         processor.process({
           name: 'generate-embedding',
           data: { text: 'hi' },
         } as Job),
       ).rejects.toThrow(UnrecoverableError);
+    });
 
-      await expect(
-        processor.process({
-          name: 'generate-embedding',
-          data: { postId: 'p-1' },
-        } as Job),
-      ).rejects.toThrow(UnrecoverableError);
+    it('gives a post with no words `other`, embeds nothing and drops an embedding of words it no longer has', async () => {
+      for (const data of [
+        { postId: 'p-1' },
+        { postId: 'p-1', text: '' },
+        { postId: 'p-1', text: '   ' },
+      ]) {
+        prisma.$executeRaw.mockClear();
+        postTopics.assignWithoutWords.mockClear();
+
+        await processor.process({ name: 'generate-embedding', data } as Job);
+
+        const sql = (prisma.$executeRaw.mock.calls[0][0] as string[]).join('?');
+        expect(sql).toContain('DELETE FROM post_embeddings WHERE "postId" = ?');
+        expect(prisma.$executeRaw.mock.calls[0][1]).toBe('p-1');
+        expect(postTopics.assignWithoutWords).toHaveBeenCalledWith('p-1');
+      }
+      expect(aiService.generateEmbedding).not.toHaveBeenCalled();
+      expect(postTopics.assignFromEmbedding).not.toHaveBeenCalled();
     });
 
     it('generates embedding and updates database', async () => {

@@ -294,6 +294,33 @@ describe('UsersService', () => {
       });
     });
 
+    it('carries the topic inferred for each post, which every other read leaves out', async () => {
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'u1', deviceSignals: [], signIns: [] })
+        .mockResolvedValueOnce({
+          profiles: [
+            {
+              id: 'pr1',
+              posts: [{ id: 'post_1', topic: 'travel', media: [] }],
+              messages: [],
+            },
+          ],
+        });
+
+      const data = (await service.exportUserData('u1')) as {
+        profiles: { posts: { id: string; topic: string }[] }[];
+      };
+
+      const posts =
+        mockPrismaService.user.findUnique.mock.calls[1][0].select.profiles
+          .include.posts;
+      expect(posts.omit).toEqual({ topic: false });
+      expect(data.profiles[0].posts[0]).toMatchObject({
+        id: 'post_1',
+        topic: 'travel',
+      });
+    });
+
     it('returns formatted GDPR safe data export', async () => {
       const mockAccount = {
         id: 'u_exp',

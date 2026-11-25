@@ -95,6 +95,15 @@ export class PostDistributionService {
   }
 
   /**
+   * A post whose caption was edited is embedded again from the new caption,
+   * and so given its topic again; an emptied caption drops the embedding and
+   * the post's topic becomes `other`.
+   */
+  async reembedEditedCaption(postId: string, caption: string): Promise<void> {
+    await this.aiQueue.add('generate-embedding', { postId, text: caption });
+  }
+
+  /**
    * Dispatches background workflows after a post is published:
    * 1. AI embedding generation
    * 2. Background content moderation

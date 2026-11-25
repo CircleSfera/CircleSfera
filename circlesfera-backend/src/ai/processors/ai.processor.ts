@@ -181,10 +181,18 @@ export class AIProcessor extends WorkerHost {
     job: Job<{ postId: string; text: string }, any, string>,
   ) {
     const { postId, text } = job.data ?? {};
-    if (!postId || !text) {
-      throw new UnrecoverableError(
-        'Missing postId or text for generate-embedding',
-      );
+    if (!postId) {
+      throw new UnrecoverableError('Missing postId for generate-embedding');
+    }
+    // A post with no words (none written, or its caption emptied): nothing
+    // to embed, and an embedding of words it no longer has is dropped. Its
+    // topic is `other`.
+    if (!text?.trim()) {
+      await this.prisma.$executeRaw`
+        DELETE FROM post_embeddings WHERE "postId" = ${postId}
+      `;
+      await this.postTopics.assignWithoutWords(postId);
+      return;
     }
     this.logger.log(`Processing embedding for post: ${postId}`);
 
