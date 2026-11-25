@@ -22,6 +22,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AbuseModule } from './abuse/abuse.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { AdminAuthModule } from './admin-auth/admin-auth.module.js';
+import { AdsConsentModule } from './ads-consent/ads-consent.module.js';
 import { AIModule } from './ai/ai.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
 import { AppController } from './app.controller.js';
@@ -229,6 +230,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     SlackModule,
     helpdeskFor(CircleSferaHelpdeskHostModule),
     ExperimentsModule,
+    AdsConsentModule,
     MaintenanceModule,
     LiveModule,
     WarehouseModule,

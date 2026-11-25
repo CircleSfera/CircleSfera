@@ -60,6 +60,7 @@ describe('UsersService', () => {
     staffNote: { findMany: vi.fn() },
     pushSubscription: { findMany: vi.fn() },
     nativePushToken: { findMany: vi.fn() },
+    adConsent: { findMany: vi.fn() },
   };
   const mockCrypto = {
     decrypt: vi.fn((text: string) => text.replace(/^cipher_/, '')),
@@ -574,6 +575,50 @@ describe('UsersService', () => {
         expect(select).not.toHaveProperty('reviewedById');
         expect(select).not.toHaveProperty('authorId');
       }
+    });
+
+    it('holds every answer about how ads are chosen, as the proof of consent (PD-084)', async () => {
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'u_ads', deviceSignals: [], signIns: [] })
+        .mockResolvedValueOnce({
+          profiles: [],
+          settings: null,
+          appeals: [],
+          sentTransactions: [],
+        });
+      const answers = [
+        {
+          choice: 'PERSONALISED',
+          textVersion: '2026-11-22',
+          locale: 'es',
+          source: 'PROMPT',
+          createdAt: new Date('2026-12-01T10:00:00Z'),
+        },
+        {
+          choice: 'GENERAL',
+          textVersion: '2026-11-22',
+          locale: 'es',
+          source: 'SETTINGS',
+          createdAt: new Date('2026-12-05T10:00:00Z'),
+        },
+      ];
+      heldModels.adConsent.findMany.mockResolvedValue(answers);
+
+      const res = (await service.exportUserData('u_ads')) as any;
+
+      expect(res.adConsents).toEqual(answers);
+      // The person's own answers, oldest first, with the text shown.
+      expect(heldModels.adConsent.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u_ads' },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          choice: true,
+          textVersion: true,
+          locale: true,
+          source: true,
+          createdAt: true,
+        },
+      });
     });
   });
 

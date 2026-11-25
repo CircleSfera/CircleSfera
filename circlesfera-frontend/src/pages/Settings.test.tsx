@@ -1,7 +1,9 @@
+import { ADS_CONSENT_FLAG } from '@circlesfera/shared';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SETTINGS_SECTION_IDS } from '../components/settings/settingsNav';
+import { useExperimentStore } from '../stores/useExperimentStore';
 import Settings from './Settings';
 
 vi.mock('../components/settings/AccountSettings', () => ({
@@ -85,6 +87,17 @@ vi.mock('../components/settings/SettingsShell', () => ({
   ),
 }));
 
+vi.mock('../components/settings/AdsSettings', () => ({
+  default: () => <div>panel:ads</div>,
+}));
+
+// Every flag a section waits for, on: each section opens.
+const allFlagsOn = { [ADS_CONSENT_FLAG]: true };
+
+beforeEach(() => {
+  useExperimentStore.setState({ flags: allFlagsOn, isLoaded: true });
+});
+
 function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -116,5 +129,20 @@ describe('Settings', () => {
     renderAt('/accounts/not-a-section');
     expect(screen.getByText('shell:hub')).toBeInTheDocument();
     expect(screen.getByText('panel:hub')).toBeInTheDocument();
+  });
+
+  it('Ads is not there while its flag is off: its address goes back to the hub', () => {
+    useExperimentStore.setState({ flags: {}, isLoaded: true });
+    renderAt('/accounts/ads');
+    expect(screen.queryByText('panel:ads')).not.toBeInTheDocument();
+    expect(screen.getByText('shell:hub')).toBeInTheDocument();
+    expect(screen.getByText('panel:hub')).toBeInTheDocument();
+  });
+
+  it('decides nothing about Ads until the flags are read', () => {
+    useExperimentStore.setState({ flags: {}, isLoaded: false });
+    renderAt('/accounts/ads');
+    expect(screen.queryByText('panel:ads')).not.toBeInTheDocument();
+    expect(screen.queryByText('panel:hub')).not.toBeInTheDocument();
   });
 });

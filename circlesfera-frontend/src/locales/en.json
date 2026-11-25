@@ -13,6 +13,58 @@
     "accept": "Accept all",
     "dismiss": "Dismiss"
   },
+  "adsConsent": {
+    "title": "How should your ads be chosen?",
+    "text": "CircleSfera is free and is paid for by ads. You choose how they are picked. You can change this at any time in Settings.",
+    "personalised": {
+      "label": "Personalise with my activity on other websites and apps",
+      "hint": "Advertisers can show you ads based on what you did on their websites and apps, and include you in their audiences."
+    },
+    "general": {
+      "label": "Only general ads",
+      "hint": "Ads chosen by what you are watching, your city, your language and the interests you pick."
+    },
+    "what_this_means": "What this means",
+    "options_label": "How your ads are chosen",
+    "saving": "Saving your choice…",
+    "save_error": "Your choice could not be saved. Try again.",
+    "explain": {
+      "title": "What this means",
+      "intro": "CircleSfera shows ads so that it can stay free. Whichever you choose, the app works exactly the same and you see ads in the same places. What changes is the information used to pick them.",
+      "general_title": "Only general ads",
+      "general_text": "Ads are chosen with this, and nothing else:",
+      "general_items": {
+        "topic": "The topic of what you are watching",
+        "city": "Your city",
+        "language": "Your language",
+        "time": "The time of day",
+        "interests": "The interests you pick in Settings"
+      },
+      "personalised_title": "Personalise with my activity on other websites and apps",
+      "personalised_text": "On top of the above, and only if you choose it:",
+      "personalised_items": {
+        "activity": "What you did on advertisers' websites and apps (for example, a page you visited or something you bought), which they send to CircleSfera through the CircleSfera Pixel and the Conversions API",
+        "audiences": "Advertisers can include you in their audiences, such as people who visited their website or who are already their customers"
+      },
+      "never_title": "Never",
+      "never_items": {
+        "sensitive": "Sensitive data (such as health, religion, political opinions or sexual orientation) is never used to choose ads.",
+        "minors": "Nobody under 18 gets personalised ads: they always get general ads."
+      },
+      "change": "You can change your choice at any time in Settings → Ads. If you stop personalisation, it stops from that moment.",
+      "close": "Close"
+    },
+    "settings": {
+      "title": "How your ads are chosen",
+      "current": "Your choice: {{choice}}",
+      "since": "Since {{date}}",
+      "none": "You have not chosen yet. Until you do, you only get general ads.",
+      "change_hint": "Tap the other option to change it. It applies at once.",
+      "minor": "You only get general ads: ads are never personalised for anyone under 18.",
+      "saved": "Your choice is saved",
+      "load_error": "Your choice could not be loaded."
+    }
+  },
   "nav": {
     "home": "Home",
     "home_logo": "CircleSfera, home",
@@ -108,6 +160,10 @@
       "feed_prefs": {
         "label": "Feed Preferences",
         "desc": "Customize your content"
+      },
+      "ads": {
+        "label": "Ads",
+        "desc": "How your ads are chosen"
       },
       "profiles": {
         "label": "Profiles",
@@ -6510,6 +6566,8 @@
       "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later.",
       "PROMOTIONS_NOT_ON_SALE": "Promotions are not on sale yet.",
       "PAYER_UNDER_AGE": "You can pay from age {{minAge}}, by the date of birth on your account.",
+      "AD_PERSONALISATION_UNDER_AGE": "Ads are never personalised for anyone under {{minAge}}.",
+      "AD_CONSENT_TEXT_OUTDATED": "These texts have changed. Reload the app to see the current ones.",
       "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests.",
       "CONTENT_UNDER_REVIEW": "This content is still being checked. It can be promoted once that is done: try again in a few minutes.",
       "COLLAB_NOT_ALLOWED": "Only a public post can have a collaborator, and never its author.",

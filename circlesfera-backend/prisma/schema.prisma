@@ -100,6 +100,8 @@ model User {
   supportTickets        SupportTicket[]
   appeals               Appeal[]
   userExperiments       UserExperiment[]
+  // Every answer to how ads are chosen, as proof of consent (PD-084).
+  adConsents            AdConsent[]
 
   uploadedFiles StoredFile[]
 
@@ -257,6 +259,46 @@ model UserSettings {
   updatedAt DateTime @updatedAt
 
   @@map("user_settings")
+}
+
+// How the person chose their ads to be picked (PD-084). Mirrors AD_CHOICES
+// of circlesfera-shared.
+enum AdChoice {
+  // With their activity on advertisers' websites and apps, and advertisers'
+  // audiences.
+  PERSONALISED
+  // Only by context and the interests they choose.
+  GENERAL
+}
+
+// Where the answer was given. Mirrors AD_CONSENT_SOURCES.
+enum AdConsentSource {
+  // The screen after sign-up, or on the next open for existing accounts.
+  PROMPT
+  // Settings → Ads.
+  SETTINGS
+}
+
+// One answer to "How should your ads be chosen?", kept as the proof of
+// consent: what was chosen, when, and which version of the texts was shown in
+// which language. Never changed: a new answer is a new row, and the latest
+// one is in force. Belongs to the person (User), is in their data export and
+// is erased with the account.
+model AdConsent {
+  id          String          @id @default(uuid())
+  userId      String
+  choice      AdChoice
+  // AD_CONSENT_TEXT_VERSION of the texts shown.
+  textVersion String
+  // The language the texts were shown in.
+  locale      Locale
+  source      AdConsentSource
+  createdAt   DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("ad_consents")
 }
 
 model DataExportRequest {

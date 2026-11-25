@@ -118,6 +118,14 @@ export enum ErrorCode {
   PAYMENT_PROVIDER_UNAVAILABLE = 'PAYMENT_PROVIDER_UNAVAILABLE',
   FEATURE_DISABLED = 'FEATURE_DISABLED',
 
+  // Ads consent (PD-084)
+  // Personalised advertising is never used for anyone under 18; details
+  // carry the minimum age.
+  AD_PERSONALISATION_UNDER_AGE = 'AD_PERSONALISATION_UNDER_AGE',
+  // The answer was given to texts that are no longer the current ones: the
+  // app shows the current texts and asks again.
+  AD_CONSENT_TEXT_OUTDATED = 'AD_CONSENT_TEXT_OUTDATED',
+
   // Interactive (Polls, QnA)
   INTERACTIVE_NOT_FOUND = 'INTERACTIVE_NOT_FOUND',
   MISSING_POST_OR_STORY_ID = 'MISSING_POST_OR_STORY_ID',

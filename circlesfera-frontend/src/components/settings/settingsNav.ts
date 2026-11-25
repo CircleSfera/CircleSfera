@@ -1,3 +1,4 @@
+import { ADS_CONSENT_FLAG } from '@circlesfera/shared';
 import {
   Archive,
   Bell,
@@ -9,6 +10,7 @@ import {
   Heart,
   Key,
   type LucideIcon,
+  Megaphone,
   MessageSquareOff,
   Scale,
   Shield,
@@ -41,6 +43,7 @@ export type SettingsSectionId =
   | 'tags'
   | 'hidden_words'
   | 'feed_prefs'
+  | 'ads'
   | 'appeals'
   | 'reports'
   | 'recently_deleted'
@@ -51,6 +54,9 @@ export interface SettingsNavItem {
   id: SettingsSectionId;
   labelKey: string;
   icon: LucideIcon;
+  // A feature flag the section waits for: while it is off the section is not
+  // listed and its address goes back to the hub.
+  flag?: string;
 }
 
 export interface SettingsNavGroup {
@@ -83,6 +89,7 @@ export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'tags',
   'hidden_words',
   'feed_prefs',
+  'ads',
   'appeals',
   'reports',
   'recently_deleted',
@@ -161,6 +168,14 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: 'feed_prefs',
         labelKey: 'settings.tabs.feed_prefs.label',
         icon: EyeOff,
+      },
+      {
+        // How the person's ads are chosen (PD-084): hidden until the legal
+        // review of Ads 0 turns the flag on.
+        id: 'ads',
+        labelKey: 'settings.tabs.ads.label',
+        icon: Megaphone,
+        flag: ADS_CONSENT_FLAG,
       },
       {
         id: 'close_friends',
@@ -242,6 +257,25 @@ export function findSettingsNavItem(
     if (item) return item;
   }
   return undefined;
+}
+
+/** Whether a section is shown with these feature flags. */
+export function isSettingsSectionShown(
+  id: SettingsSectionId,
+  flags: Record<string, boolean>,
+): boolean {
+  const flag = findSettingsNavItem(id)?.flag;
+  return !flag || flags[flag] === true;
+}
+
+/** The groups and sections shown with these feature flags. */
+export function visibleSettingsNavGroups(
+  flags: Record<string, boolean>,
+): SettingsNavGroup[] {
+  return SETTINGS_NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.flag || flags[item.flag]),
+  })).filter((group) => group.items.length > 0);
 }
 
 export function getAllSettingsNavItems(): SettingsNavItem[] {

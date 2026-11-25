@@ -1,5 +1,6 @@
 import { Navigate, useParams } from 'react-router-dom';
 import AccountSettings from '../components/settings/AccountSettings';
+import AdsSettings from '../components/settings/AdsSettings';
 import AppealsSettings from '../components/settings/AppealsSettings';
 import ArchiveSettings from '../components/settings/ArchiveSettings';
 import BillingSettings from '../components/settings/BillingSettings';
@@ -22,10 +23,12 @@ import SettingsHubIndex from '../components/settings/SettingsHubIndex';
 import SettingsShell from '../components/settings/SettingsShell';
 import {
   isSettingsSectionId,
+  isSettingsSectionShown,
   type SettingsSectionId,
 } from '../components/settings/settingsNav';
 import TagsSettings from '../components/settings/TagsSettings';
 import TeamSettings from '../components/settings/TeamSettings';
+import { useExperimentStore } from '../stores/useExperimentStore';
 
 function SectionPanel({ section }: { section: SettingsSectionId }) {
   switch (section) {
@@ -61,6 +64,8 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
       return <HiddenWordsSettings />;
     case 'feed_prefs':
       return <FeedPreferencesSettings />;
+    case 'ads':
+      return <AdsSettings />;
     case 'appeals':
       return <AppealsSettings />;
     case 'reports':
@@ -79,9 +84,16 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
 // Account hub — index at /accounts, sections at /accounts/:section.
 export default function Settings() {
   const { section } = useParams<{ section?: string }>();
+  const flags = useExperimentStore((state) => state.flags);
+  const flagsLoaded = useExperimentStore((state) => state.isLoaded);
 
   if (section && !isSettingsSectionId(section)) {
     return <Navigate to="/accounts" replace />;
+  }
+  // A section behind a flag that is off is not there. Until the flags are
+  // read, nothing is decided.
+  if (isSettingsSectionId(section) && !isSettingsSectionShown(section, flags)) {
+    return flagsLoaded ? <Navigate to="/accounts" replace /> : null;
   }
 
   const activeSection = isSettingsSectionId(section) ? section : null;
