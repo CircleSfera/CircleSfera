@@ -467,8 +467,8 @@ export class UsersService {
   // The rest of what is kept about the person, for the export: warnings and
   // strikes, spam review cases, searches, what they viewed and did, support
   // requests, plans, company verifications (never their documents),
-  // founding creator applications, experiments and the notes staff wrote
-  // about them. Who on the staff
+  // founding creator applications, experiments, the notes staff wrote about
+  // them and their answers about ads. Who on the staff
   // wrote or decided is not included.
   private async heldAboutTheAccount(userId: string) {
     const byProfile = { profile: { userId } };
@@ -487,6 +487,7 @@ export class UsersService {
       staffNotes,
       webPushDevices,
       appPushDevices,
+      adConsents,
     ] = await Promise.all([
       this.prisma.profileStrike.findMany({
         where: byProfile,
@@ -637,6 +638,19 @@ export class UsersService {
         where: { userId },
         select: { platform: true, createdAt: true, lastSeenAt: true },
       }),
+      // Every answer to how ads are chosen (PD-084): the choice, when, and
+      // which texts were shown in which language.
+      this.prisma.adConsent.findMany({
+        where: { userId },
+        orderBy: { seq: 'asc' },
+        select: {
+          choice: true,
+          textVersion: true,
+          locale: true,
+          source: true,
+          createdAt: true,
+        },
+      }),
     ]);
     return {
       warningsAndStrikes: strikes,
@@ -650,6 +664,7 @@ export class UsersService {
       experiments,
       staffNotes,
       pushDevices: { browsers: webPushDevices, apps: appPushDevices },
+      adConsents,
     };
   }
 
