@@ -91,6 +91,23 @@ export const DERIVED_STORES = {
   },
 
   /**
+   * What each post is about, from a closed list (PD-084), for contextual ads.
+   */
+  POST_TOPICS: {
+    name: 'Post Topics',
+    owner: 'PostTopicsService',
+    storageMedium: 'posts.topic (PostgreSQL enum PostTopic, nullable)',
+    canonicalSource: 'post_embeddings (from posts.caption)',
+    deletionTrigger: 'Post hard deletion in database',
+    deletionMethod: 'Deleted with the post row',
+    rebuildSource: 'post_embeddings + the topic descriptions',
+    rebuildMethod:
+      'PostTopicsService.assignFromEmbedding (generate-embedding job) and PostTopicsService.sweep (assign-post-topics, every 10 minutes, posts with no topic)',
+    maxRetentionWindow: 'Lifespan of the owning Post row',
+    isRebuildable: true,
+  },
+
+  /**
    * AI semantic embeddings for user profiles.
    */
   PGVECTOR_PROFILE_EMBEDDINGS: {

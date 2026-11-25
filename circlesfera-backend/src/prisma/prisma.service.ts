@@ -36,10 +36,18 @@ export const PARTICIPANT_PRIVATE_OMIT = {
   pinnedAt: true,
 } as const;
 
+// What a post is about (PD-084): for contextual ads, never shown to people
+// and in no public response. Every read of a post leaves it out; the code that
+// needs it selects it by name.
+export const POST_INTERNAL_OMIT = {
+  topic: true,
+} as const;
+
 const clientOmit = {
   user: USER_SECRET_OMIT,
   signIn: SIGN_IN_SECRET_OMIT,
   participant: PARTICIPANT_PRIVATE_OMIT,
+  post: POST_INTERNAL_OMIT,
 } as const;
 
 @Injectable()

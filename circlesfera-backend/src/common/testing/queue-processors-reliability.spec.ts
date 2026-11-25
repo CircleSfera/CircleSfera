@@ -147,14 +147,14 @@ describe('Queue Processors Reliability & Error Handling', () => {
 
   describe('AIProcessor', () => {
     it('throws UnrecoverableError on unknown job name', async () => {
-      const proc = new AIProcessor({} as any, {} as any, {} as any);
+      const proc = new AIProcessor({} as any, {} as any, {} as any, {} as any);
       const job = { name: 'unknown-ai-task', data: {} } as any;
 
       await expect(proc.process(job)).rejects.toThrow(UnrecoverableError);
     });
 
     it('throws UnrecoverableError if required fields are missing', async () => {
-      const proc = new AIProcessor({} as any, {} as any, {} as any);
+      const proc = new AIProcessor({} as any, {} as any, {} as any, {} as any);
 
       await expect(
         proc.process({ name: 'generate-embedding', data: {} } as any),
@@ -190,7 +190,12 @@ describe('Queue Processors Reliability & Error Handling', () => {
           .mockRejectedValue(new Error('OpenAI 429 Rate Limit')),
       } as any;
 
-      const proc = new AIProcessor(mockAiService, mockPrisma, {} as any);
+      const proc = new AIProcessor(
+        mockAiService,
+        mockPrisma,
+        {} as any,
+        {} as any,
+      );
       const job = {
         name: 'generate-alt-text',
         data: { postId: 'post-1' },

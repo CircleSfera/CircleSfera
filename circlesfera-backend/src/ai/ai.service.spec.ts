@@ -175,6 +175,50 @@ describe('AIService', () => {
     });
   });
 
+  describe('generateEmbeddings', () => {
+    it('embeds several texts in one request, with the same model, in their order', async () => {
+      openAiInstance.embeddings.create.mockResolvedValue({
+        data: [
+          { index: 1, embedding: [0.2] },
+          { index: 0, embedding: [0.1] },
+        ],
+      });
+
+      await expect(service.generateEmbeddings(['a', 'b'])).resolves.toEqual([
+        [0.1],
+        [0.2],
+      ]);
+      expect(openAiInstance.embeddings.create).toHaveBeenCalledWith({
+        model: 'text-embedding-3-small',
+        input: ['a', 'b'],
+        encoding_format: 'float',
+      });
+    });
+
+    it('passes a failure on', async () => {
+      openAiInstance.embeddings.create.mockRejectedValue(new Error('down'));
+      await expect(service.generateEmbeddings(['a'])).rejects.toThrow('down');
+    });
+
+    it('answers made-up vectors without an API key (development only)', async () => {
+      mockConfigService.get.mockImplementation((key: string) =>
+        key === 'NODE_ENV' ? 'development' : undefined,
+      );
+      const module = await Test.createTestingModule({
+        providers: [
+          AIService,
+          { provide: ConfigService, useValue: mockConfigService },
+        ],
+      }).compile();
+      const devService = module.get<AIService>(AIService);
+
+      const vectors = await devService.generateEmbeddings(['a', 'b']);
+      expect(vectors).toHaveLength(2);
+      expect(vectors[0]).toHaveLength(1536);
+      expect(openAiInstance.embeddings.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('generateEmbedding', () => {
     it('should generate an embedding vector using OpenAI', async () => {
       openAiInstance.embeddings.create.mockResolvedValue({

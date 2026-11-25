@@ -581,6 +581,10 @@ model Post {
   type             PostType        @default(POST)
   /// The shape every item shows in (a post, not a Frame); none before shapes.
   shape            PostShape?
+  /// What it is about, from the closed list (PD-084): given in the background
+  /// from its embedding; none until then. For contextual ads only: never
+  /// shown, and left out of every read by default (PrismaService).
+  topic            PostTopic?
   contentRating    ContentRating   @default(GENERAL)
   views            Int             @default(0)
   loops            Int             @default(0) // For Frames (vertical video)
@@ -642,6 +646,7 @@ model Post {
   @@index([deletedAt])
   @@index([profileId, archivedAt])
   @@index([templateId])
+  @@index([topic])
   @@map("posts")
 }
 
@@ -3138,6 +3143,44 @@ enum CollaborationStatus {
 enum PostType {
   POST
   FRAME
+}
+
+/// The closed list of what a post is about: POST_TOPICS in
+/// circlesfera-shared, value for value. No subject an ad may not be aimed at
+/// (DSA Art. 26, GDPR Art. 9) is on it.
+enum PostTopic {
+  art_design
+  photography
+  film_video
+  music
+  dance
+  comedy
+  entertainment
+  fashion
+  beauty
+  home_decor
+  food_recipes
+  restaurants_bars
+  travel
+  nature_outdoors
+  pets_animals
+  sports
+  fitness
+  motoring
+  technology
+  gaming
+  science
+  learning
+  books
+  business
+  personal_finance
+  crafts_diy
+  gardening
+  parenting
+  weddings_events
+  shopping_deals
+  local_culture
+  other
 }
 
 enum PromotionStatus {
