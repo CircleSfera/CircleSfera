@@ -44,6 +44,7 @@ const WORKSPACES = [
   { name: 'backend', dir: join(ROOT, 'circlesfera-backend') },
   { name: 'frontend', dir: join(ROOT, 'circlesfera-frontend') },
   { name: 'shared', dir: join(ROOT, 'circlesfera-shared') },
+  { name: 'helpdesk', dir: join(ROOT, 'circlesfera-helpdesk') },
 ];
 
 const ALLOWED_REGISTRIES = ['https://registry.npmjs.org/'];

@@ -54,6 +54,8 @@ const touches = (folder) =>
 const shared = touches('circlesfera-shared');
 const backend = shared || touches('circlesfera-backend');
 const frontend = shared || touches('circlesfera-frontend');
+// The Help Desk is a product of its own (ADR-0034): it does not read shared.
+const helpdesk = touches('circlesfera-helpdesk');
 
 if (!all && changed.length === 0) {
   console.log('Nothing changed since origin/main.');
@@ -117,9 +119,27 @@ if (frontend) {
   run('Build frontend (types and bundle)', cwd, 'npm run build');
 }
 
+// 5. Help Desk, as in CI. Its drift check needs an empty Postgres:
+//    HELPDESK_DATABASE_URL=... npm run prisma:check-migrations (CI runs it).
+if (helpdesk) {
+  const cwd = dir('circlesfera-helpdesk');
+  if (!installed(cwd, '@nestjs/core')) run('Install Help Desk', cwd, 'npm ci');
+  run('Generate the Help Desk Prisma client', cwd, 'npx prisma generate');
+  run('Build Help Desk', cwd, 'npm run build');
+  run('Types of the Help Desk and its tests', cwd, 'npm run typecheck');
+  run('Lint Help Desk', cwd, 'npm run lint');
+  run('Help Desk module boundaries', cwd, 'npm run check:deps');
+  run('Help Desk tests and coverage thresholds', cwd, 'npm run test:cov');
+}
+
 console.log(
   `\n✔ Every check passed (${
-    [shared && 'shared', backend && 'backend', frontend && 'frontend']
+    [
+      shared && 'shared',
+      backend && 'backend',
+      frontend && 'frontend',
+      helpdesk && 'helpdesk',
+    ]
       .filter(Boolean)
       .join(', ') || 'formatting only'
   }).`,

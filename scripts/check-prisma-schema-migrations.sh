@@ -1,23 +1,30 @@
 #!/usr/bin/env bash
 # Fail if prisma/schema.prisma is ahead of (or behind) the migrations directory.
-# Replays migrations onto DATABASE_URL, then diffs the DB against the schema.
+# Replays migrations onto the package's database, then diffs the DB against
+# the schema.
 #
 # Usage (CI / local with empty Postgres):
 #   DATABASE_URL=postgresql://user:pass@host:5432/db \
 #     ./scripts/check-prisma-schema-migrations.sh
+#
+# Another package with a database of its own names its folder and the
+# variable its prisma.config.ts reads:
+#   HELPDESK_DATABASE_URL=postgresql://user:pass@host:5432/db \
+#     ./scripts/check-prisma-schema-migrations.sh circlesfera-helpdesk HELPDESK_DATABASE_URL
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BACKEND="$ROOT/circlesfera-backend"
+PACKAGE="${1:-circlesfera-backend}"
+URL_VARIABLE="${2:-DATABASE_URL}"
 
-if [[ -z "${DATABASE_URL:-}" ]]; then
-  echo "DATABASE_URL is required (empty Postgres dedicated to this check)."
+if [[ -z "${!URL_VARIABLE:-}" ]]; then
+  echo "$URL_VARIABLE is required (empty Postgres dedicated to this check)."
   exit 1
 fi
 
-cd "$BACKEND"
+cd "$ROOT/$PACKAGE"
 
-echo "→ prisma migrate deploy"
+echo "→ prisma migrate deploy ($PACKAGE)"
 npx prisma migrate deploy
 
 echo "→ prisma migrate diff (migrations DB vs schema.prisma)"
@@ -36,7 +43,7 @@ fi
 
 if [[ "$code" -eq 2 ]]; then
   echo "✗ Drift detected: schema.prisma does not match applied migrations."
-  echo "  Create a migration with: cd circlesfera-backend && npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script"
+  echo "  Create a migration with: cd $PACKAGE && npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script"
   echo "  (against a DB that has migrate deploy applied), then commit the SQL under prisma/migrations/."
   npx prisma migrate diff \
     --from-config-datasource \

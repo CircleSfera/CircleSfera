@@ -3,7 +3,7 @@
 /**
  * Dependency Vulnerability Audit & Exception Engine
  *
- * Scans all workspaces (root, backend, frontend, shared) using `npm audit`,
+ * Scans all workspaces (root, backend, frontend, shared, helpdesk) using `npm audit`,
  * evaluates vulnerabilities against production severity policies (Critical/High),
  * and validates approved temporary exemptions in `.dependency-security-exceptions.json`.
  */
@@ -23,6 +23,7 @@ const WORKSPACES = [
   { name: 'backend', path: resolve(ROOT_DIR, 'circlesfera-backend') },
   { name: 'frontend', path: resolve(ROOT_DIR, 'circlesfera-frontend') },
   { name: 'shared', path: resolve(ROOT_DIR, 'circlesfera-shared') },
+  { name: 'helpdesk', path: resolve(ROOT_DIR, 'circlesfera-helpdesk') },
 ];
 
 const args = process.argv.slice(2);

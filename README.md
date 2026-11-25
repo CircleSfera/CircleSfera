@@ -9,6 +9,7 @@ CircleSfera/
 ├── circlesfera-backend/       # NestJS REST + WebSockets API
 ├── circlesfera-frontend/      # React app: web, Admin Panel and Backoffice, and the iOS/Android apps (Capacitor)
 ├── circlesfera-shared/        # Shared types (partial adoption)
+├── circlesfera-helpdesk/      # Help Desk, a product of its own (ADR-0034); being moved in steps
 ├── docs/adr/                  # Architecture Decision Records (full text)
 ├── scripts/                   # Backups, schema and dependency checks, CI and ops helpers
 ├── e2e/                       # Playwright: the whole stack against a real database
