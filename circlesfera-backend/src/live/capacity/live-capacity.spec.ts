@@ -377,8 +377,10 @@ describe('LiveCapacityService', () => {
       });
     });
 
-    it('says when the rooms could not be read', async () => {
+    it('says when the rooms could not be read, and then says no live has no room', async () => {
       fill(2);
+      // Left out by the 6-hour window: whether it has a room is not known.
+      onAir('old', 7 * 60);
       rooms = null;
       await expect(capacity.report()).resolves.toMatchObject({
         lives: { onAir: 2, withoutRoom: 0, roomsRead: false },

@@ -231,7 +231,9 @@ describe('OperationsTab', () => {
       const full = await screen.findByText('10 of 10');
       expect(full).toHaveClass('text-red-400');
       expect(
-        screen.getByText(/did not answer: every live marked on air is counted/),
+        screen.getByText(
+          'The live server did not answer: the lives marked on air in the last 6 hours are counted.',
+        ),
       ).toBeInTheDocument();
       expect(
         screen.getByText('Recording is off in this environment.'),

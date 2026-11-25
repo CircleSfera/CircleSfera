@@ -143,9 +143,10 @@ export interface OperationsLives {
     onAir: number;
     limit: number;
     // Marked on air with no room at the live service: they hold no place.
+    // 0 when the rooms could not be read.
     withoutRoom: number;
-    // False when the live service could not be asked: every live marked
-    // on air was counted.
+    // False when the live service could not be asked: the lives marked on
+    // air in the last 6 hours were counted.
     roomsRead: boolean;
   };
   recordings: { running: number; limit: number; enabled: boolean };

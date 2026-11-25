@@ -11,7 +11,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../services/api';
 import { liveApi } from '../../services/live';
 import { profileApi } from '../../services/profile.service';
-import { renderWithProviders } from '../../test/test-utils';
+import {
+  createTestQueryClient,
+  renderWithProviders,
+} from '../../test/test-utils';
 import LiveBroadcaster from './LiveBroadcaster';
 
 vi.mock('@livekit/components-styles', () => ({}));
@@ -159,6 +162,27 @@ describe('LiveBroadcaster', () => {
       // A practice is never recorded: nothing is said of it.
       fireEvent.click(
         screen.getByRole('button', { name: i18n!.t('live.audience.PRACTICE') }),
+      );
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('does not keep an older "full" once asking again fails: the start decides', async () => {
+      // An answer from a moment ago said lives were full; asking again fails.
+      const queryClient = createTestQueryClient();
+      queryClient.setQueryData(['live', 'capacity'], {
+        livesFull: true,
+        recording: 'FULL',
+      });
+      vi.mocked(liveApi.getCapacity).mockRejectedValue(new Error('offline'));
+      const { i18n } = renderWithProviders(<LiveBroadcaster />, {
+        queryClient,
+      });
+
+      await waitFor(() => expect(liveApi.getCapacity).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: i18n!.t('live.start_button') }),
+        ).toBeEnabled(),
       );
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
     });

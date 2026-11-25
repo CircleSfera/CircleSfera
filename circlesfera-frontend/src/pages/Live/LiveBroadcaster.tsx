@@ -191,10 +191,12 @@ export default function LiveBroadcaster() {
     // while it asks again, and leaving the screen leaves no timer behind.
     gcTime: Number.POSITIVE_INFINITY,
   });
-  const livesFull = capacity.data?.livesFull === true;
+  // When the last ask failed, an older answer is not trusted: nothing is
+  // said and Go live is offered, the start deciding on the server.
+  const known = capacity.isError ? undefined : capacity.data;
+  const livesFull = known?.livesFull === true;
   // A practice is never recorded: nothing to say about it.
-  const notRecorded =
-    capacity.data?.recording === 'FULL' && audience !== 'PRACTICE';
+  const notRecorded = known?.recording === 'FULL' && audience !== 'PRACTICE';
 
   // Goes live with what the setup says, or from an upcoming live, which
   // brings its own title and audience.

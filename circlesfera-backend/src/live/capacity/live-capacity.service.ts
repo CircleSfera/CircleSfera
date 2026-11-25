@@ -51,7 +51,8 @@ export interface LiveCapacityReport {
     onAir: number;
     limit: number;
     // Marked on air but with no room at the live service: their host left
-    // without ending them. They hold no place.
+    // without ending them. They hold no place. 0 when the rooms could not
+    // be read.
     withoutRoom: number;
     // False when the live service could not be asked: the lives marked on
     // air in the last UNREAD_ROOMS_WINDOW_MS are counted.
@@ -216,7 +217,10 @@ export class LiveCapacityService {
       lives: {
         onAir,
         limit: livesLimit,
-        withoutRoom: Math.max(0, marked - onAir),
+        // Only known from the rooms: when they could not be read, the lives
+        // left out are those older than UNREAD_ROOMS_WINDOW_MS, whose rooms
+        // nobody knows, and none is said to have no room.
+        withoutRoom: roomsRead ? Math.max(0, marked - onAir) : 0,
         roomsRead,
       },
       recordings: { running, limit: recordingsLimit, enabled },

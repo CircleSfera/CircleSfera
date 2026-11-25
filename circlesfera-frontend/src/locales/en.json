@@ -4479,7 +4479,7 @@
       "lives_of_limit": "{{value}} of {{limit}}",
       "lives_without_room_one": "{{count}} more marked on air with no room: its host left without ending it. Not counted.",
       "lives_without_room_other": "{{count}} more marked on air with no room: their hosts left without ending them. Not counted.",
-      "lives_rooms_unread": "The live server did not answer: every live marked on air is counted.",
+      "lives_rooms_unread": "The live server did not answer: the lives marked on air in the last 6 hours are counted.",
       "lives_recording_off": "Recording is off in this environment.",
       "lives_limits_hint": "At the limit, a new live is refused and its host told to try again in a few minutes; past the recordings' limit, lives go on unrecorded and their hosts are told. Change the limits in Settings.",
       "resources_title": "Server resources",

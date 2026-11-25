@@ -4479,7 +4479,7 @@
       "lives_of_limit": "{{value}} de {{limit}}",
       "lives_without_room_one": "{{count}} más marcado en emisión sin sala: quien lo emitía salió sin terminarlo. No cuenta.",
       "lives_without_room_other": "{{count}} más marcados en emisión sin sala: quienes los emitían salieron sin terminarlos. No cuentan.",
-      "lives_rooms_unread": "El servidor de directos no respondió: cuentan todos los directos marcados en emisión.",
+      "lives_rooms_unread": "El servidor de directos no respondió: cuentan los directos marcados en emisión en las últimas 6 horas.",
       "lives_recording_off": "La grabación está desactivada en este entorno.",
       "lives_limits_hint": "En el límite, un directo nuevo se rechaza y se pide a quien lo emite que lo intente en unos minutos; pasado el límite de grabaciones, los directos siguen sin grabarse y se avisa a quien los emite. Los límites se cambian en Configuración.",
       "resources_title": "Recursos del servidor",
