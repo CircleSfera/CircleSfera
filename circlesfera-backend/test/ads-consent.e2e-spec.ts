@@ -177,6 +177,38 @@ describe('Ads consent (e2e)', () => {
     ).toBe(0);
   });
 
+  it('the last answer written is the one in force, even when two share a millisecond', async () => {
+    const id = await userId(minor.email);
+    const at = new Date('2026-12-01T10:00:00.000Z');
+    const row = {
+      userId: id,
+      textVersion: AD_CONSENT_TEXT_VERSION,
+      locale: 'en' as const,
+      source: 'SETTINGS' as const,
+      createdAt: at,
+    };
+    // Written first, with the id that sorts last: a random tie-break on the
+    // id would take it for the latest.
+    await prisma.adConsent.create({
+      data: {
+        ...row,
+        id: 'ffffffff-ffff-4fff-bfff-ffffffffffff',
+        choice: 'PERSONALISED',
+      },
+    });
+    await prisma.adConsent.create({
+      data: {
+        ...row,
+        id: '00000000-0000-4000-8000-000000000000',
+        choice: 'GENERAL',
+      },
+    });
+
+    const res = await get('minor').expect(200);
+    expect(res.body.choice).toBe('GENERAL');
+    await prisma.adConsent.deleteMany({ where: { userId: id } });
+  });
+
   it('refuses a choice that is not one of the two, or texts not in force', async () => {
     await put('adult', { choice: 'EVERYTHING' }).expect(400);
     await put('adult', { choice: 'GENERAL', textVersion: 'old' }).expect(409);

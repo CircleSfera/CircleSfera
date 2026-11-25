@@ -648,10 +648,10 @@ describe('UsersService', () => {
       const res = (await service.exportUserData('u_ads')) as any;
 
       expect(res.adConsents).toEqual(answers);
-      // The person's own answers, oldest first, with the text shown.
+      // The person's own answers, in the order written, with the text shown.
       expect(heldModels.adConsent.findMany).toHaveBeenCalledWith({
         where: { userId: 'u_ads' },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { seq: 'asc' },
         select: {
           choice: true,
           textVersion: true,

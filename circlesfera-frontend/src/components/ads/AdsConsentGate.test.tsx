@@ -6,7 +6,10 @@ import {
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { adsConsentApi } from '../../services/adsConsent.service';
+import {
+  ADS_CONSENT_QUERY_KEY,
+  adsConsentApi,
+} from '../../services/adsConsent.service';
 import { useAuthStore } from '../../stores/authStore';
 import { useExperimentStore } from '../../stores/useExperimentStore';
 import { renderWithProviders } from '../../test/test-utils';
@@ -157,6 +160,39 @@ describe('AdsConsentGate (PD-084)', () => {
       );
     },
   );
+
+  it('a status read still on its way when the answer is saved does not bring the screen back', async () => {
+    const user = userEvent.setup();
+    const { queryClient } = renderWithProviders(<AdsConsentGate />);
+    await screen.findByTestId('ads-consent-screen');
+
+    // A read asked before the answer, which lands after it.
+    let land: (value: AdConsentStatus) => void = () => {};
+    vi.mocked(adsConsentApi.status).mockReturnValue(
+      new Promise((resolve) => {
+        land = resolve;
+      }),
+    );
+    void queryClient
+      .refetchQueries({ queryKey: ADS_CONSENT_QUERY_KEY })
+      .catch(() => undefined);
+    vi.mocked(adsConsentApi.answer).mockResolvedValue(answered('GENERAL'));
+
+    await user.click(screen.getByTestId('ads-consent-general'));
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId('ads-consent-screen'),
+      ).not.toBeInTheDocument(),
+    );
+    land(unanswered);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(screen.queryByTestId('ads-consent-screen')).not.toBeInTheDocument();
+    expect(queryClient.getQueryData(ADS_CONSENT_QUERY_KEY)).toMatchObject({
+      askNow: false,
+      choice: 'GENERAL',
+    });
+  });
 
   it('stays open when the answer could not be saved', async () => {
     const user = userEvent.setup();

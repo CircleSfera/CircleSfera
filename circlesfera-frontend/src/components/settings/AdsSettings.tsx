@@ -32,7 +32,10 @@ export default function AdsSettings() {
   const answer = useMutation({
     mutationFn: (choice: AdChoice) =>
       adsConsentApi.answer(choice, 'SETTINGS', language),
-    onSuccess: (status) => {
+    onSuccess: async (status) => {
+      // A status read still on its way was asked before this answer: it is
+      // dropped, or it would show the old answer when it lands.
+      await queryClient.cancelQueries({ queryKey: ADS_CONSENT_QUERY_KEY });
       queryClient.setQueryData(ADS_CONSENT_QUERY_KEY, status);
       toast.success(t('adsConsent.settings.saved'));
     },

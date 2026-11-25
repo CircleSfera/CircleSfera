@@ -11,6 +11,9 @@ CREATE TYPE "AdConsentSource" AS ENUM ('PROMPT', 'SETTINGS');
 -- CreateTable
 CREATE TABLE "ad_consents" (
     "id" TEXT NOT NULL,
+    -- The order answers were written in: the latest is the highest, even
+    -- when two share a millisecond.
+    "seq" BIGSERIAL NOT NULL,
     "userId" TEXT NOT NULL,
     "choice" "AdChoice" NOT NULL,
     "textVersion" TEXT NOT NULL,
@@ -22,7 +25,7 @@ CREATE TABLE "ad_consents" (
 );
 
 -- CreateIndex
-CREATE INDEX "ad_consents_userId_createdAt_idx" ON "ad_consents"("userId", "createdAt");
+CREATE INDEX "ad_consents_userId_seq_idx" ON "ad_consents"("userId", "seq");
 
 -- AddForeignKey
 ALTER TABLE "ad_consents" ADD CONSTRAINT "ad_consents_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -286,6 +286,9 @@ enum AdConsentSource {
 // is erased with the account.
 model AdConsent {
   id          String          @id @default(uuid())
+  // The order the answers were written in, from a database sequence: the
+  // latest answer is the highest, even when two share a millisecond.
+  seq         BigInt          @default(autoincrement())
   userId      String
   choice      AdChoice
   // AD_CONSENT_TEXT_VERSION of the texts shown.
@@ -297,7 +300,7 @@ model AdConsent {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, createdAt])
+  @@index([userId, seq])
   @@map("ad_consents")
 }
 

@@ -5,7 +5,10 @@ import {
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { adsConsentApi } from '../../services/adsConsent.service';
+import {
+  ADS_CONSENT_QUERY_KEY,
+  adsConsentApi,
+} from '../../services/adsConsent.service';
 import { renderWithProviders } from '../../test/test-utils';
 import AdsSettings from './AdsSettings';
 
@@ -68,6 +71,43 @@ describe('AdsSettings (Settings → Ads, PD-084)', () => {
         'aria-pressed',
         'true',
       ),
+    );
+    expect(screen.getByTestId('ads-consent-personalised')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('a status read still on its way when the answer is saved does not show the old answer', async () => {
+    const user = userEvent.setup();
+    vi.mocked(adsConsentApi.status).mockResolvedValue(answered('PERSONALISED'));
+    const { queryClient } = renderWithProviders(<AdsSettings />);
+    await screen.findByTestId('ads-consent-personalised');
+
+    let land: (value: AdConsentStatus) => void = () => {};
+    vi.mocked(adsConsentApi.status).mockReturnValue(
+      new Promise((resolve) => {
+        land = resolve;
+      }),
+    );
+    void queryClient
+      .refetchQueries({ queryKey: ADS_CONSENT_QUERY_KEY })
+      .catch(() => undefined);
+    vi.mocked(adsConsentApi.answer).mockResolvedValue(answered('GENERAL'));
+
+    await user.click(screen.getByTestId('ads-consent-general'));
+    await waitFor(() =>
+      expect(screen.getByTestId('ads-consent-general')).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    );
+    land(answered('PERSONALISED'));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(screen.getByTestId('ads-consent-general')).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
     expect(screen.getByTestId('ads-consent-personalised')).toHaveAttribute(
       'aria-pressed',

@@ -638,7 +638,7 @@ export class UsersService {
       // which texts were shown in which language.
       this.prisma.adConsent.findMany({
         where: { userId },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { seq: 'asc' },
         select: {
           choice: true,
           textVersion: true,

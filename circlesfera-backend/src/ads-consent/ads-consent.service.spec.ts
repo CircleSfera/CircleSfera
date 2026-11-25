@@ -4,7 +4,11 @@ import {
   ErrorCode,
 } from '@circlesfera/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AdsConsentService, shouldAsk } from './ads-consent.service.js';
+import {
+  AdsConsentService,
+  noReaskSince,
+  shouldAsk,
+} from './ads-consent.service.js';
 
 const ADULT = new Date('1990-01-15T00:00:00Z');
 const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000);
@@ -125,14 +129,40 @@ describe('AdsConsentService (PD-084)', () => {
       });
     });
 
-    it('reads the latest answer of the person', async () => {
+    it('reads the latest answer of the person by the order of writing, not the clock', async () => {
       await service.status('u1');
 
       expect(prisma.adConsent.findFirst).toHaveBeenCalledWith({
         where: { userId: 'u1' },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        orderBy: { seq: 'desc' },
         select: { choice: true, textVersion: true, createdAt: true },
       });
+    });
+  });
+
+  describe('noReaskSince: six calendar months, never landing in the next month', () => {
+    it.each([
+      ['2027-08-15T12:00:00.000Z', '2027-02-15T12:00:00.000Z'],
+      ['2027-08-31T12:00:00.000Z', '2027-02-28T12:00:00.000Z'],
+      ['2028-08-31T12:00:00.000Z', '2028-02-29T12:00:00.000Z'],
+      ['2027-12-31T00:00:00.000Z', '2027-06-30T00:00:00.000Z'],
+      ['2027-03-31T08:30:00.000Z', '2026-09-30T08:30:00.000Z'],
+    ])('%s → %s', (now, since) => {
+      expect(noReaskSince(new Date(now)).toISOString()).toBe(since);
+    });
+
+    it('does not ask again on 31 August after a no on 1 March', () => {
+      expect(
+        shouldAsk(
+          {
+            choice: 'GENERAL',
+            textVersion: 'old-texts',
+            createdAt: new Date('2027-03-01T12:00:00Z'),
+          },
+          true,
+          new Date('2027-08-31T12:00:00Z'),
+        ),
+      ).toBe(false);
     });
   });
 

@@ -93,7 +93,10 @@ function AdsConsentScreen({ onRefused }: { onRefused: () => void }) {
         'PROMPT',
         i18n.resolvedLanguage ?? i18n.language,
       ),
-    onSuccess: (status) => {
+    onSuccess: async (status) => {
+      // A status read still on its way was asked before this answer: it is
+      // dropped, or it would bring the screen back when it lands.
+      await queryClient.cancelQueries({ queryKey: ADS_CONSENT_QUERY_KEY });
       queryClient.setQueryData(ADS_CONSENT_QUERY_KEY, status);
     },
     onError: (error) => {

@@ -28,10 +28,20 @@ export interface AdConsentAnswer {
   source: AdConsentSource;
 }
 
-/** The day, AD_CONSENT_NO_REASK_MONTHS before `now`. */
-function noReaskSince(now: Date): Date {
+/**
+ * The moment AD_CONSENT_NO_REASK_MONTHS calendar months before `now`. A day
+ * the target month does not have is the last day it has (31 August → 28 or
+ * 29 February), never a day of the month after, which would ask too soon.
+ */
+export function noReaskSince(now: Date): Date {
   const since = new Date(now);
+  const day = since.getUTCDate();
+  since.setUTCDate(1);
   since.setUTCMonth(since.getUTCMonth() - AD_CONSENT_NO_REASK_MONTHS);
+  const lastDay = new Date(
+    Date.UTC(since.getUTCFullYear(), since.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  since.setUTCDate(Math.min(day, lastDay));
   return since;
 }
 
@@ -200,7 +210,9 @@ export class AdsConsentService {
   private latest(userId: string): Promise<LatestAnswer | null> {
     return this.prisma.adConsent.findFirst({
       where: { userId },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      // By the order of writing, not the clock: two answers in one
+      // millisecond still have a last one.
+      orderBy: { seq: 'desc' },
       select: { choice: true, textVersion: true, createdAt: true },
     });
   }
