@@ -11,6 +11,9 @@ export interface CurrentAdminData {
   stepUpVerified?: boolean;
   // An external reviewer's session: reads the review area only.
   externalReviewer?: boolean;
+  // When an external reviewer's session began (seconds since the epoch):
+  // a step-up keeps it, so the session's working day still holds.
+  reviewerSessionStartedAt?: number;
   // Compatibility alias: admin services historically used userId for audit actor.
   // Always equals adminId for Admin Panel sessions.
   userId: string;

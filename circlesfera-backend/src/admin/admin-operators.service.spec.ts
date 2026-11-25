@@ -383,6 +383,23 @@ describe('AdminOperatorsService', () => {
       ).resolves.toMatchObject({ expiresInHours: 24 });
     });
 
+    it('with an authenticator, is given no link nor code, like a member of staff', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'rev-1',
+        totpEnabled: true,
+        status: 'ACTIVE',
+        passwordHash: UNUSED_STAFF_PASSWORD_HASH,
+        roles: [{ roleId: 'arole_external_reviewer' }],
+      });
+      await expect(
+        service.sendEnrolmentLinkAgain('actor-1', 'rev-1'),
+      ).rejects.toThrow(/already has an authenticator/);
+      await expect(
+        service.issueEnrolmentCode('actor-1', 'rev-1'),
+      ).rejects.toThrow(/already has an authenticator/);
+      expect(proof.sendLink).not.toHaveBeenCalled();
+    });
+
     it('is refused a link while it is not active', async () => {
       prisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'rev-1',
@@ -529,7 +546,7 @@ describe('AdminOperatorsService', () => {
         expect(prisma.$transaction.mock.calls[0][0]).toHaveLength(3);
       });
 
-      it('no longer a reviewer: the sessions end and the authenticator link is sent', async () => {
+      it('no longer a reviewer: the sessions end and nothing is sent, the access being set up the same way', async () => {
         prisma.adminIdentity.findUnique.mockResolvedValue({
           id: 'op-1',
           accessExpiresAt: new Date(Date.now() + DAY),
@@ -540,9 +557,7 @@ describe('AdminOperatorsService', () => {
         await service.replaceRoles('actor-1', 'op-1', ['arole_support']);
 
         expect(prisma.$transaction.mock.calls[0][0]).toHaveLength(4);
-        expect(proof.sendLink).toHaveBeenCalledWith(
-          expect.objectContaining({ id: 'op-1' }),
-        );
+        expect(proof.sendLink).not.toHaveBeenCalled();
       });
 
       it('a reviewer who signed in before and becomes staff gets no link: a code instead', async () => {

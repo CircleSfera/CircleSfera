@@ -83,23 +83,15 @@ export class AdminAuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 20, ttl: 60000 } })
   @ApiResponse({ status: HttpStatus.OK })
-  async login(
-    @Body() dto: AdminLoginDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async login(@Body() dto: AdminLoginDto, @Req() req: Request) {
+    // A password alone never opens a session, an external reviewer's
+    // included (PD-091): the answer asks for the second factor or the
+    // proof that lets one be enrolled.
     const result = await this.adminAuthService.login(
       dto.email,
       dto.password,
       this.clientMeta(req),
     );
-
-    // An external reviewer is signed in at once; their tokens go only into
-    // the cookies, never into the answer.
-    if (result.status === 'SIGNED_IN') {
-      this.setSessionCookies(res, result.tokens);
-      return { status: result.status };
-    }
     return { status: result.status, mfaToken: result.mfaToken };
   }
 
@@ -117,29 +109,20 @@ export class AdminAuthController {
     );
   }
 
-  // Sets up the access from the link or a code, with a password of its own.
-  // A member of staff gets a new authenticator to confirm at mfa/verify; an
-  // external reviewer is signed in, the tokens only in the cookies.
+  // Sets up the access from the link or a code, with a password of its own,
+  // then a new authenticator to confirm at mfa/verify (an external reviewer's
+  // too).
   @Post('access')
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   @ApiResponse({ status: HttpStatus.OK })
-  async setUpAccess(
-    @Body() dto: AdminSetUpAccessDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const result = await this.adminAuthService.setUpAccess(
+  async setUpAccess(@Body() dto: AdminSetUpAccessDto, @Req() req: Request) {
+    return this.adminAuthService.setUpAccess(
       dto.email,
       dto.proof,
       dto.password,
       this.clientMeta(req),
     );
-    if (result.status === 'SIGNED_IN') {
-      this.setSessionCookies(res, result.tokens);
-      return { status: result.status };
-    }
-    return result;
   }
 
   // Changes the password of the identity signed in; this session stays.
@@ -249,6 +232,7 @@ export class AdminAuthController {
     const { accessToken } = await this.adminAuthService.stepUp(
       admin.adminId,
       dto,
+      admin.reviewerSessionStartedAt,
     );
     res.cookie(
       ADMIN_ACCESS_TOKEN_COOKIE,

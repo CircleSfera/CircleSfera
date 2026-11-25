@@ -68,6 +68,7 @@ describe('PaymentsService', () => {
               findUnique: vi.fn(),
               findMany: vi.fn().mockResolvedValue([]),
               create: vi.fn().mockResolvedValue({}),
+              upsert: vi.fn().mockResolvedValue({}),
               update: vi.fn().mockResolvedValue({}),
               updateMany: vi.fn().mockResolvedValue({ count: 1 }),
             },
@@ -3155,54 +3156,58 @@ describe('PaymentsService', () => {
     });
   });
 
-  describe('reconcileStuckWebhookEvents', () => {
-    it('returns 0 when no stuck events are found', async () => {
-      prisma.webhookEvent.findMany = vi.fn().mockResolvedValue([]);
-      const count = await service.reconcileStuckWebhookEvents();
-      expect(count).toBe(0);
-    });
+  describe('a notice of the provider, recorded once', () => {
+    const notice = { id: 'evt_n', type: 'unknown.event.type', data: {} };
 
-    it('skips event when another worker claimed the lease (count === 0)', async () => {
-      prisma.webhookEvent.findMany = vi
-        .fn()
-        .mockResolvedValue([
-          { id: 'wh_1', externalId: 'evt_1', updatedAt: new Date(0) },
-        ]);
-      prisma.webhookEvent.updateMany = vi.fn().mockResolvedValue({ count: 0 });
-
-      const count = await service.reconcileStuckWebhookEvents();
-      expect(count).toBe(0);
-    });
-
-    it('reconciles stuck event and marks PROCESSED', async () => {
-      prisma.webhookEvent.findMany = vi.fn().mockResolvedValue([
-        {
-          id: 'wh_1',
-          externalId: 'evt_1',
-          payload: { id: 'evt_1', type: 'unknown.event', data: {} },
-          updatedAt: new Date(0),
-        },
-      ]);
-      prisma.webhookEvent.updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    it('records a new notice with its payload, handles it, and marks it PROCESSED', async () => {
+      prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue(null);
+      prisma.webhookEvent.upsert = vi.fn().mockResolvedValue({});
       prisma.webhookEvent.update = vi.fn().mockResolvedValue({});
 
-      const count = await service.reconcileStuckWebhookEvents();
-      expect(count).toBe(1);
-      expect(prisma.webhookEvent.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'wh_1' },
-          data: expect.objectContaining({ status: 'PROCESSED' }),
-        }),
-      );
+      await service.processWebhookEvent(asEvent(notice));
+
+      expect(prisma.webhookEvent.upsert).toHaveBeenCalledWith({
+        where: { externalId: 'evt_n' },
+        update: {},
+        create: {
+          provider: 'stripe',
+          externalId: 'evt_n',
+          payload: notice,
+          status: 'PENDING',
+        },
+      });
+      expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
+        where: { externalId: 'evt_n' },
+        data: { status: 'PROCESSED', processedAt: expect.any(Date) },
+      });
     });
 
-    it('marks FAILED when dispatchStripeEvent fails during reconciliation', async () => {
-      prisma.webhookEvent.findMany = vi.fn().mockResolvedValue([
-        {
-          id: 'wh_err',
-          externalId: 'evt_err',
-          payload: {
-            id: 'evt_err',
+    it.each(['PENDING', 'FAILED'])(
+      'handles again a notice sent again that was left %s (a crash, or a failure)',
+      async (status) => {
+        prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue({ status });
+        prisma.webhookEvent.upsert = vi.fn().mockResolvedValue({});
+        prisma.webhookEvent.update = vi.fn().mockResolvedValue({});
+
+        await service.processWebhookEvent(asEvent(notice));
+
+        expect(prisma.webhookEvent.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ status: 'PROCESSED' }),
+          }),
+        );
+      },
+    );
+
+    it('marks a notice whose handling failed FAILED and throws, so the provider sends it again', async () => {
+      prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue(null);
+      prisma.webhookEvent.upsert = vi.fn().mockResolvedValue({});
+      prisma.webhookEvent.update = vi.fn().mockResolvedValue({});
+
+      await expect(
+        service.processWebhookEvent(
+          asEvent({
+            id: 'evt_unpaid',
             type: 'checkout.session.completed',
             data: {
               object: {
@@ -3211,19 +3216,38 @@ describe('PaymentsService', () => {
                 payment_status: 'unpaid',
               },
             },
-          },
-          updatedAt: new Date(0),
-        },
-      ]);
-      prisma.webhookEvent.updateMany = vi.fn().mockResolvedValue({ count: 1 });
-      prisma.webhookEvent.update = vi.fn().mockResolvedValue({});
-
-      const count = await service.reconcileStuckWebhookEvents();
-      expect(count).toBe(0);
-      expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
-        where: { id: 'wh_err' },
+          }),
+        ),
+      ).rejects.toThrow('not paid');
+      // Never over a PROCESSED written by a delivery that ran at once.
+      expect(prisma.webhookEvent.updateMany).toHaveBeenCalledWith({
+        where: { externalId: 'evt_unpaid', status: { not: 'PROCESSED' } },
         data: { status: 'FAILED' },
       });
+    });
+
+    it('still throws the failure of the handling when marking it FAILED fails too', async () => {
+      prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue(null);
+      prisma.webhookEvent.upsert = vi.fn().mockResolvedValue({});
+      prisma.webhookEvent.updateMany = vi
+        .fn()
+        .mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.processWebhookEvent(
+          asEvent({
+            id: 'evt_unpaid_db',
+            type: 'checkout.session.completed',
+            data: {
+              object: {
+                id: 'cs_unpaid',
+                mode: 'payment',
+                payment_status: 'unpaid',
+              },
+            },
+          }),
+        ),
+      ).rejects.toThrow('not paid');
     });
   });
 
@@ -3272,8 +3296,8 @@ describe('PaymentsService', () => {
       await expect(service.processWebhookEvent(asEvent(event))).rejects.toThrow(
         'db down',
       );
-      expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
-        where: { externalId: 'evt_fail' },
+      expect(prisma.webhookEvent.updateMany).toHaveBeenCalledWith({
+        where: { externalId: 'evt_fail', status: { not: 'PROCESSED' } },
         data: { status: 'FAILED' },
       });
     });
@@ -3311,62 +3335,6 @@ describe('PaymentsService', () => {
         where: { externalId: 'evt_retry' },
         data: { status: 'PROCESSED', processedAt: expect.any(Date) },
       });
-    });
-
-    it('1d. recovers expired lease for PENDING events or skips if lease is active', async () => {
-      // Case 1: lease is still active (updatedAt is very recent)
-      prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue({
-        status: 'PENDING',
-        externalId: 'evt_active_lease',
-        updatedAt: new Date(),
-      });
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_active_lease',
-          type: 'checkout.session.completed',
-          data: {},
-        }),
-      );
-      expect(prisma.webhookEvent.updateMany).not.toHaveBeenCalled();
-
-      // Case 2: lease is expired (updatedAt older than 2 minutes)
-      const oldTime = new Date(Date.now() - 3 * 60 * 1000);
-      prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue({
-        status: 'PENDING',
-        externalId: 'evt_expired_lease',
-        updatedAt: oldTime,
-      });
-      prisma.webhookEvent.updateMany = vi.fn().mockResolvedValue({ count: 1 });
-      await service
-        .processWebhookEvent(
-          asEvent({
-            id: 'evt_expired_lease',
-            type: 'checkout.session.completed',
-            data: {
-              object: {
-                id: 'cs_unpaid',
-                mode: 'payment',
-                payment_status: 'unpaid',
-              },
-            },
-          }),
-        )
-        .catch(() => {});
-      expect(prisma.webhookEvent.updateMany).toHaveBeenCalled();
-    });
-
-    it('1e. handles P2002 duplicate externalId collision gracefully', async () => {
-      prisma.webhookEvent.findUnique = vi
-        .fn()
-        .mockResolvedValueOnce(null) // first check
-        .mockResolvedValueOnce({ status: 'PROCESSED' }); // check after P2002
-      prisma.webhookEvent.create = vi.fn().mockRejectedValue({ code: 'P2002' });
-
-      await expect(
-        service.processWebhookEvent(
-          asEvent({ id: 'evt_p2002', type: 'any', data: {} }),
-        ),
-      ).resolves.toBeUndefined();
     });
 
     it('2. should handle checkout.session.completed for platform subscription', async () => {
@@ -4364,91 +4332,12 @@ describe('PaymentsService', () => {
       await expect(
         service.processWebhookEvent(asEvent(event)),
       ).resolves.toBeUndefined();
-      expect(prisma.webhookEvent.create).toHaveBeenCalled();
+      expect(prisma.webhookEvent.upsert).toHaveBeenCalled();
     });
 
-    it('handles P2002 collision when raced status is PENDING and lease active', async () => {
-      prisma.webhookEvent.findUnique = vi
-        .fn()
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce({
-          status: 'PENDING',
-          updatedAt: new Date(Date.now() + 100000),
-        });
-      prisma.webhookEvent.create = vi.fn().mockRejectedValue({ code: 'P2002' });
-
-      await service.processWebhookEvent(
-        asEvent({ id: 'evt_p2002_active', type: 'charge.succeeded', data: {} }),
-      );
-      expect(prisma.webhookEvent.updateMany).not.toHaveBeenCalled();
-    });
-
-    it('handles P2002 collision when raced status is PENDING, lease expired, but another worker claimed it', async () => {
-      prisma.webhookEvent.findUnique = vi
-        .fn()
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce({
-          status: 'PENDING',
-          updatedAt: new Date(Date.now() - 1000000),
-        });
-      prisma.webhookEvent.create = vi.fn().mockRejectedValue({ code: 'P2002' });
-      prisma.webhookEvent.updateMany = vi.fn().mockResolvedValue({ count: 0 });
-
-      await service.processWebhookEvent(
-        asEvent({ id: 'evt_p2002_lost', type: 'charge.succeeded', data: {} }),
-      );
-      expect(prisma.webhookEvent.updateMany).toHaveBeenCalled();
-    });
-
-    it('handles P2002 collision when raced status is FAILED and updateMany count is 0', async () => {
-      prisma.webhookEvent.findUnique = vi
-        .fn()
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce({
-          status: 'FAILED',
-          updatedAt: new Date(Date.now() - 100000),
-        });
-      prisma.webhookEvent.create = vi.fn().mockRejectedValue({ code: 'P2002' });
-      prisma.webhookEvent.updateMany = vi.fn().mockResolvedValue({ count: 0 });
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_p2002_failed_lost',
-          type: 'charge.succeeded',
-          data: {},
-        }),
-      );
-      expect(prisma.webhookEvent.updateMany).toHaveBeenCalled();
-    });
-
-    it('handles P2002 collision when raced status is FAILED and successfully claims it', async () => {
-      prisma.webhookEvent.findUnique = vi
-        .fn()
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce({
-          status: 'FAILED',
-          updatedAt: new Date(Date.now() - 100000),
-        });
-      prisma.webhookEvent.create = vi.fn().mockRejectedValue({ code: 'P2002' });
-      prisma.webhookEvent.updateMany = vi.fn().mockResolvedValue({ count: 1 });
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_p2002_failed_won',
-          type: 'charge.succeeded',
-          data: {},
-        }),
-      );
-      expect(prisma.webhookEvent.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ status: 'PROCESSED' }),
-        }),
-      );
-    });
-
-    it('re-throws non-P2002 errors during webhook creation', async () => {
+    it('throws when the notice cannot be recorded, so the provider sends it again', async () => {
       prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue(null);
-      prisma.webhookEvent.create = vi
+      prisma.webhookEvent.upsert = vi
         .fn()
         .mockRejectedValue(new Error('DB connection drop'));
 
@@ -4457,36 +4346,6 @@ describe('PaymentsService', () => {
           asEvent({ id: 'evt_db_err', type: 'charge.succeeded', data: {} }),
         ),
       ).rejects.toThrow('DB connection drop');
-    });
-
-    it('returns early when existing event is FAILED but another worker claimed it', async () => {
-      prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue({
-        id: 'w1',
-        status: 'FAILED',
-        externalId: 'evt_failed_0',
-        updatedAt: new Date(),
-      });
-      prisma.webhookEvent.updateMany = vi.fn().mockResolvedValue({ count: 0 });
-
-      await service.processWebhookEvent(
-        asEvent({ id: 'evt_failed_0', type: 'charge.succeeded', data: {} }),
-      );
-      expect(prisma.webhookEvent.update).not.toHaveBeenCalled();
-    });
-
-    it('returns early when existing event is PENDING with expired lease but another worker claimed it', async () => {
-      prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue({
-        id: 'w2',
-        status: 'PENDING',
-        externalId: 'evt_pending_0',
-        updatedAt: new Date(Date.now() - 1000000),
-      });
-      prisma.webhookEvent.updateMany = vi.fn().mockResolvedValue({ count: 0 });
-
-      await service.processWebhookEvent(
-        asEvent({ id: 'evt_pending_0', type: 'charge.succeeded', data: {} }),
-      );
-      expect(prisma.webhookEvent.update).not.toHaveBeenCalled();
     });
 
     it('safely catches error when marking webhook FAILED fails during dispatch error', async () => {
@@ -4505,27 +4364,6 @@ describe('PaymentsService', () => {
           }),
         ),
       ).rejects.toThrow();
-    });
-
-    it('reconcileStuckWebhookEvents handles failure when update to FAILED rejects', async () => {
-      prisma.webhookEvent.findMany = vi.fn().mockResolvedValue([
-        {
-          id: 'w_err',
-          externalId: 'evt_rec_err',
-          payload: {
-            id: 'evt_rec_err',
-            type: 'checkout.session.completed',
-            data: { object: { metadata: { type: 'PROMOTION' } } },
-          },
-        },
-      ]);
-      prisma.webhookEvent.updateMany = vi.fn().mockResolvedValue({ count: 1 });
-      prisma.webhookEvent.update = vi
-        .fn()
-        .mockRejectedValue(new Error('Update failed'));
-
-      const res = await service.reconcileStuckWebhookEvents(10);
-      expect(res).toBe(0);
     });
 
     it('handles email receipt failure in platform subscription checkout without failing the webhook', async () => {

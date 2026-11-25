@@ -644,9 +644,8 @@ export type StripeFailureClass = 'transient' | 'permanent';
 // one (network blip, Stripe-side outage, rate limit -- worth retrying).
 // Exported so callers can log/branch on it without duplicating the
 // Stripe.errors class list. Note this classifies the SDK call itself;
-// Stripe's own webhook redelivery + the reconciliation cron
-// (reconcileStuckWebhookEvents) already provide retry for the webhook path
-// independent of this.
+// Stripe's own webhook redelivery (a notice answered 5xx is sent again for
+// up to three days) provides retry for the webhook path independent of this.
 export function classifyStripeError(error: unknown): StripeFailureClass {
   if (!(error instanceof Stripe.errors.StripeError)) {
     return 'transient'; // Network/timeout/unknown -- assume worth retrying.
