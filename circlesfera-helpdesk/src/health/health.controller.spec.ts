@@ -1,3 +1,4 @@
+import { createServer, type Server, type Socket } from 'node:net';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -63,4 +64,62 @@ describe('GET /api/v1/health', () => {
 
     expect(response.status).toBe(404);
   });
+
+  it('does not name the server framework in its headers', async () => {
+    prisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }]);
+
+    const ok = await request(app.getHttpServer()).get('/api/v1/health');
+    const notFound = await request(app.getHttpServer()).get('/health');
+
+    expect(ok.headers['x-powered-by']).toBeUndefined();
+    expect(notFound.headers['x-powered-by']).toBeUndefined();
+  });
+});
+
+describe('GET /api/v1/health with a database that drops packets', () => {
+  // A server that accepts the connection and never answers, as a database
+  // behind a firewall that drops packets looks to pg.
+  let blackHole: Server;
+  const sockets = new Set<Socket>();
+  let app: INestApplication;
+  let prisma: PrismaService;
+
+  beforeAll(async () => {
+    blackHole = createServer((socket) => {
+      sockets.add(socket);
+      socket.on('close', () => sockets.delete(socket));
+    });
+    await new Promise<void>((resolve) =>
+      blackHole.listen(0, '127.0.0.1', resolve),
+    );
+    const address = blackHole.address();
+    if (address === null || typeof address === 'string') {
+      throw new Error('the test server has no port');
+    }
+    // The real client, with a connection timeout short enough for a test.
+    prisma = new PrismaService(
+      `postgresql://nobody@127.0.0.1:${address.port}/none`,
+      200,
+    );
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(PrismaService)
+      .useValue(prisma)
+      .compile();
+    app = configureApp(moduleRef.createNestApplication({ logger: false }));
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+    await prisma.$disconnect();
+    for (const socket of sockets) socket.destroy();
+    await new Promise<void>((resolve) => blackHole.close(() => resolve()));
+  });
+
+  it('answers 503 instead of waiting for ever', async () => {
+    const response = await request(app.getHttpServer()).get('/api/v1/health');
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ status: 'error', database: 'down' });
+  }, 5_000);
 });

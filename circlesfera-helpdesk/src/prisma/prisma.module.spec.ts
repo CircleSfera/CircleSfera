@@ -1,9 +1,22 @@
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { helpdeskDatabaseUrl, PrismaModule } from './prisma.module.js';
-import { PrismaService } from './prisma.service.js';
+import {
+  DATABASE_CONNECT_TIMEOUT_MS,
+  databasePoolConfig,
+  PrismaService,
+} from './prisma.service.js';
 
 describe('the Help Desk database', () => {
+  it('gives up on a new connection after a bounded time by default', () => {
+    expect(databasePoolConfig('postgresql://helpdesk@localhost/hd')).toEqual({
+      connectionString: 'postgresql://helpdesk@localhost/hd',
+      connectionTimeoutMillis: DATABASE_CONNECT_TIMEOUT_MS,
+    });
+    // pg reads 0 as "wait for ever".
+    expect(DATABASE_CONNECT_TIMEOUT_MS).toBeGreaterThan(0);
+  });
+
   it('is read from HELPDESK_DATABASE_URL only', () => {
     expect(
       helpdeskDatabaseUrl({
