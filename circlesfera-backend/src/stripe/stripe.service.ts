@@ -538,6 +538,31 @@ export class StripeService implements OnModuleInit {
     });
   }
 
+  // The free year of a founding creator (BD-034): a subscription to the
+  // plan's price whose trial lasts until `trialEnd`, started with no payment
+  // method and nothing charged. When the trial ends without a payment method
+  // the provider cancels it; with one added meanwhile it renews as any plan.
+  async createFreeYearSubscription(params: {
+    customerId: string;
+    priceId: string;
+    trialEnd: Date;
+    metadata: Record<string, string>;
+    idempotencyKey: string;
+  }): Promise<Stripe.Subscription> {
+    return this.stripe.subscriptions.create(
+      {
+        customer: params.customerId,
+        items: [{ price: params.priceId, quantity: 1 }],
+        trial_end: Math.floor(params.trialEnd.getTime() / 1000),
+        trial_settings: {
+          end_behavior: { missing_payment_method: 'cancel' },
+        },
+        metadata: params.metadata,
+      },
+      { idempotencyKey: params.idempotencyKey },
+    );
+  }
+
   // Moves a subscription to another price now (BD-016: monthly to yearly).
   // What is left of the period paid is credited, the new period starts
   // today and the difference is invoiced and charged at once. The change

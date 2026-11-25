@@ -38,6 +38,9 @@ const CreatorDashboard = lazy(
 const CreatorBusinessTab = lazy(
   () => import('../components/creator/CreatorBusinessTab'),
 );
+const CreatorFoundersTab = lazy(
+  () => import('../components/creator/CreatorFoundersTab'),
+);
 const CreatorPlansTab = lazy(
   () => import('../components/creator/CreatorPlansTab'),
 );
@@ -151,6 +154,7 @@ export default function Creator() {
             {activeTab === 'plans' && (
               <CreatorPlansTab onToast={creatorToast} />
             )}
+            {activeTab === 'founders' && <CreatorFoundersTab />}
             {activeTab === 'ads' && (
               <CreatorPromotionsTab onToast={creatorToast} />
             )}

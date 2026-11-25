@@ -14,6 +14,7 @@ import {
   DisputesTab,
   ExperimentsTab,
   FirewallTab,
+  FoundingCreatorsTab,
   HashtagsTab,
   HelpCentreTab,
   IllegalNoticesTab,
@@ -122,6 +123,7 @@ export default function Admin() {
         {activeTab === 'reports' && <ReportsTab onToast={addToast} />}
         {activeTab === 'illegal-notices' && <IllegalNoticesTab />}
         {activeTab === 'company-verifications' && <CompanyVerificationsTab />}
+        {activeTab === 'founding-creators' && <FoundingCreatorsTab />}
         {activeTab === 'users' && <UsersTab onToast={addToast} />}
         {activeTab === 'roles' && <RolesTab onToast={addToast} />}
         {activeTab === 'posts' && <PostsTab onToast={addToast} />}

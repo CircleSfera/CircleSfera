@@ -224,6 +224,16 @@ export enum ErrorCode {
   // A document of a type or size that is not accepted, or one too many.
   COMPANY_DOCUMENT_INVALID = 'COMPANY_DOCUMENT_INVALID',
   COMPANY_DOCUMENTS_FULL = 'COMPANY_DOCUMENTS_FULL',
+  // Founding creators (BD-034).
+  // Only a Creator Profile applies.
+  FOUNDING_CREATOR_PROFILE_TYPE = 'FOUNDING_CREATOR_PROFILE_TYPE',
+  // The Profile has an application waiting, or already approved.
+  FOUNDING_CREATOR_ALREADY_APPLIED = 'FOUNDING_CREATOR_ALREADY_APPLIED',
+  // There is no application to act on, or none waiting for a decision.
+  FOUNDING_CREATOR_NOT_FOUND = 'FOUNDING_CREATOR_NOT_FOUND',
+  // A free year is not withdrawn from: nothing was paid for it. It is
+  // cancelled instead.
+  FREE_YEAR_NOT_WITHDRAWABLE = 'FREE_YEAR_NOT_WITHDRAWABLE',
   CAPTCHA_FAILED = 'CAPTCHA_FAILED',
   CAPTCHA_REQUIRED = 'CAPTCHA_REQUIRED',
 }

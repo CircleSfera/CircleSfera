@@ -84,6 +84,10 @@ export default function BillingSettings() {
   }
 
   const subscription = billingStatus?.subscription;
+  const freeYear =
+    !!subscription?.foundingCreatorYear &&
+    subscription.status === 'TRIALING' &&
+    !!subscription.currentPeriodEnd;
   const hasActiveSubscription = !!billingStatus?.hasActiveSubscription;
   // The other profiles of the person that have a plan: one payer for all.
   const otherProfiles: {
@@ -115,7 +119,25 @@ export default function BillingSettings() {
                   )
                 : t('settings.billing.no_subscription')}
             </p>
-            {subscription?.priceCents > 0 && (
+            {/* A founding creator's free year (BD-034): nothing is charged
+                while it lasts, and it ends at its end unless a payment
+                method is added. */}
+            {freeYear && (
+              <p
+                className="text-xs text-white/70 mt-1"
+                data-testid="billing-free-year"
+              >
+                {t('settings.billing.free_year_until', {
+                  date: new Date(
+                    subscription.currentPeriodEnd,
+                  ).toLocaleDateString(i18n.language, {
+                    dateStyle: 'long',
+                    timeZone: 'UTC',
+                  }),
+                })}
+              </p>
+            )}
+            {!freeYear && subscription?.priceCents > 0 && (
               <p className="text-xs text-white/50 mt-1">
                 {t(
                   subscription.billingInterval === 'year'
@@ -131,7 +153,7 @@ export default function BillingSettings() {
                 )}
               </p>
             )}
-            {subscription?.currentPeriodEnd && (
+            {!freeYear && subscription?.currentPeriodEnd && (
               <p className="text-xs text-white/40 mt-1">
                 {subscription.cancelAtPeriodEnd
                   ? t('settings.billing.cancels_on')

@@ -1,4 +1,8 @@
-import { ErrorCode, type PaymentAlertEvent } from '@circlesfera/shared';
+import {
+  ErrorCode,
+  FOUNDING_CREATOR_FREE_MONTHS,
+  type PaymentAlertEvent,
+} from '@circlesfera/shared';
 import {
   HttpStatus,
   Inject,
@@ -147,6 +151,32 @@ const STANDING_STATUSES = [
   'past_due',
   'unpaid',
   'paused',
+];
+
+// The mark the free year of a founding creator carries at the provider: the
+// application it was given for, so a later try finds it instead of making a
+// second one.
+export const FOUNDING_APPLICATION_METADATA_KEY = 'foundingCreatorApplicationId';
+
+// A founding creator's free year still in its free period (BD-034): nothing
+// was paid for it. Once a payment method added meanwhile pays its first
+// period, it is a plan like any other.
+function isFreeYear(subscription: {
+  foundingCreatorYear: boolean;
+  status: SubscriptionStatus;
+}): boolean {
+  return (
+    subscription.foundingCreatorYear &&
+    subscription.status === SubscriptionStatus.TRIALING
+  );
+}
+
+// The plans a Profile holds while they run or are owed: one at a time.
+const HELD_STATUSES: SubscriptionStatus[] = [
+  SubscriptionStatus.ACTIVE,
+  SubscriptionStatus.TRIALING,
+  SubscriptionStatus.PAST_DUE,
+  SubscriptionStatus.UNPAID,
 ];
 
 @Injectable()
@@ -587,6 +617,142 @@ export class PaymentsService {
     return customer.id;
   }
 
+  // Gives an approved founding creator's Profile the Verified plan free for
+  // twelve months (BD-034), given by the product, with no coupon: a
+  // subscription at the provider to the Verified plan's price, in trial for
+  // the year, with no payment method. Nothing is charged. When the year ends
+  // without a payment method the provider cancels it, and that notice ends
+  // it here (customer.subscription.deleted); with one added meanwhile it
+  // renews as any plan. Its row is the one every plan has, so what the plan
+  // gives, the badge, cancelling and resuming work as for any plan; it is
+  // marked, so it is never withdrawn from nor refunded, and while free it
+  // counts as no income (TRIALING).
+  //
+  // Refused, with nothing made at the provider: for a Test Account where
+  // money is real, for whoever is not an adult payer (it can renew into a
+  // charge), and while the person's identity is not verified, which the
+  // badge needs (PD-076): the year does not start, so none of it is lost
+  // waiting for the badge. A Profile that already holds a plan (each gives
+  // Verified or a higher badge) keeps it and gets no second one.
+  //
+  // Safe to repeat: a subscription the provider already holds for this
+  // application is used again, and the row and the application are written
+  // together, once.
+  async startFoundingYear(params: {
+    userId: string;
+    profileId: string;
+    applicationId: string;
+  }): Promise<{ stripeSubscriptionId: string; freeUntil: Date }> {
+    const { userId, profileId, applicationId } = params;
+    await assertRealMoneyAllowed(this.prisma, userId);
+    await assertAdultPayer(this.prisma, userId);
+
+    // The Verified plan: the plan on sale for any Profile with the Verified
+    // badge and the lowest price, told by what the catalog sets, never by
+    // its name.
+    const plan = await this.prisma.platformPlan.findFirst({
+      where: {
+        isActive: true,
+        addOn: false,
+        badge: 'VERIFIED',
+        forAccountType: null,
+      },
+      orderBy: { priceCents: 'asc' },
+    });
+    if (!plan) {
+      throw AppException.NotFound(
+        ErrorCode.PLAN_NOT_FOUND,
+        'The Verified plan is not on sale',
+      );
+    }
+    await assertIdentityForBadge(this.prisma, userId, plan.features);
+
+    const held = await this.prisma.platformSubscription.count({
+      where: { profileId, addOn: false, status: { in: HELD_STATUSES } },
+    });
+    if (held > 0) {
+      throw AppException.Conflict(
+        ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+        'This profile already has a plan.',
+      );
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, stripeCustomerId: true },
+    });
+    if (!user) {
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
+    }
+    const customerId = await this.ensureStripeCustomer(user);
+    const subscription = (await this.freeYearAtProvider(customerId, {
+      priceId: plan.stripePriceId,
+      metadata: {
+        userId,
+        profileId,
+        planId: plan.id,
+        [FOUNDING_APPLICATION_METADATA_KEY]: applicationId,
+      },
+    })) as unknown as StripeSubscriptionState;
+    const period = subscriptionPeriod(subscription);
+
+    await this.prisma.$transaction(async (tx) => {
+      const row = await tx.platformSubscription.upsert({
+        where: { stripeSubscriptionId: subscription.id },
+        update: {},
+        create: {
+          userId,
+          planId: plan.id,
+          profileId,
+          status: this.mapStripeStatus(subscription.status),
+          stripeSubscriptionId: subscription.id,
+          currentPeriodStart: period.start,
+          currentPeriodEnd: period.end,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          addOn: false,
+          foundingCreatorYear: true,
+          ...providerStart(subscription),
+          ...providerInterval(subscription),
+        },
+        select: { id: true },
+      });
+      await tx.foundingCreatorApplication.updateMany({
+        where: { id: applicationId, platformSubscriptionId: null },
+        data: { platformSubscriptionId: row.id },
+      });
+    });
+    await this.usersService.syncUserTier(userId);
+    return { stripeSubscriptionId: subscription.id, freeUntil: period.end };
+  }
+
+  // The free year at the provider: the one it already holds for the
+  // application, or a new one. Its trial ends twelve calendar months from
+  // now.
+  private async freeYearAtProvider(
+    customerId: string,
+    params: { priceId: string; metadata: Record<string, string> },
+  ): Promise<Stripe.Subscription> {
+    const applicationId = params.metadata[FOUNDING_APPLICATION_METADATA_KEY];
+    const held =
+      await this.stripeService.listSubscriptionsForCustomer(customerId);
+    const earlier = held.find(
+      (subscription) =>
+        subscription.metadata?.[FOUNDING_APPLICATION_METADATA_KEY] ===
+          applicationId && STANDING_STATUSES.includes(subscription.status),
+    );
+    if (earlier) return earlier;
+
+    const trialEnd = new Date();
+    trialEnd.setUTCMonth(trialEnd.getUTCMonth() + FOUNDING_CREATOR_FREE_MONTHS);
+    return this.stripeService.createFreeYearSubscription({
+      customerId,
+      priceId: params.priceId,
+      trialEnd,
+      metadata: params.metadata,
+      idempotencyKey: `founding_year_${applicationId}`,
+    });
+  }
+
   // The plan of the Profile in use and its add-on (Edits Studio Pro), and
   // which other Profiles of the person have a plan: the person pays for all
   // of them.
@@ -680,6 +846,9 @@ export class PaymentsService {
         ? subscription.plan.yearlyPriceCents
         : null,
       currency: subscription.plan.currency,
+      // The free year of a founding creator (BD-034): nothing is charged
+      // until its period ends, and then only with a payment method added.
+      foundingCreatorYear: subscription.foundingCreatorYear,
       // Until when the payer can withdraw from it (14 days from the purchase
       // at the provider, decided as the server decides), while it runs; null
       // once that has passed or while the purchase cannot be known.
@@ -695,6 +864,7 @@ export class PaymentsService {
     yearlyStartedAt: Date | null;
     withdrawnAt: Date | null;
     status: SubscriptionStatus;
+    foundingCreatorYear: boolean;
   }): Promise<Date | null> {
     const running: SubscriptionStatus[] = [
       SubscriptionStatus.ACTIVE,
@@ -704,6 +874,8 @@ export class PaymentsService {
     if (!running.includes(subscription.status) || subscription.withdrawnAt) {
       return null;
     }
+    // A free year paid nothing: there is nothing to withdraw from.
+    if (isFreeYear(subscription)) return null;
     const now = Date.now();
     // A plan moved to the yearly price: its 14 days count from the move.
     if (subscription.yearlyStartedAt) {
@@ -866,6 +1038,14 @@ export class PaymentsService {
       throw AppException.NotFound(
         ErrorCode.SUBSCRIPTION_NOT_FOUND,
         'This profile has no plan to withdraw from',
+      );
+    }
+    // A free year paid nothing: it is cancelled, never withdrawn from, so
+    // nothing is ever refunded on it.
+    if (isFreeYear(subscription)) {
+      throw AppException.BadRequest(
+        ErrorCode.FREE_YEAR_NOT_WITHDRAWABLE,
+        'Nothing was paid for this free year: it can be cancelled, not withdrawn from.',
       );
     }
 

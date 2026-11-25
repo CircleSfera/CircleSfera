@@ -75,6 +75,36 @@ describe('BillingSettings', () => {
     );
   });
 
+  it('shows a founding creator free year as free until its end, with no price, renewal or withdrawal', async () => {
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: true,
+      otherProfiles: [],
+      subscription: {
+        planName: 'Verified',
+        status: 'TRIALING',
+        foundingCreatorYear: true,
+        priceCents: 499,
+        currency: 'EUR',
+        billingInterval: 'month',
+        currentPeriodEnd: '2027-11-25T10:00:00Z',
+        cancelAtPeriodEnd: false,
+        withdrawableUntil: null,
+        yearlyPriceCents: null,
+      },
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />);
+    const t = i18n!.t.bind(i18n);
+
+    const line = await screen.findByTestId('billing-free-year');
+    expect(line).toHaveTextContent('2027');
+    expect(screen.queryByText(/4[.,]99/)).toBeNull();
+    expect(screen.queryByText(t('settings.billing.renews_on'))).toBeNull();
+    // It can be cancelled like any plan.
+    expect(
+      screen.getByRole('button', { name: t('settings.billing.cancel') }),
+    ).toBeVisible();
+  });
+
   it('shows no list of other profiles when none has a plan', async () => {
     vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
       hasActiveSubscription: false,

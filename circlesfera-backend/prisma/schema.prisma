@@ -467,6 +467,8 @@ model Profile {
   // The people who work on this Profile besides its owner (Business only).
   members              ProfileMember[]
   companyVerifications CompanyVerification[]
+  // Its applications to be a founding creator (BD-034).
+  foundingCreatorApplications FoundingCreatorApplication[]
   // What was done on this Profile, and by which person (Business).
   activities           ProfileActivity[]
 
@@ -1796,12 +1798,18 @@ model PlatformSubscription {
   // When the subscription started at the provider (the purchase): the 14
   // days to withdraw count from it.
   providerStartedAt          DateTime?
+  // The free year of a founding creator (BD-034): given by the product, a
+  // trial at the provider with no payment method, ending at its end unless
+  // one is added. Nothing is paid for it, so it is never withdrawn from or
+  // refunded, and it is no income while it lasts.
+  foundingCreatorYear        Boolean            @default(false)
   createdAt                  DateTime           @default(now())
   updatedAt                  DateTime           @updatedAt
 
-  user    User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  profile Profile?     @relation(fields: [profileId], references: [id])
-  plan    PlatformPlan @relation(fields: [planId], references: [id])
+  user                       User?                       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  profile                    Profile?                    @relation(fields: [profileId], references: [id])
+  plan                       PlatformPlan                @relation(fields: [planId], references: [id])
+  foundingCreatorApplication FoundingCreatorApplication?
 
   @@index([userId])
   @@index([profileId])
@@ -2957,6 +2965,10 @@ enum AdminAction {
   COMPANY_VERIFICATION_REJECTED
   COMPANY_DOCUMENT_VIEWED
   COMPANY_IDENTITY_VIEWED
+
+  // Founding creators (BD-034): a decision on an application.
+  FOUNDING_CREATOR_APPROVED
+  FOUNDING_CREATOR_DECLINED
 }
 
 enum AdminIdentityStatus {
@@ -3550,4 +3562,53 @@ model CompanyVerificationDocument {
 
   @@index([verificationId])
   @@map("company_verification_documents")
+}
+
+enum FoundingCreatorStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+// Why staff declined an application to be a founding creator; the person
+// reads it.
+enum FoundingCreatorDeclineReason {
+  LINKS_UNREACHABLE
+  NOT_VIDEO_WORK
+  OUTSIDE_LAUNCH_AREA
+  PROGRAM_FULL
+  OTHER
+}
+
+// A Creator Profile's application to be a founding creator (BD-034): links
+// to its work, its city and a short note. Staff approve or decline it in
+// the Backoffice; an approved Profile gets the Verified plan free for a year
+// (its PlatformSubscription, once started). At most one PENDING or APPROVED
+// application per Profile (a partial unique index in its migration). Erased
+// with the Profile.
+model FoundingCreatorApplication {
+  id                     String                        @id @default(uuid())
+  profileId              String
+  status                 FoundingCreatorStatus         @default(PENDING)
+  // 1 to 3 http(s) addresses of the Profile's work.
+  links                  String[]
+  city                   String
+  note                   String?
+  decidedAt              DateTime?
+  // The member of staff who decided, and why a decline was made, with a
+  // note the person reads.
+  decidedById            String?
+  declineReason          FoundingCreatorDeclineReason?
+  declineNote            String?
+  // The free year, once started.
+  platformSubscriptionId String?                       @unique
+  createdAt              DateTime                      @default(now())
+  updatedAt              DateTime                      @updatedAt
+
+  profile              Profile               @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  platformSubscription PlatformSubscription? @relation(fields: [platformSubscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([profileId])
+  @@index([status, createdAt])
+  @@map("founding_creator_applications")
 }

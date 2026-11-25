@@ -29,6 +29,7 @@ import {
   Shield,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   Users,
 } from 'lucide-react';
 import {
@@ -43,6 +44,7 @@ export type AdminTab =
   | 'reports'
   | 'illegal-notices'
   | 'company-verifications'
+  | 'founding-creators'
   | 'users'
   | 'posts'
   | 'comments'
@@ -117,6 +119,8 @@ export const ADMIN_TAB_PERMISSIONS: Record<
   'illegal-notices': 'reports',
   // It shows companies' documents: super, platform and support roles.
   'company-verifications': 'company_verification',
+  // Approving gives a plan for free: super and platform roles (BD-034).
+  'founding-creators': 'founding_creators',
   audit: 'audit',
   roles: 'admins.manage',
   appeals: 'appeals',
@@ -312,6 +316,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         icon: Briefcase,
       },
       {
+        id: 'founding-creators',
+        labelKey: 'admin.nav.founding_creators',
+        icon: Sparkles,
+      },
+      {
         id: 'subscriptions',
         labelKey: 'admin.nav.subscriptions',
         icon: CreditCard,
@@ -352,6 +361,7 @@ const BACKOFFICE_TABS: readonly AdminTab[] = [
   'help-centre',
   'plans',
   'company-verifications',
+  'founding-creators',
   'subscriptions',
   'disputes',
   'promotions',

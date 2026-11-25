@@ -21,7 +21,12 @@ const client = {
   customers: { create: vi.fn() },
   billingPortal: { sessions: { create: vi.fn() } },
   webhooks: { constructEvent: vi.fn() },
-  subscriptions: { retrieve: vi.fn(), update: vi.fn(), cancel: vi.fn() },
+  subscriptions: {
+    retrieve: vi.fn(),
+    update: vi.fn(),
+    cancel: vi.fn(),
+    create: vi.fn(),
+  },
   charges: { retrieve: vi.fn() },
   events: { list: vi.fn() },
   identity: { verificationSessions: { create: vi.fn(), retrieve: vi.fn() } },
@@ -243,6 +248,32 @@ describe('StripeService checkout, customers and subscriptions', () => {
     expect(client.subscriptions.retrieve).toHaveBeenCalledWith('sub_1', {
       expand: ['latest_invoice'],
     });
+  });
+
+  it('starts the free year of a founding creator as a trial to its end, with no payment method, cancelled at its end unless one is added', async () => {
+    await service.createFreeYearSubscription({
+      customerId: 'cus_1',
+      priceId: 'price_verified',
+      trialEnd: new Date('2027-11-25T10:00:00.000Z'),
+      metadata: { foundingCreatorApplicationId: 'app_1' },
+      idempotencyKey: 'founding_year_app_1',
+    });
+    expect(client.subscriptions.create).toHaveBeenCalledWith(
+      {
+        customer: 'cus_1',
+        items: [{ price: 'price_verified', quantity: 1 }],
+        trial_end: new Date('2027-11-25T10:00:00.000Z').getTime() / 1000,
+        trial_settings: {
+          end_behavior: { missing_payment_method: 'cancel' },
+        },
+        metadata: { foundingCreatorApplicationId: 'app_1' },
+      },
+      { idempotencyKey: 'founding_year_app_1' },
+    );
+    // Nothing is charged now: no invoice is paid, no payment is asked for.
+    const [params] = client.subscriptions.create.mock.calls[0];
+    expect(params).not.toHaveProperty('payment_behavior');
+    expect(params).not.toHaveProperty('default_payment_method');
   });
 
   it('moves a subscription to another price now, crediting the rest of the period, and applies it only once the charge is paid', async () => {

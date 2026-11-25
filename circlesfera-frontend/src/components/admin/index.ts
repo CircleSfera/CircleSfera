@@ -36,6 +36,7 @@ export { default as CompanyVerificationsTab } from './CompanyVerificationsTab';
 export { default as DisputesTab } from './DisputesTab';
 export { default as ExperimentsTab } from './ExperimentsTab';
 export { default as FirewallTab } from './FirewallTab';
+export { default as FoundingCreatorsTab } from './FoundingCreatorsTab';
 export { default as HashtagsTab } from './HashtagsTab';
 export { default as HelpCentreTab } from './HelpCentreTab';
 export { default as IllegalNoticesTab } from './IllegalNoticesTab';

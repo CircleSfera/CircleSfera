@@ -40,6 +40,7 @@ describe('the two staff sites', () => {
       'help-centre',
       'plans',
       'company-verifications',
+      'founding-creators',
       'subscriptions',
       'disputes',
       'promotions',
@@ -54,6 +55,19 @@ describe('the two staff sites', () => {
     expect(ADMIN_TAB_PERMISSIONS['company-verifications']).toBe(
       'company_verification',
     );
+  });
+
+  it('opens founding creators only to staff with its own permission, in the Backoffice (BD-034)', () => {
+    expect(tabSite('founding-creators')).toBe('backoffice');
+    expect(ADMIN_TAB_PERMISSIONS['founding-creators']).toBe(
+      'founding_creators',
+    );
+    expect(
+      canOpenTab((key) => key === 'company_verification', 'founding-creators'),
+    ).toBe(false);
+    expect(
+      canOpenTab((key) => key === 'founding_creators', 'founding-creators'),
+    ).toBe(true);
   });
 
   describe('the review area of an external reviewer', () => {
