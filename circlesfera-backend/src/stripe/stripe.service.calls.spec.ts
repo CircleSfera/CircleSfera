@@ -18,7 +18,7 @@ const client = {
   paymentIntents: { retrieve: vi.fn() },
   invoices: { list: vi.fn(), voidInvoice: vi.fn() },
   invoicePayments: { list: vi.fn() },
-  customers: { create: vi.fn(), retrieve: vi.fn() },
+  customers: { create: vi.fn(), retrieve: vi.fn(), update: vi.fn() },
   billingPortal: { sessions: { create: vi.fn() } },
   webhooks: { constructEvent: vi.fn() },
   subscriptions: {
@@ -315,9 +315,46 @@ describe('StripeService checkout, customers and subscriptions', () => {
     },
   );
 
-  it('cannot tax a deleted customer', async () => {
+  it('cannot tax a deleted customer, nor charge it', async () => {
     client.customers.retrieve.mockResolvedValue({ deleted: true });
     await expect(service.canTaxCustomer('cus_1')).resolves.toBe(false);
+    await expect(service.customerBillingState('cus_1')).resolves.toEqual({
+      taxable: false,
+      hasPaymentMethod: false,
+    });
+  });
+
+  it.each([
+    [{ invoice_settings: { default_payment_method: 'pm_1' } }, true],
+    [{ default_source: 'card_1' }, true],
+    [{ invoice_settings: { default_payment_method: null } }, false],
+  ])(
+    'tells whether a customer has a payment method saved: %o',
+    async (saved, hasPaymentMethod) => {
+      client.customers.retrieve.mockResolvedValue({
+        tax: { automatic_tax: 'supported' },
+        ...saved,
+      });
+      await expect(service.customerBillingState('cus_1')).resolves.toEqual({
+        taxable: true,
+        hasPaymentMethod,
+      });
+    },
+  );
+
+  it('places a customer with no address by the IP address of the request, checked when used', async () => {
+    await service.setCustomerTaxLocationFromIp('cus_1', '203.0.113.7');
+    expect(client.customers.update).toHaveBeenCalledWith('cus_1', {
+      tax: { ip_address: '203.0.113.7', validate_location: 'deferred' },
+    });
+  });
+
+  it('lets a free year that can now be taxed go on with VAT worked out', async () => {
+    await service.continueFreeYear('sub_free');
+    expect(client.subscriptions.update).toHaveBeenCalledWith('sub_free', {
+      automatic_tax: { enabled: true },
+      cancel_at_period_end: false,
+    });
   });
 
   it('moves a subscription to another price now, crediting the rest of the period, and applies it only once the charge is paid', async () => {

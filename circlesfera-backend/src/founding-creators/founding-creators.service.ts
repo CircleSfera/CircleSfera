@@ -160,7 +160,17 @@ export class FoundingCreatorsService {
   // owner, who accepts its terms in the same request (the DTO refuses a
   // request without the acceptance): never by staff, never without them. One
   // already given is left as it is.
-  async startFreeYear(userId: string, profileId: string) {
+  //
+  // A request at the same time as one that started it (a second tap, two
+  // devices) answers with the year started, not with the error its own try
+  // met.
+  async startFreeYear(
+    userId: string,
+    profileId: string,
+    // The request's IP address, through the trusted proxies: places a
+    // customer with no address for its VAT. Never logged.
+    clientIp?: string | null,
+  ) {
     const profile = await this.ownProfile(userId, profileId);
     const application = profile
       ? await this.prisma.foundingCreatorApplication.findFirst({
@@ -170,11 +180,20 @@ export class FoundingCreatorsService {
       : null;
     if (!application) throw this.notFound();
     if (!application.platformSubscriptionId) {
-      await this.payments.startFoundingYear({
-        userId,
-        profileId,
-        applicationId: application.id,
-      });
+      try {
+        await this.payments.startFoundingYear({
+          userId,
+          profileId,
+          applicationId: application.id,
+          clientIp,
+        });
+      } catch (err) {
+        const started = await this.prisma.foundingCreatorApplication.findFirst({
+          where: { id: application.id, platformSubscriptionId: { not: null } },
+          select: { id: true },
+        });
+        if (!started) throw err;
+      }
     }
     return this.status(userId, profileId);
   }

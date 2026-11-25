@@ -28,6 +28,7 @@ CREATE TABLE "founding_creator_applications" (
     "freeYearAcceptedAt" TIMESTAMP(3),
     "freeYearConsentVersion" TEXT,
     "freeYearTaxable" BOOLEAN,
+    "freeYearReminderSentAt" TIMESTAMP(3),
     "platformSubscriptionId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

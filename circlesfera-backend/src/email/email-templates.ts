@@ -558,8 +558,9 @@ export const EmailTemplates = {
   },
 
   // A founding creator's free year ends in a few days (BD-034): the day it
-  // ends, the monthly price a saved card then pays (in cents, VAT
-  // included), and how to cancel.
+  // ends; for a year that goes on, the monthly price a saved card then pays
+  // (in cents, VAT included) and how to cancel; for one set to end, that
+  // nothing is charged and Verified is chosen in Plans.
   freeYearEnding: (
     ctx: EmailContext,
     planName: string,
@@ -567,6 +568,7 @@ export const EmailTemplates = {
     endsAt: Date,
     priceCents: number,
     currency: string,
+    continues = true,
   ): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];
     const language = ctx.locale === 'es' ? 'es-ES' : 'en-GB';
@@ -584,12 +586,15 @@ export const EmailTemplates = {
       subject: fill(copy.freeYearEnding.subject, { plan: planName, date }),
       html: layout(ctx, copy, {
         title: copy.freeYearEnding.title,
-        content: fill(copy.freeYearEnding.body, {
-          plan: escapeHtml(planName),
-          username: escapeHtml(username),
-          date: escapeHtml(date),
-          price: escapeHtml(price),
-        }),
+        content: fill(
+          continues ? copy.freeYearEnding.body : copy.freeYearEnding.bodyEnds,
+          {
+            plan: escapeHtml(planName),
+            username: escapeHtml(username),
+            date: escapeHtml(date),
+            price: escapeHtml(price),
+          },
+        ),
         button: {
           text: copy.freeYearEnding.button,
           url: `${ctx.frontendUrl}/accounts/billing`,

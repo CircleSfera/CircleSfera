@@ -137,7 +137,22 @@ describe('FoundingCreatorsController', () => {
       .set(BEARER)
       .send({ accept: true })
       .expect(200, { ok: 1 });
-    expect(service.startFreeYear).toHaveBeenCalledWith(...who);
+    // With the request's address, as Express resolves it through the
+    // trusted proxies: never a header the client sent.
+    expect(service.startFreeYear).toHaveBeenCalledWith(
+      ...who,
+      expect.stringMatching(/^(127\.0\.0\.1|::1)$/),
+    );
+    await request(server)
+      .post('/api/v1/founding-creators/free-year')
+      .set(BEARER)
+      .set('X-Forwarded-For', '198.51.100.9')
+      .send({ accept: true })
+      .expect(200);
+    expect(service.startFreeYear).toHaveBeenLastCalledWith(
+      ...who,
+      expect.not.stringContaining('198.51.100.9'),
+    );
   });
 });
 

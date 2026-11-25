@@ -252,7 +252,7 @@ describe('FoundingCreatorsService', () => {
         platformSubscriptionId: null,
       });
 
-      await service.startFreeYear('u_1', 'prof_1');
+      await service.startFreeYear('u_1', 'prof_1', '203.0.113.7');
 
       expect(
         prisma.foundingCreatorApplication.findFirst,
@@ -264,7 +264,42 @@ describe('FoundingCreatorsService', () => {
         userId: 'u_1',
         profileId: 'prof_1',
         applicationId: 'app_1',
+        clientIp: '203.0.113.7',
       });
+    });
+
+    it('answers a start at the same time as one that started the year with the year started, not its own error', async () => {
+      prisma.foundingCreatorApplication.findFirst
+        .mockResolvedValueOnce({ id: 'app_1', platformSubscriptionId: null })
+        // Started by the other request meanwhile.
+        .mockResolvedValueOnce({ id: 'app_1' });
+      payments.startFoundingYear.mockRejectedValueOnce(
+        Object.assign(new Error('plan held'), {
+          errorCode: ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+        }),
+      );
+
+      await expect(
+        service.startFreeYear('u_1', 'prof_1'),
+      ).resolves.toMatchObject({ isOwner: true });
+      expect(
+        prisma.foundingCreatorApplication.findFirst,
+      ).toHaveBeenNthCalledWith(2, {
+        where: { id: 'app_1', platformSubscriptionId: { not: null } },
+        select: { id: true },
+      });
+    });
+
+    it('passes on the error of a start when no year was started', async () => {
+      prisma.foundingCreatorApplication.findFirst.mockResolvedValueOnce({
+        id: 'app_1',
+        platformSubscriptionId: null,
+      });
+      payments.startFoundingYear.mockRejectedValueOnce(new Error('down'));
+
+      await expect(service.startFreeYear('u_1', 'prof_1')).rejects.toThrow(
+        'down',
+      );
     });
 
     it('is refused without an approved application, or to whoever does not own the Profile', async () => {

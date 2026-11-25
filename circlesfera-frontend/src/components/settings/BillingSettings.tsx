@@ -120,21 +120,26 @@ export default function BillingSettings() {
                 : t('settings.billing.no_subscription')}
             </p>
             {/* A founding creator's free year (BD-034): nothing is charged
-                while it lasts, and it ends at its end unless a payment
-                method is added. */}
+                while it lasts. At its end it goes on with a saved card, or
+                ends: when cancelled, or when no VAT can be worked out. */}
             {freeYear && (
               <p
                 className="text-xs text-white/70 mt-1"
                 data-testid="billing-free-year"
               >
-                {t('settings.billing.free_year_until', {
-                  date: new Date(
-                    subscription.currentPeriodEnd,
-                  ).toLocaleDateString(i18n.language, {
-                    dateStyle: 'long',
-                    timeZone: 'UTC',
-                  }),
-                })}
+                {t(
+                  subscription.cancelAtPeriodEnd
+                    ? 'settings.billing.free_year_ends'
+                    : 'settings.billing.free_year_until',
+                  {
+                    date: new Date(
+                      subscription.currentPeriodEnd,
+                    ).toLocaleDateString(i18n.language, {
+                      dateStyle: 'long',
+                      timeZone: 'UTC',
+                    }),
+                  },
+                )}
               </p>
             )}
             {!freeYear && subscription?.priceCents > 0 && (
@@ -231,9 +236,12 @@ export default function BillingSettings() {
             </div>
           )}
 
+        {/* A free year whose VAT cannot be worked out is not resumed: the
+            server refuses it, so it is not offered. */}
         {subscription &&
           RESUMABLE.includes(subscription.status) &&
           subscription.cancelAtPeriodEnd &&
+          subscription.freeYearRenewable !== false &&
           new Date(subscription.currentPeriodEnd).getTime() > Date.now() && (
             <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-3">
               <p className="text-sm text-white/70">

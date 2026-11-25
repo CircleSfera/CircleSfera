@@ -346,6 +346,7 @@
       "status_active": "Activa",
       "status_trialing": "Prueba gratuita",
       "free_year_until": "Gratis como creador fundador hasta el {{date}}. No te cobramos nada durante el año. Al terminar, si tienes una tarjeta guardada, el plan seguirá con un cobro de 4,99 € al mes, IVA incluido, hasta que lo canceles; si no, termina solo.",
+      "free_year_ends": "Gratis como creador fundador hasta el {{date}}. Termina ese día y no se cobra nada. Para seguir con Verified después, elígelo en Planes.",
       "status_past_due": "Pago atrasado: lo seguimos intentando y mantienes tu plan. Revisa tu tarjeta en el portal de pagos.",
       "status_unpaid": "Sin pagar: tu plan está en pausa hasta que pagues la factura pendiente en el portal de pagos.",
       "status_incomplete": "Pago pendiente",
@@ -2689,7 +2690,7 @@
       "benefits_title": "Qué tiene un creador fundador",
       "benefits": {
         "badge": "El plan Verified gratis durante doce meses, con su insignia en cuanto tu identidad esté verificada.",
-        "no_card": "Sin tarjeta y sin cargos: el año lo da CircleSfera.",
+        "no_card": "Sin pedirte tarjeta: el año lo da CircleSfera.",
         "end": "Al terminar el año, si tienes una tarjeta guardada, el plan sigue a 4,99 € al mes, IVA incluido, hasta que lo canceles; si no, termina solo. Te avisamos unos días antes."
       },
       "form_title": "Solicitar",

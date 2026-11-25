@@ -225,6 +225,27 @@ describe('EmailTemplates', () => {
     expect(es_.html).toMatch(/4,99\s€ al mes, IVA incluido/);
   });
 
+  it('the end of a free year set to end says nothing is charged and where to keep Verified, in each language', () => {
+    const endsAt = new Date('2027-11-25T10:00:00.000Z');
+    const ends = (ctx: typeof en) =>
+      EmailTemplates.freeYearEnding(
+        ctx,
+        'Verified',
+        'ana',
+        endsAt,
+        499,
+        'EUR',
+        false,
+      ).html;
+    expect(ends(en)).toContain(
+      'ends on <strong>25 November 2027</strong>, and nothing is charged',
+    );
+    expect(ends(en)).toContain('choose it in Plans');
+    expect(ends(en)).not.toContain('a month, VAT included');
+    expect(ends(es)).toContain('y no se cobra nada');
+    expect(ends(es)).toContain('elígelo en Planes');
+  });
+
   it('a withdrawn plan says it ended and how much is refunded, in each language, and links to the plan', () => {
     const mail = EmailTemplates.planWithdrawn(
       en,

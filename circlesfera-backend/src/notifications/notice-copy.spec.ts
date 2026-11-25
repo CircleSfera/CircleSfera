@@ -12,7 +12,20 @@ const day = new Date('2026-11-03T12:00:00Z');
 const EVERY_NOTICE: Notice[] = [
   { key: 'company_verified' },
   { key: 'company_rejected', reason: 'DOCUMENTS_UNREADABLE', note: null },
-  { key: 'free_year_ending', endsAt: day, priceCents: 499, currency: 'EUR' },
+  {
+    key: 'free_year_ending',
+    endsAt: day,
+    priceCents: 499,
+    currency: 'EUR',
+    continues: true,
+  },
+  {
+    key: 'free_year_ending',
+    endsAt: day,
+    priceCents: 499,
+    currency: 'EUR',
+    continues: false,
+  },
   { key: 'post_liked' },
   { key: 'comment_liked' },
   { key: 'post_commented' },
@@ -382,12 +395,29 @@ describe('renderChatPush', () => {
 });
 
 describe('the end of a founding creator free year (BD-034)', () => {
+  it('says a year set to end ends with nothing charged, and where to keep Verified, in each language', () => {
+    const notice = {
+      key: 'free_year_ending' as const,
+      endsAt: new Date('2027-11-25T10:00:00Z'),
+      priceCents: 499,
+      currency: 'EUR',
+      continues: false,
+    };
+    expect(renderNotice('es', notice)).toBe(
+      'Tu año gratis de Verified termina el 25 de noviembre de 2027 y no se cobra nada. Para seguir con Verified después, elígelo en Planes.',
+    );
+    expect(renderNotice('en', notice)).toBe(
+      'Your free year of Verified ends on 25 November 2027, and nothing is charged. To keep Verified after that, choose it in Plans.',
+    );
+  });
+
   it('says the day it ends, the monthly price with VAT a saved card pays, and how to cancel, in each language', () => {
     const notice = {
       key: 'free_year_ending' as const,
       endsAt: new Date('2027-11-25T10:00:00Z'),
       priceCents: 499,
       currency: 'EUR',
+      continues: true,
     };
     expect(renderNotice('es', notice)).toBe(
       'Tu año gratis de Verified termina el 25 de noviembre de 2027. Si tienes una tarjeta guardada en CircleSfera, el plan seguirá con un cobro de 4,99 € al mes, IVA incluido, hasta que lo canceles. Si no tienes tarjeta, el plan termina solo. Puedes cancelarlo cuando quieras en Ajustes → Suscripción.',

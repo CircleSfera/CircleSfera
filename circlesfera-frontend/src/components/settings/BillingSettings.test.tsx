@@ -110,6 +110,43 @@ describe('BillingSettings', () => {
     ).toBeVisible();
   });
 
+  it.each([
+    ['whose VAT cannot be worked out, with no way to resume it', false, false],
+    ['cancelled by the person, which can be resumed', true, true],
+  ])(
+    'shows a free year %s as ending, with nothing charged',
+    async (_what, renewable, resumable) => {
+      vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+        hasActiveSubscription: true,
+        otherProfiles: [],
+        subscription: {
+          planName: 'Verified',
+          status: 'TRIALING',
+          foundingCreatorYear: true,
+          freeYearRenewable: renewable,
+          priceCents: 499,
+          currency: 'EUR',
+          billingInterval: 'month',
+          currentPeriodEnd: '2027-11-25T10:00:00Z',
+          cancelAtPeriodEnd: true,
+          withdrawableUntil: null,
+          yearlyPriceCents: null,
+        },
+      });
+      const { i18n } = renderWithProviders(<BillingSettings />);
+      const t = i18n!.t.bind(i18n);
+
+      const line = await screen.findByTestId('billing-free-year');
+      expect(line).toHaveTextContent('nothing is charged');
+      expect(line).toHaveTextContent('choose it in Plans');
+      expect(line).not.toHaveTextContent('VAT included');
+      expect(
+        screen.queryByRole('button', { name: t('settings.billing.resume') }) !==
+          null,
+      ).toBe(resumable);
+    },
+  );
+
   it('shows no list of other profiles when none has a plan', async () => {
     vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
       hasActiveSubscription: false,

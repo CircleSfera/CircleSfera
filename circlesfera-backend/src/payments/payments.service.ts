@@ -97,6 +97,8 @@ type StripeSubscriptionState = {
   metadata?: Record<string, string> | null;
   // When it started (the purchase), in seconds.
   start_date?: number;
+  // Whether the provider works out the VAT of its charges.
+  automatic_tax?: { enabled?: boolean } | null;
 } & SubscriptionWithItems;
 
 // A subscription read or changed to move it to another price: whether a
@@ -659,6 +661,10 @@ export class PaymentsService {
     userId: string;
     profileId: string;
     applicationId: string;
+    // The IP address of the request in which the person accepted, resolved
+    // through the trusted proxies: places a customer with no address for
+    // its VAT. Never logged.
+    clientIp?: string | null;
   }): Promise<{ stripeSubscriptionId: string; freeUntil: Date }> {
     const { userId, profileId, applicationId } = params;
     await assertRealMoneyAllowed(this.prisma, userId);
@@ -707,9 +713,8 @@ export class PaymentsService {
     const trialEnd = new Date(acceptedAt);
     trialEnd.setUTCMonth(trialEnd.getUTCMonth() + FOUNDING_CREATOR_FREE_MONTHS);
     let subscription: StripeSubscriptionState;
-    let taxable: boolean;
     try {
-      taxable = await this.stripeService.canTaxCustomer(customerId);
+      const taxable = await this.taxableCustomer(customerId, params.clientIp);
       subscription = (await this.freeYearAtProvider(customerId, {
         applicationId,
         priceId: plan.stripePriceId,
@@ -730,6 +735,8 @@ export class PaymentsService {
       throw err;
     }
     const period = subscriptionPeriod(subscription);
+    // Taxed or not as the subscription is, also one made by an earlier try.
+    const taxable = subscription.automatic_tax?.enabled === true;
 
     try {
       await this.prisma.$transaction(async (tx) => {
@@ -752,9 +759,17 @@ export class PaymentsService {
           },
           select: { id: true },
         });
+        // The acceptance is written again with the year it started: a try
+        // at the same time that failed and let it go never leaves the year
+        // without it.
         await tx.foundingCreatorApplication.updateMany({
           where: { id: applicationId, platformSubscriptionId: null },
-          data: { platformSubscriptionId: row.id, freeYearTaxable: taxable },
+          data: {
+            platformSubscriptionId: row.id,
+            freeYearTaxable: taxable,
+            freeYearAcceptedAt: acceptedAt,
+            freeYearConsentVersion: FREE_YEAR_CONSENT_VERSION,
+          },
         });
       });
     } catch (err) {
@@ -772,6 +787,31 @@ export class PaymentsService {
       );
     }
     return { stripeSubscriptionId: subscription.id, freeUntil: period.end };
+  }
+
+  // Whether the provider can work out the VAT of the customer. One with no
+  // address it can place is placed by the IP address of the request in which
+  // the person accepted, and checked again; a failure to place it leaves it
+  // untaxable (the year then ends at its end), never fails the start.
+  private async taxableCustomer(
+    customerId: string,
+    clientIp: string | null | undefined,
+  ): Promise<boolean> {
+    if (await this.stripeService.canTaxCustomer(customerId)) return true;
+    if (!clientIp) return false;
+    try {
+      await this.stripeService.setCustomerTaxLocationFromIp(
+        customerId,
+        clientIp,
+      );
+    } catch (err) {
+      // The address itself is never written to the log.
+      this.logger.warn(
+        `Customer ${customerId} could not be placed for its VAT (${classifyStripeError(err)})`,
+      );
+      return false;
+    }
+    return this.stripeService.canTaxCustomer(customerId);
   }
 
   // Keeps when the person accepted the free year: once, so requests at the
@@ -992,6 +1032,11 @@ export class PaymentsService {
       // The free year of a founding creator (BD-034): nothing is charged
       // until its period ends, and then only with a payment method added.
       foundingCreatorYear: subscription.foundingCreatorYear,
+      // Whether that free year can go on past its end: not when its VAT
+      // cannot be worked out (resuming it is then refused).
+      ...(subscription.foundingCreatorYear && {
+        freeYearRenewable: !(await this.freeYearUntaxed(subscription.id)),
+      }),
       // Until when the payer can withdraw from it (14 days from the purchase
       // at the provider, decided as the server decides), while it runs; null
       // once that has passed or while the purchase cannot be known.
@@ -1801,6 +1846,9 @@ export class PaymentsService {
   // so the row is never seen running again.
   private async applyStripeSubscription(subscription: StripeSubscriptionState) {
     const period = subscriptionPeriod(subscription);
+    const cancelAtPeriodEnd =
+      (await this.keepUntaxedFreeYearEnding(subscription)) ||
+      subscription.cancel_at_period_end;
     await this.prisma.$transaction(async (tx) => {
       await this.keepYearlyMove(tx, subscription, period);
       // A copy read before a move to the yearly price, written after it,
@@ -1817,7 +1865,7 @@ export class PaymentsService {
           status: this.mapStripeStatus(subscription.status),
           currentPeriodStart: period.start,
           currentPeriodEnd: period.end,
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          cancelAtPeriodEnd,
           ...providerStart(subscription),
           ...providerInterval(subscription),
         },
@@ -1831,6 +1879,35 @@ export class PaymentsService {
     if (platformSub?.userId) {
       await this.usersService.syncUserTier(platformSub.userId);
     }
+  }
+
+  // A founding creator's free year whose VAT cannot be worked out (no
+  // automatic tax) must end at its end; when the provider shows it going on
+  // in trial (a cancellation taken back in the billing portal), it is set to
+  // end again there, and its row keeps it ending. Whether it did.
+  private async keepUntaxedFreeYearEnding(
+    subscription: StripeSubscriptionState,
+  ): Promise<boolean> {
+    if (
+      subscription.status !== 'trialing' ||
+      subscription.cancel_at_period_end ||
+      subscription.automatic_tax?.enabled !== false
+    ) {
+      return false;
+    }
+    const freeYear = await this.prisma.platformSubscription.findFirst({
+      where: {
+        stripeSubscriptionId: subscription.id,
+        foundingCreatorYear: true,
+      },
+      select: { id: true },
+    });
+    if (!freeYear) return false;
+    await this.stripeService.cancelSubscription(subscription.id, true);
+    this.logger.warn(
+      `Free year ${subscription.id} without VAT was set to go on; it ends at its end again`,
+    );
+    return true;
   }
 
   // A monthly plan moved to the yearly price in the app (BD-016) starts its
@@ -1909,38 +1986,57 @@ export class PaymentsService {
 
   // A few days before a founding creator's free year ends (the provider's
   // customer.subscription.trial_will_end), the person is told in the app
-  // and by email, to the account's address: on which day it ends, that with
-  // a card saved it then continues at the monthly price, VAT included, and
-  // how to cancel it. A transactional notice of a charge, not marketing.
-  // Only for a free year that will go on: one cancelled, or set to end, is
-  // not charged and is not told. Any other trial (none is sold now) is left.
-  // Telling is best effort: a failure is logged, never retried, so nobody
-  // is told twice.
+  // and by email, to the account's address, once. A year that goes on: on
+  // which day it ends, that with a card saved it then continues at the
+  // monthly price, VAT included, and how to cancel it (a transactional
+  // notice of a charge, not marketing). A year set to end: on which day it
+  // ends, and that Verified is chosen in Plans to keep it. A year set to end
+  // because its VAT could not be worked out goes on first, as the person
+  // accepted, when it now can be and a card is saved. Any other trial (none
+  // is sold now) is left. Telling is marked before it is done, so a notice
+  // that comes twice, or at the same time, never tells twice; a failure to
+  // tell is logged.
   private async remindFreeYearEnding(named: { id: string }) {
     const row = await this.prisma.platformSubscription.findFirst({
       where: { stripeSubscriptionId: named.id, foundingCreatorYear: true },
       select: {
         id: true,
+        stripeSubscriptionId: true,
         status: true,
         cancelAtPeriodEnd: true,
         currentPeriodEnd: true,
         periodPriceCents: true,
         profileId: true,
-        user: { select: { email: true } },
+        user: { select: { email: true, stripeCustomerId: true } },
         profile: { select: { username: true } },
         plan: { select: { name: true, priceCents: true, currency: true } },
+        foundingCreatorApplication: {
+          select: { id: true, freeYearTaxable: true },
+        },
       },
     });
-    if (
-      !row ||
-      row.status !== SubscriptionStatus.TRIALING ||
-      row.cancelAtPeriodEnd
-    ) {
+    const application = row?.foundingCreatorApplication;
+    if (!row || !application || row.status !== SubscriptionStatus.TRIALING) {
       this.logger.log(
         `Trial of subscription ${named.id} ending: no founding creator year to tell about`,
       );
       return;
     }
+    let continues = !row.cancelAtPeriodEnd;
+    if (!continues && application.freeYearTaxable === false) {
+      continues = await this.continueFreeYearNowTaxable({
+        rowId: row.id,
+        applicationId: application.id,
+        stripeSubscriptionId: row.stripeSubscriptionId,
+        customerId: row.user?.stripeCustomerId ?? null,
+      });
+    }
+    const { count } = await this.prisma.foundingCreatorApplication.updateMany({
+      where: { id: application.id, freeYearReminderSentAt: null },
+      data: { freeYearReminderSentAt: new Date() },
+    });
+    if (count === 0) return;
+
     const priceCents = row.periodPriceCents ?? row.plan.priceCents;
     if (row.profileId) {
       const notice: Notice = {
@@ -1948,6 +2044,7 @@ export class PaymentsService {
         endsAt: row.currentPeriodEnd,
         priceCents,
         currency: row.plan.currency,
+        continues,
       };
       this.eventEmitter.emit('notification.create', {
         recipientId: row.profileId,
@@ -1966,11 +2063,42 @@ export class PaymentsService {
           row.currentPeriodEnd,
           priceCents,
           row.plan.currency,
+          continues,
         )
         .catch((err: unknown) =>
           this.logger.error('Failed to send the free year ending email', err),
         );
     }
+  }
+
+  // A free year set to end because its VAT could not be worked out, whose
+  // customer now has an address the provider can tax and a card saved, goes
+  // on as the person accepted: VAT worked out, continuing at the end of the
+  // trial. Whether it does. The provider is changed first; its notice then
+  // finds the year taxed and leaves it going on.
+  private async continueFreeYearNowTaxable(year: {
+    rowId: string;
+    applicationId: string;
+    stripeSubscriptionId: string;
+    customerId: string | null;
+  }): Promise<boolean> {
+    if (!year.customerId) return false;
+    const state = await this.stripeService.customerBillingState(
+      year.customerId,
+    );
+    if (!state.taxable || !state.hasPaymentMethod) return false;
+    await this.stripeService.continueFreeYear(year.stripeSubscriptionId);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.foundingCreatorApplication.updateMany({
+        where: { id: year.applicationId },
+        data: { freeYearTaxable: true },
+      });
+      await tx.platformSubscription.updateMany({
+        where: { id: year.rowId },
+        data: { cancelAtPeriodEnd: false },
+      });
+    });
+    return true;
   }
 
   // Whether the running plan (not an add-on) of a Profile gives the

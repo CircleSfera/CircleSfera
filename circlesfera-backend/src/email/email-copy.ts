@@ -126,6 +126,8 @@ export interface EmailCopy {
     subject: string;
     title: string;
     body: string;
+    // The body of a year set to end: nothing is charged.
+    bodyEnds: string;
     button: string;
   };
   greeting: string;
@@ -288,6 +290,8 @@ const en: EmailCopy = {
     subject: 'Your free year of {plan} ends on {date}',
     title: 'Your free year is ending',
     body: 'The free year of the <strong>{plan}</strong> plan of @{username} ends on <strong>{date}</strong>.<br><br>If you have a card saved on CircleSfera, the plan continues from that day at <strong>{price} a month, VAT included</strong>, until you cancel it. If you have no card saved, the plan ends by itself and nothing is charged.<br><br>You can cancel it at any time in Settings → Subscription.',
+    bodyEnds:
+      'The free year of the <strong>{plan}</strong> plan of @{username} ends on <strong>{date}</strong>, and nothing is charged.<br><br>To keep Verified after that day, choose it in Plans.',
     button: 'See my plan',
   },
   greeting: 'Hello',
@@ -455,6 +459,8 @@ const es: EmailCopy = {
     subject: 'Tu año gratis de {plan} termina el {date}',
     title: 'Tu año gratis está terminando',
     body: 'El año gratis del plan <strong>{plan}</strong> de @{username} termina el <strong>{date}</strong>.<br><br>Si tienes una tarjeta guardada en CircleSfera, el plan seguirá desde ese día con un cobro de <strong>{price} al mes, IVA incluido</strong>, hasta que lo canceles. Si no tienes tarjeta guardada, el plan termina solo y no se cobra nada.<br><br>Puedes cancelarlo cuando quieras en Ajustes → Suscripción.',
+    bodyEnds:
+      'El año gratis del plan <strong>{plan}</strong> de @{username} termina el <strong>{date}</strong> y no se cobra nada.<br><br>Para seguir con Verified después de ese día, elígelo en Planes.',
     button: 'Ver mi plan',
   },
   greeting: 'Hola',

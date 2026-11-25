@@ -346,6 +346,7 @@
       "status_active": "Active",
       "status_trialing": "Free trial",
       "free_year_until": "Free as a founding creator until {{date}}. We charge you nothing during the year. When it ends, if you have a card saved, the plan continues with a charge of €4.99 a month, VAT included, until you cancel it; otherwise it ends by itself.",
+      "free_year_ends": "Free as a founding creator until {{date}}. It ends that day and nothing is charged. To keep Verified after that, choose it in Plans.",
       "status_past_due": "Payment overdue: we keep trying and you keep your plan. Check your card in the billing portal.",
       "status_unpaid": "Unpaid: your plan is paused until you pay the open invoice in the billing portal.",
       "status_incomplete": "Payment pending",
@@ -2689,7 +2690,7 @@
       "benefits_title": "What a founding creator gets",
       "benefits": {
         "badge": "The Verified plan free for twelve months, with its badge once your identity is verified.",
-        "no_card": "No card and no charge: the year is given by CircleSfera.",
+        "no_card": "We don't ask for a card: the year is given by CircleSfera.",
         "end": "When the year ends, if you have a card saved, the plan continues at €4.99 a month, VAT included, until you cancel it; otherwise it ends by itself. We'll let you know a few days before."
       },
       "form_title": "Apply",

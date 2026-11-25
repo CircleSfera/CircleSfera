@@ -426,6 +426,8 @@ export class EmailService {
     endsAt: Date,
     priceCents: number,
     currency: string,
+    // Whether it goes on with a saved card, or is set to end.
+    continues = true,
   ) {
     const ctx = await this.contextFor(email);
     await this.send(
@@ -437,6 +439,7 @@ export class EmailService {
         endsAt,
         priceCents,
         currency,
+        continues,
       ),
     );
   }

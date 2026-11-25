@@ -5,10 +5,13 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import type { Request } from 'express';
+import { clientIp } from '../abuse/device-signal.service.js';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -53,7 +56,12 @@ export class FoundingCreatorsController {
   startFreeYear(
     @CurrentUser() user: CurrentUserData,
     @Body() _body: StartFreeYearDto,
+    @Req() req: Request,
   ) {
-    return this.service.startFreeYear(user.userId, user.profileId);
+    return this.service.startFreeYear(
+      user.userId,
+      user.profileId,
+      clientIp(req),
+    );
   }
 }
