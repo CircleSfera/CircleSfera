@@ -57,7 +57,11 @@ describe('PaymentsService: the free year of a founding creator', () => {
     cancel_at_period_end: false,
     automatic_tax: { enabled: true },
     start_date: seconds(NOW),
-    metadata: { [FOUNDING_APPLICATION_METADATA_KEY]: 'app_1' },
+    // As the start names it: the application and the Profile it is for.
+    metadata: {
+      [FOUNDING_APPLICATION_METADATA_KEY]: 'app_1',
+      profileId: 'prof_1',
+    },
     items: {
       data: [
         {
@@ -104,7 +108,10 @@ describe('PaymentsService: the free year of a founding creator', () => {
           isTestAccount: false,
         }),
       },
-      platformPlan: { findFirst: vi.fn().mockResolvedValue(verified) },
+      platformPlan: {
+        findFirst: vi.fn().mockResolvedValue(verified),
+        findMany: vi.fn().mockResolvedValue([{ id: 'plan_studio' }]),
+      },
       platformSubscription: {
         count: vi.fn().mockResolvedValue(0),
         upsert: vi.fn().mockResolvedValue({ id: 'row_1' }),
@@ -155,6 +162,8 @@ describe('PaymentsService: the free year of a founding creator', () => {
       canTaxCustomer: vi.fn().mockResolvedValue(true),
       setCustomerTaxLocationFromIp: vi.fn().mockResolvedValue(undefined),
       assertPaymentsEnabled: vi.fn().mockResolvedValue(undefined),
+      listOpenCheckoutSessions: vi.fn().mockResolvedValue([]),
+      expireCheckoutSession: vi.fn().mockResolvedValue({}),
       endDuplicateSubscription: vi.fn().mockResolvedValue({}),
       createFreeYearSubscription: vi.fn(
         async (params: { automaticTax: boolean; endAtTrialEnd: boolean }) => ({
@@ -553,6 +562,43 @@ describe('PaymentsService: the free year of a founding creator', () => {
       });
       expect(prisma.platformSubscription.upsert).not.toHaveBeenCalled();
       expect(stripe.endSubscriptionNow).toHaveBeenCalledWith('sub_free');
+    });
+
+    it('expires the plan payment pages of the Profile opened earlier before the year is made, and leaves the others', async () => {
+      const page = (id: string, metadata: Record<string, string>) => ({
+        id,
+        created: seconds(NOW) - 600,
+        mode: 'subscription',
+        metadata,
+      });
+      stripe.listOpenCheckoutSessions.mockResolvedValue([
+        page('cs_plan', { profileId: 'prof_1', addOn: 'false' }),
+        // Opened before the add-on mark: told apart by its plan.
+        page('cs_old_plan', { profileId: 'prof_1', planId: 'plan_premium' }),
+        page('cs_addon', { profileId: 'prof_1', addOn: 'true' }),
+        page('cs_other_profile', { profileId: 'prof_2', addOn: 'false' }),
+      ]);
+
+      await start();
+
+      expect(stripe.listOpenCheckoutSessions).toHaveBeenCalledWith('cus_1');
+      expect(
+        stripe.expireCheckoutSession.mock.calls.map((call) => call[0]),
+      ).toEqual(['cs_plan', 'cs_old_plan']);
+      // Before the year is made.
+      expect(
+        stripe.expireCheckoutSession.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        stripe.createFreeYearSubscription.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('still starts the year when the earlier pages cannot be expired', async () => {
+      stripe.listOpenCheckoutSessions.mockRejectedValue(new Error('down'));
+
+      await expect(start()).resolves.toMatchObject({
+        stripeSubscriptionId: 'sub_free',
+      });
     });
 
     it('gives no year beside a plan of the Profile paid at the provider whose notice has not arrived yet, so that paid plan is never refunded as a second one', async () => {

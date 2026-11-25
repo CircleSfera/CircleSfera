@@ -587,7 +587,8 @@ export class PaymentsService {
 
   // Only pages opened before the kept one are expired, so two pages opened
   // at once never expire each other. A page opened before the add-on mark
-  // existed is told apart by its plan.
+  // existed is told apart by its plan. A free year starting keeps none of
+  // them (no page of its own; every earlier one is expired).
   private async expireOtherOpenCheckouts(
     customerId: string,
     kept: Pick<Stripe.Checkout.Session, 'id' | 'created'>,
@@ -841,6 +842,16 @@ export class PaymentsService {
     let subscription: StripeSubscriptionState;
     try {
       const taxable = await this.taxableCustomer(customerId, params.clientIp);
+      // A plan payment page of the Profile opened earlier is expired first,
+      // so it cannot be paid after the year and make a second plan; one
+      // paid just before is a plan the provider holds, which refuses the
+      // year (freeYearAtProvider).
+      await this.expireOtherOpenCheckouts(
+        customerId,
+        { id: '', created: Number.MAX_SAFE_INTEGER },
+        profileId,
+        false,
+      );
       subscription = (await this.freeYearAtProvider(customerId, {
         applicationId,
         priceId: plan.stripePriceId,

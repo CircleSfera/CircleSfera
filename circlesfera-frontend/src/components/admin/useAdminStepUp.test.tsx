@@ -208,6 +208,57 @@ describe('the second confirmation of a staff member', () => {
     expect(done).not.toHaveBeenCalled();
   });
 
+  it('starts the dialog again for a second action that asks to confirm while the first one’s code is being checked', async () => {
+    const second = vi.fn();
+    const secondDone = vi.fn();
+    function TwoActions() {
+      const stepUp = useAdminStepUp();
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => stepUp.run(() => action()).then(done, failed)}
+          >
+            First
+          </button>
+          <button
+            type="button"
+            onClick={() => stepUp.run(() => second()).then(secondDone, failed)}
+          >
+            Second
+          </button>
+          {stepUp.dialog}
+        </>
+      );
+    }
+    action.mockRejectedValue(asksToConfirm);
+    second.mockRejectedValueOnce(asksToConfirm).mockResolvedValue('second');
+    // The first code's check never answers.
+    vi.mocked(adminAuthApi.stepUp).mockImplementationOnce(
+      () => new Promise(() => {}),
+    );
+    renderWithProviders(<TwoActions />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
+    await screen.findByRole('dialog');
+    type('111111');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(adminAuthApi.stepUp).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+    await waitFor(() => expect(failed).toHaveBeenCalledTimes(1));
+
+    // Not stuck: Cancel works and a new code can be given.
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    type('222222');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(secondDone).toHaveBeenCalledWith('second'));
+    expect(adminAuthApi.stepUp).toHaveBeenLastCalledWith({
+      totpCode: '222222',
+    });
+  });
+
   it('passes on what the action answers after the confirmation, a refusal included', async () => {
     const conflict = { response: { status: 409, data: {} } };
     action.mockRejectedValueOnce(asksToConfirm).mockRejectedValue(conflict);

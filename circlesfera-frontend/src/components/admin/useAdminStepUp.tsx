@@ -79,6 +79,11 @@ export function useAdminStepUp(): {
         // settled as cancelled, so its caller never stays pending, and the
         // dialog now confirms this one.
         waiting.current?.reject(new StepUpCancelled());
+        // A code of the earlier one still being checked no longer counts:
+        // the dialog starts again for this one, never stuck disabled.
+        setChecking(false);
+        setWrong(false);
+        setCode('');
         waiting.current = {
           action,
           resolve: resolve as (value: unknown) => void,
