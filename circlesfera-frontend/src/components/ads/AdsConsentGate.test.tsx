@@ -25,9 +25,14 @@ const unanswered: AdConsentStatus = {
   textVersion: null,
   currentTextVersion: AD_CONSENT_TEXT_VERSION,
   personalisationAllowed: true,
+  dateOfBirthMissing: false,
   effectiveChoice: 'GENERAL',
   askNow: true,
 };
+
+// The error the API client hands a screen for a refused answer.
+const refused = (status: number, errorCode: string) =>
+  Object.assign(new Error(errorCode), { status, data: { errorCode } });
 const answered = (choice: 'PERSONALISED' | 'GENERAL'): AdConsentStatus => ({
   ...unanswered,
   choice,
@@ -163,6 +168,83 @@ describe('AdsConsentGate (PD-084)', () => {
     await waitFor(() => expect(adsConsentApi.answer).toHaveBeenCalled());
     expect(screen.getByTestId('ads-consent-screen')).toBeInTheDocument();
   });
+
+  it.each([
+    [409, 'AD_CONSENT_TEXT_OUTDATED'],
+    [403, 'FEATURE_DISABLED'],
+  ])(
+    'gets out of the way when the server will not take the answer (%s %s), instead of blocking the app',
+    async (status, code) => {
+      const user = userEvent.setup();
+      vi.mocked(adsConsentApi.answer).mockRejectedValue(refused(status, code));
+      renderWithProviders(<AdsConsentGate />);
+
+      await user.click(await screen.findByTestId('ads-consent-personalised'));
+
+      await waitFor(() =>
+        expect(
+          screen.queryByTestId('ads-consent-screen'),
+        ).not.toBeInTheDocument(),
+      );
+    },
+  );
+
+  it('keeps Tab and Shift+Tab inside the screen', async () => {
+    const user = userEvent.setup();
+    const { i18n } = renderWithProviders(
+      <>
+        <button type="button">outside before</button>
+        <AdsConsentGate />
+        <button type="button">outside after</button>
+      </>,
+    );
+    const dialog = await screen.findByTestId('ads-consent-screen');
+    const heading = screen.getByRole('heading', {
+      name: i18n!.t('adsConsent.title'),
+    });
+    expect(heading).toHaveFocus();
+
+    // Backwards from the title: round to the last control, the policy.
+    await user.tab({ shift: true });
+    const policy = screen.getByRole('link', {
+      name: i18n!.t('adsConsent.privacy_policy'),
+    });
+    expect(policy).toHaveFocus();
+
+    // Forwards from the last control: round to the first answer.
+    await user.tab();
+    expect(screen.getByTestId('ads-consent-personalised')).toHaveFocus();
+
+    // Every stop on the way round is inside the screen.
+    for (let i = 0; i < 6; i++) {
+      await user.tab();
+      expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    }
+  });
+
+  it('links the privacy policy, and leaves the policy uncovered', async () => {
+    const { i18n } = renderWithProviders(<AdsConsentGate />);
+    expect(
+      await screen.findByRole('link', {
+        name: i18n!.t('adsConsent.privacy_policy'),
+      }),
+    ).toHaveAttribute('href', '/privacy');
+  });
+
+  it.each(['/privacy', '/terms'])(
+    'is not drawn over %s, which stays readable',
+    async (path) => {
+      renderWithProviders(<AdsConsentGate />, {
+        routerProps: { initialEntries: [path] },
+      });
+
+      await waitFor(() => expect(adsConsentApi.status).toHaveBeenCalled());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(
+        screen.queryByTestId('ads-consent-screen'),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it('"What this means" opens the explanation and the data used', async () => {
     const user = userEvent.setup();

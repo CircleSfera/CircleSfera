@@ -2,6 +2,7 @@ import type { AdChoice } from '@circlesfera/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import {
   ADS_CONSENT_QUERY_KEY,
   adsConsentApi,
@@ -14,7 +15,8 @@ import { ErrorState } from '../ErrorEmptyStates';
  * Settings → Ads (PD-084): the answer in force, and the same two answers as
  * the first screen to change it at any time. Withdrawing is one tap, as
  * giving was. Someone under 18 gets general ads only and is not offered the
- * other answer.
+ * other answer; an account with no date of birth is told that is why, and
+ * where to add one.
  */
 export default function AdsSettings() {
   const { t, i18n } = useTranslation();
@@ -118,6 +120,21 @@ export default function AdsSettings() {
             disabled={answer.isPending}
           />
         </>
+      ) : data.dateOfBirthMissing ? (
+        // Not known to be 18: the account has no date of birth. Verifying the
+        // identity (Settings → Account) reads it from the document.
+        <div
+          className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/75 space-y-2"
+          data-testid="ads-consent-no-birth-date"
+        >
+          <p>{t('adsConsent.settings.no_birth_date')}</p>
+          <Link
+            to="/accounts/account"
+            className="inline-flex items-center min-h-11 font-medium text-brand-primary-text underline underline-offset-4"
+          >
+            {t('adsConsent.settings.add_birth_date')}
+          </Link>
+        </div>
       ) : (
         <p
           className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/75"

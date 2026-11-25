@@ -31,11 +31,19 @@ describe('AdsConsentController', () => {
       locale: 'es' as const,
       source: 'SETTINGS' as const,
     };
-    await controller.status(user);
+    await controller.status(user, AD_CONSENT_TEXT_VERSION);
     await controller.answer(user, body);
 
-    expect(service.status).toHaveBeenCalledWith('u1');
+    expect(service.status).toHaveBeenCalledWith('u1', AD_CONSENT_TEXT_VERSION);
     expect(service.answer).toHaveBeenCalledWith('u1', body);
+  });
+
+  it('passes on the texts the app carries, and only as text', async () => {
+    await controller.status(user);
+    await controller.status(user, ['a', 'b'] as unknown as string);
+
+    expect(service.status).toHaveBeenNthCalledWith(1, 'u1', undefined);
+    expect(service.status).toHaveBeenNthCalledWith(2, 'u1', undefined);
   });
 
   it('takes no answer without an explicit choice of the two', async () => {

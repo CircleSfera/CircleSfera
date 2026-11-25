@@ -3,7 +3,10 @@ import type {
   AdConsentSource,
   AdConsentStatus,
 } from '@circlesfera/shared';
-import { AD_CONSENT_TEXT_VERSION } from '@circlesfera/shared';
+import {
+  AD_CONSENT_TEXT_VERSION,
+  AD_CONSENT_TEXT_VERSION_PARAM,
+} from '@circlesfera/shared';
 import { toAppLocale } from '../utils/appLocale';
 import { apiClient } from './api';
 
@@ -11,9 +14,13 @@ import { apiClient } from './api';
 // server keeps every answer with the version and language of the texts shown,
 // as proof, and enforces the rules (no one under 18 gets personalised ads).
 export const adsConsentApi = {
+  // With the texts this build carries: an older build is not asked to show
+  // a screen whose answer the server would refuse.
   status: () =>
     apiClient
-      .get<AdConsentStatus>('users/me/ads-consent')
+      .get<AdConsentStatus>('users/me/ads-consent', {
+        params: { [AD_CONSENT_TEXT_VERSION_PARAM]: AD_CONSENT_TEXT_VERSION },
+      })
       .then((response) => response.data),
   answer: (choice: AdChoice, source: AdConsentSource, language: string) =>
     apiClient

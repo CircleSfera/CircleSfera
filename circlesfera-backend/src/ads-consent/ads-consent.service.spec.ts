@@ -41,13 +41,16 @@ describe('AdsConsentService (PD-084)', () => {
   });
 
   describe('status', () => {
+    const shown = AD_CONSENT_TEXT_VERSION;
+
     it('has no default choice: an adult who never answered is asked, and gets general ads meanwhile', async () => {
-      await expect(service.status('u1')).resolves.toEqual({
+      await expect(service.status('u1', shown)).resolves.toEqual({
         choice: null,
         decidedAt: null,
         textVersion: null,
         currentTextVersion: AD_CONSENT_TEXT_VERSION,
         personalisationAllowed: true,
+        dateOfBirthMissing: false,
         effectiveChoice: 'GENERAL',
         askNow: true,
       });
@@ -60,10 +63,19 @@ describe('AdsConsentService (PD-084)', () => {
     it('asks nobody while the flag is off', async () => {
       experiments.isFeatureEnabled.mockResolvedValue(false);
 
-      const status = await service.status('u1');
+      const status = await service.status('u1', shown);
 
       expect(status.askNow).toBe(false);
       expect(status.choice).toBeNull();
+    });
+
+    it('does not ask an app that carries other texts, or does not say which (an older bundle)', async () => {
+      await expect(service.status('u1', 'older-texts')).resolves.toMatchObject({
+        askNow: false,
+      });
+      await expect(service.status('u1')).resolves.toMatchObject({
+        askNow: false,
+      });
     });
 
     it('never asks someone under 18, and their answer is always general', async () => {
@@ -76,23 +88,25 @@ describe('AdsConsentService (PD-084)', () => {
         createdAt: daysAgo(3),
       });
 
-      const status = await service.status('u1');
+      const status = await service.status('u1', shown);
 
       expect(status).toMatchObject({
         askNow: false,
         personalisationAllowed: false,
+        dateOfBirthMissing: false,
         effectiveChoice: 'GENERAL',
       });
       await expect(service.allowsPersonalisedAds('u1')).resolves.toBe(false);
     });
 
-    it('treats an account without a date of birth as under 18', async () => {
+    it('treats an account without a date of birth as under 18, and says why', async () => {
       prisma.user.findUnique.mockResolvedValue({ dateOfBirth: null });
 
-      const status = await service.status('u1');
+      const status = await service.status('u1', shown);
 
       expect(status.askNow).toBe(false);
       expect(status.personalisationAllowed).toBe(false);
+      expect(status.dateOfBirthMissing).toBe(true);
     });
 
     it('does not ask again once answered to the texts in force', async () => {
@@ -102,7 +116,7 @@ describe('AdsConsentService (PD-084)', () => {
         createdAt: daysAgo(400),
       });
 
-      const status = await service.status('u1');
+      const status = await service.status('u1', shown);
 
       expect(status).toMatchObject({
         choice: 'GENERAL',
@@ -247,6 +261,21 @@ describe('AdsConsentService (PD-084)', () => {
           errorCode: ErrorCode.AD_CONSENT_TEXT_OUTDATED,
         }),
       });
+      expect(prisma.adConsent.create).not.toHaveBeenCalled();
+    });
+
+    it('takes no answer and stores nothing while the flag is off', async () => {
+      experiments.isFeatureEnabled.mockResolvedValue(false);
+
+      for (const choice of ['PERSONALISED', 'GENERAL'] as const) {
+        await expect(
+          service.answer('u1', answer(choice)),
+        ).rejects.toMatchObject({
+          response: expect.objectContaining({
+            errorCode: ErrorCode.FEATURE_DISABLED,
+          }),
+        });
+      }
       expect(prisma.adConsent.create).not.toHaveBeenCalled();
     });
   });

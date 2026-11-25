@@ -1,12 +1,21 @@
 import {
   AD_CHOICES,
   AD_CONSENT_SOURCES,
+  AD_CONSENT_TEXT_VERSION_PARAM,
   type AdChoice,
   type AdConsentSource,
   type AdConsentStatus,
 } from '@circlesfera/shared';
-import { Body, Controller, Get, Inject, Put, UseGuards } from '@nestjs/common';
-import { ApiResponse } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Locale } from '@prisma/client';
 import { IsEnum, IsIn, IsString, MaxLength } from 'class-validator';
@@ -44,10 +53,19 @@ export class AdsConsentController {
     @Inject(AdsConsentService) private readonly adsConsent: AdsConsentService,
   ) {}
 
+  // `textVersion`: the texts the asking app carries. An app with other texts
+  // (an older bundle) is not asked to show the screen.
   @Get()
+  @ApiQuery({ name: AD_CONSENT_TEXT_VERSION_PARAM, required: false })
   @ApiResponse({ status: 200 })
-  status(@CurrentUser() user: CurrentUserData): Promise<AdConsentStatus> {
-    return this.adsConsent.status(user.userId);
+  status(
+    @CurrentUser() user: CurrentUserData,
+    @Query(AD_CONSENT_TEXT_VERSION_PARAM) textVersion?: string,
+  ): Promise<AdConsentStatus> {
+    return this.adsConsent.status(
+      user.userId,
+      typeof textVersion === 'string' ? textVersion : undefined,
+    );
   }
 
   @Put()

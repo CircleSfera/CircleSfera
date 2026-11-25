@@ -52,9 +52,11 @@ describe('Ads consent (e2e)', () => {
   const sessionCookies = (res: request.Response) =>
     ((res.get('Set-Cookie') as string[]) || []).map((c) => c.split(';')[0]);
 
-  const get = (who: string) =>
+  // As the app asks: with the version of the texts it carries.
+  const get = (who: string, textVersion = AD_CONSENT_TEXT_VERSION) =>
     request(app.getHttpServer())
       .get('/api/v1/users/me/ads-consent')
+      .query({ textVersion })
       .set('Cookie', cookiesOf[who]);
 
   const put = (who: string, body: object) =>
@@ -111,7 +113,16 @@ describe('Ads consent (e2e)', () => {
     await app.close();
   });
 
-  it('asks nobody while the flag is off, and nothing is chosen by default', async () => {
+  it('the flag ships, and ships off', async () => {
+    const flag = await prisma.featureFlag.findUnique({
+      where: { key: ADS_CONSENT_FLAG },
+    });
+    expect(flag).not.toBeNull();
+    expect(flag?.isEnabled).toBe(false);
+    expect(flag?.percentage).toBe(0);
+  });
+
+  it('while the flag is off asks nobody and takes no answer', async () => {
     const res = await get('adult').expect(200);
 
     expect(res.body).toMatchObject({
@@ -121,11 +132,13 @@ describe('Ads consent (e2e)', () => {
       personalisationAllowed: true,
       currentTextVersion: AD_CONSENT_TEXT_VERSION,
     });
-    // The flag ships off.
-    const flag = await prisma.featureFlag.findUnique({
-      where: { key: ADS_CONSENT_FLAG },
-    });
-    expect(flag?.isEnabled ?? false).toBe(false);
+    const refused = await put('adult', { choice: 'GENERAL' }).expect(403);
+    expect(refused.body.errorCode).toBe('FEATURE_DISABLED');
+    expect(
+      await prisma.adConsent.count({
+        where: { userId: await userId(adult.email) },
+      }),
+    ).toBe(0);
   });
 
   it('with the flag on for them, asks the adult and never the minor', async () => {
@@ -143,6 +156,9 @@ describe('Ads consent (e2e)', () => {
     const minorStatus = await get('minor').expect(200);
 
     expect(adultStatus.body.askNow).toBe(true);
+    // An app with other texts (an older bundle) is not asked.
+    const older = await get('adult', 'older-texts').expect(200);
+    expect(older.body.askNow).toBe(false);
     expect(minorStatus.body).toMatchObject({
       askNow: false,
       personalisationAllowed: false,

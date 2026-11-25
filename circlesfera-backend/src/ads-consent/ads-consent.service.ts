@@ -74,8 +74,8 @@ export function effectiveChoice(
 /**
  * The person's consent to personalised advertising (PD-084). It belongs to
  * the User, not to a Profile: one answer for every Profile of the person.
- * The rules are enforced here whether or not the screen is shown yet (the
- * ads_consent flag only decides what the app shows).
+ * While the ads_consent flag is off nobody is asked and no answer is taken;
+ * the age and text rules apply whatever the flag says.
  */
 @Injectable()
 export class AdsConsentService {
@@ -85,20 +85,34 @@ export class AdsConsentService {
     private readonly experiments: ExperimentsService,
   ) {}
 
-  async status(userId: string): Promise<AdConsentStatus> {
-    const [adult, latest, flagOn] = await Promise.all([
-      this.isAdult(userId),
+  /**
+   * The person's answer and whether the app must ask. `shownTextVersion` is
+   * the version of the texts the asking app carries: an app built with other
+   * texts (an older bundle on a phone or in a service worker) is not asked
+   * until it updates, so it never shows a screen whose answer would be
+   * refused.
+   */
+  async status(
+    userId: string,
+    shownTextVersion?: string,
+  ): Promise<AdConsentStatus> {
+    const [age, latest, flagOn] = await Promise.all([
+      this.age(userId),
       this.latest(userId),
-      this.experiments.isFeatureEnabled(ADS_CONSENT_FLAG, userId),
+      this.flagOn(userId),
     ]);
     return {
       choice: latest?.choice ?? null,
       decidedAt: latest?.createdAt.toISOString() ?? null,
       textVersion: latest?.textVersion ?? null,
       currentTextVersion: AD_CONSENT_TEXT_VERSION,
-      personalisationAllowed: adult,
-      effectiveChoice: effectiveChoice(latest, adult),
-      askNow: flagOn && shouldAsk(latest, adult),
+      personalisationAllowed: age.adult,
+      dateOfBirthMissing: age.missing,
+      effectiveChoice: effectiveChoice(latest, age.adult),
+      askNow:
+        flagOn &&
+        shownTextVersion === AD_CONSENT_TEXT_VERSION &&
+        shouldAsk(latest, age.adult),
     };
   }
 
@@ -107,6 +121,14 @@ export class AdsConsentService {
    * which texts were shown. Withdrawing is the same call as giving.
    */
   async answer(userId: string, answer: AdConsentAnswer) {
+    if (!(await this.flagOn(userId))) {
+      // Not offered yet (Ads 0, the legal review, is pending): nothing is
+      // stored that nobody was shown.
+      throw AppException.Forbidden(
+        ErrorCode.FEATURE_DISABLED,
+        'Choosing how ads are picked is not available yet.',
+      );
+    }
     if (answer.textVersion !== AD_CONSENT_TEXT_VERSION) {
       // The app showed texts that are no longer in force: what it shows now
       // is asked instead, so the record never names texts nobody saw.
@@ -116,12 +138,18 @@ export class AdsConsentService {
         { currentTextVersion: AD_CONSENT_TEXT_VERSION },
       );
     }
-    if (answer.choice === 'PERSONALISED' && !(await this.isAdult(userId))) {
-      throw AppException.Forbidden(
-        ErrorCode.AD_PERSONALISATION_UNDER_AGE,
-        `Personalised ads are only for people ${AD_PERSONALISATION_MIN_AGE} or older.`,
-        { minAge: AD_PERSONALISATION_MIN_AGE },
-      );
+    if (answer.choice === 'PERSONALISED') {
+      const age = await this.age(userId);
+      if (!age.adult) {
+        throw AppException.Forbidden(
+          ErrorCode.AD_PERSONALISATION_UNDER_AGE,
+          `Personalised ads are only for people ${AD_PERSONALISATION_MIN_AGE} or older.`,
+          {
+            minAge: AD_PERSONALISATION_MIN_AGE,
+            dateOfBirthMissing: age.missing,
+          },
+        );
+      }
     }
     await this.prisma.adConsent.create({
       data: {
@@ -132,7 +160,8 @@ export class AdsConsentService {
         source: answer.source,
       },
     });
-    return this.status(userId);
+    // Answered to the texts in force, which is what the app showed.
+    return this.status(userId, AD_CONSENT_TEXT_VERSION);
   }
 
   /**
@@ -141,24 +170,31 @@ export class AdsConsentService {
    * unless an adult said yes to the texts in force.
    */
   async allowsPersonalisedAds(userId: string): Promise<boolean> {
-    const [adult, latest] = await Promise.all([
-      this.isAdult(userId),
+    const [age, latest] = await Promise.all([
+      this.age(userId),
       this.latest(userId),
     ]);
-    return effectiveChoice(latest, adult) === 'PERSONALISED';
+    return effectiveChoice(latest, age.adult) === 'PERSONALISED';
+  }
+
+  private flagOn(userId: string): Promise<boolean> {
+    return this.experiments.isFeatureEnabled(ADS_CONSENT_FLAG, userId);
   }
 
   // By the date of birth on the account, as payments read it: an account
-  // without one is treated as under age.
-  private async isAdult(userId: string): Promise<boolean> {
+  // without one is treated as under age, and says so.
+  private async age(
+    userId: string,
+  ): Promise<{ adult: boolean; missing: boolean }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { dateOfBirth: true },
     });
-    return (
-      !!user?.dateOfBirth &&
-      ageOn(user.dateOfBirth) >= AD_PERSONALISATION_MIN_AGE
-    );
+    const dateOfBirth = user?.dateOfBirth ?? null;
+    return {
+      adult: !!dateOfBirth && ageOn(dateOfBirth) >= AD_PERSONALISATION_MIN_AGE,
+      missing: !dateOfBirth,
+    };
   }
 
   private latest(userId: string): Promise<LatestAnswer | null> {

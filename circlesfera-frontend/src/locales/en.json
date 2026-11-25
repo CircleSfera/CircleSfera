@@ -25,6 +25,7 @@
       "hint": "Ads chosen by what you are watching, your city, your language and the interests you pick."
     },
     "what_this_means": "What this means",
+    "privacy_policy": "Privacy policy",
     "options_label": "How your ads are chosen",
     "saving": "Saving your choice…",
     "save_error": "Your choice could not be saved. Try again.",
@@ -61,6 +62,8 @@
       "none": "You have not chosen yet. Until you do, you only get general ads.",
       "change_hint": "Tap the other option to change it. It applies at once.",
       "minor": "You only get general ads: ads are never personalised for anyone under 18.",
+      "no_birth_date": "You only get general ads because your account has no date of birth, and ads are never personalised for anyone under 18. Verifying your identity adds it from your document.",
+      "add_birth_date": "Verify your identity in Settings → Account",
       "saved": "Your choice is saved",
       "load_error": "Your choice could not be loaded."
     }

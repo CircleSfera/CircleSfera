@@ -54,10 +54,21 @@ export interface AdConsentStatus {
   /** False under AD_PERSONALISATION_MIN_AGE: only GENERAL may apply. */
   personalisationAllowed: boolean;
   /**
+   * The account has no date of birth, so it is treated as under age until
+   * one is added (verifying the identity reads it from the document).
+   */
+  dateOfBirthMissing: boolean;
+  /**
    * What applies now: PERSONALISED only for an adult whose last answer was
    * PERSONALISED to the current texts; GENERAL otherwise.
    */
   effectiveChoice: AdChoice;
-  /** Whether the app must show the screen now. Never while the flag is off. */
+  /**
+   * Whether the app must show the screen now. Never while the flag is off,
+   * and never to an app that carries other texts than currentTextVersion.
+   */
   askNow: boolean;
 }
+
+/** The query parameter of GET /users/me/ads-consent with the app's texts. */
+export const AD_CONSENT_TEXT_VERSION_PARAM = 'textVersion';

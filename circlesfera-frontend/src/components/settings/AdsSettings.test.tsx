@@ -22,6 +22,7 @@ const status = (over: Partial<AdConsentStatus> = {}): AdConsentStatus => ({
   textVersion: null,
   currentTextVersion: AD_CONSENT_TEXT_VERSION,
   personalisationAllowed: true,
+  dateOfBirthMissing: false,
   effectiveChoice: 'GENERAL',
   askNow: false,
   ...over,
@@ -125,6 +126,31 @@ describe('AdsSettings (Settings → Ads, PD-084)', () => {
     expect(await screen.findByTestId('ads-consent-minor')).toHaveTextContent(
       i18n!.t('adsConsent.settings.minor'),
     );
+    expect(
+      screen.queryByTestId('ads-consent-personalised'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('ads-consent-no-birth-date'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('no date of birth: says that is why ads are general, and where to add it', async () => {
+    vi.mocked(adsConsentApi.status).mockResolvedValue(
+      status({ personalisationAllowed: false, dateOfBirthMissing: true }),
+    );
+    const { i18n } = renderWithProviders(<AdsSettings />, { lng: 'es' });
+
+    const note = await screen.findByTestId('ads-consent-no-birth-date');
+    expect(note).toHaveTextContent(
+      i18n!.t('adsConsent.settings.no_birth_date'),
+    );
+    expect(
+      screen.getByRole('link', {
+        name: i18n!.t('adsConsent.settings.add_birth_date'),
+      }),
+    ).toHaveAttribute('href', '/accounts/account');
+    // Not told they are under 18, which is not known.
+    expect(screen.queryByTestId('ads-consent-minor')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('ads-consent-personalised'),
     ).not.toBeInTheDocument();

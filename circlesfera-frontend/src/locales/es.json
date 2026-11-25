@@ -25,6 +25,7 @@
       "hint": "Anuncios elegidos según lo que estás viendo, tu ciudad, tu idioma y los intereses que tú eliges."
     },
     "what_this_means": "Qué significa esto",
+    "privacy_policy": "Política de privacidad",
     "options_label": "Cómo se eligen tus anuncios",
     "saving": "Guardando tu elección…",
     "save_error": "No se ha podido guardar tu elección. Vuelve a intentarlo.",
@@ -61,6 +62,8 @@
       "none": "Aún no has elegido. Hasta que lo hagas, solo recibes anuncios generales.",
       "change_hint": "Toca la otra opción para cambiarla. Se aplica al momento.",
       "minor": "Solo recibes anuncios generales: los anuncios nunca se personalizan para menores de 18 años.",
+      "no_birth_date": "Solo recibes anuncios generales porque tu cuenta no tiene fecha de nacimiento, y los anuncios nunca se personalizan para menores de 18 años. Al verificar tu identidad se añade la de tu documento.",
+      "add_birth_date": "Verifica tu identidad en Ajustes → Cuenta",
       "saved": "Tu elección se ha guardado",
       "load_error": "No se ha podido cargar tu elección."
     }
