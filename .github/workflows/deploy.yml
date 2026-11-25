@@ -258,6 +258,13 @@ jobs:
             # Navigate to project directory
             cd /srv/circlesfera
 
+            # One at a time with the weekly restore drill, which takes the same
+            # lock (scripts/install-backup-cron.sh). Held until this script
+            # ends; a drill that does not finish in 15 minutes does not stop
+            # the deploy.
+            exec 9> /srv/circlesfera/.ops.lock
+            flock -w 900 9 || echo "The restore drill still holds the ops lock; deploying anyway."
+
             # Login to GHCR on the VPS
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
@@ -712,6 +719,19 @@ jobs:
             esac
             if [ "$public_ok" != "1" ] && [ -n "$DEPLOY_WEBHOOK" ]; then
               curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 A public address of CircleSfera does not reach production through the host nginx. The new version stays; see the deploy log."}' "$DEPLOY_WEBHOOK" || true
+            fi
+
+            # The server's cron (the nightly backup and the weekly restore
+            # drill) is installed from the repository on every deploy
+            # (ED-016), so a change to it needs no manual run. Idempotent; a
+            # failure alerts and never rolls back.
+            if ./scripts/install-backup-cron.sh > /dev/null; then
+              echo "  OK  backup cron and weekly restore drill installed"
+            else
+              echo "  FAIL installing the backup cron"
+              if [ -n "$DEPLOY_WEBHOOK" ]; then
+                curl -X POST -H 'Content-type: application/json' --data '{"text":"⚠️ *Deployment done*: the backup cron could not be installed. See the deploy log."}' "$DEPLOY_WEBHOOK" || true
+              fi
             fi
 
             # What the code declares is applied on every deploy, once the

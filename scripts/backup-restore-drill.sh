@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# Proves that the latest nightly backups can be restored, without touching the
+# live data (ED-016: run weekly by the server's cron, installed by
+# scripts/install-backup-cron.sh on every deploy):
+# - Database: restores the newest daily dump into a temporary database inside
+#   the Postgres container, compares table, migration and row counts with the
+#   live database, then drops the temporary database.
+# - Media: extracts the newest media archive into a temporary folder on the
+#   host, compares the file count with the live volume, then deletes it.
+# It prints only counts, sizes and PASS/FAIL lines, never data, and exits 1
+# when either check fails. Run from /srv/circlesfera.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
+B="${BACKUP_DIR:-/srv/circlesfera/backups}"
+WORK=$(mktemp -d "$B/restore-drill.XXXXXX")
+cleanup() {
+  $DC exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -qc "DROP DATABASE IF EXISTS restore_drill WITH (FORCE);"; rm -f /tmp/restore_drill.dump' >/dev/null 2>&1 || true
+  rm -rf "$WORK"
+}
+trap cleanup EXIT
+FAIL=0
+
+# Room on the disk first: the drill restores a second copy of the database
+# into the live Postgres and unpacks the media archive on the same disk, and
+# a full disk would stop production. It needs four times the dump (a dump is
+# compressed) and the archive once more, plus a tenth to spare.
+NEWEST_DUMP=$(ls -1t "$B"/postgres/full/pg_backup_*.dump 2>/dev/null | head -n 1 || true)
+NEWEST_ARCHIVE=$(ls -1t "$B"/uploads/uploads_*.tar 2>/dev/null | head -n 1 || true)
+need=0
+[ -n "$NEWEST_DUMP" ] && need=$((need + 4 * $(stat -c %s "$NEWEST_DUMP")))
+[ -n "$NEWEST_ARCHIVE" ] && need=$((need + $(stat -c %s "$NEWEST_ARCHIVE")))
+need=$((need + need / 10))
+free=$(df --output=avail -B1 "$B" | tail -n 1 | tr -d ' ')
+echo "disk: $((free / 1048576)) MB free, $((need / 1048576)) MB needed"
+if [ "$free" -lt "$need" ]; then
+  echo "RESULT disk: FAIL (not enough free space to restore safely)"
+  echo "Drill FAILED"
+  exit 1
+fi
+
+echo "=== Database ==="
+DUMP=$(ls -1t "$B"/postgres/full/pg_backup_*.dump 2>/dev/null | head -n 1 || true)
+if [ -z "$DUMP" ]; then
+  echo "no database dump (pg_backup_*.dump) found"
+  echo "RESULT database: FAIL"
+  FAIL=1
+else
+  echo "dump: $(basename "$DUMP") ($(du -h "$DUMP" | cut -f1))"
+  $DC exec -T postgres sh -c 'cat > /tmp/restore_drill.dump' < "$DUMP"
+  $DC exec -T postgres sh -c '
+    set -e
+    q() { psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$1" -t -A -c "$2"; }
+    q postgres "DROP DATABASE IF EXISTS restore_drill WITH (FORCE);" >/dev/null
+    q postgres "CREATE DATABASE restore_drill;" >/dev/null
+    set +e
+    pg_restore -U "$POSTGRES_USER" -d restore_drill --no-owner --no-acl /tmp/restore_drill.dump 2>/tmp/restore_drill.err
+    rc=$?
+    set -e
+    # pg_restore keeps going after errors and exits 1 if any were
+    # recorded, so any non-zero code fails the drill. Error text is
+    # not printed (it can quote data); only the count is.
+    errors=$(grep -c "error:" /tmp/restore_drill.err || true)
+    rm -f /tmp/restore_drill.err
+    echo "pg_restore exit code: $rc, errors: $errors"
+    if [ "$rc" -ne 0 ]; then echo "RESULT database: FAIL (pg_restore)"; exit 1; fi
+    tables="SELECT count(*) FROM information_schema.tables WHERE table_schema = '"'"'public'"'"' AND table_type = '"'"'BASE TABLE'"'"';"
+    migs="SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL;"
+    printf "%-22s %10s %10s\n" "check" "restored" "live"
+    ok=1
+    for pair in "tables|$tables" "migrations|$migs" "users|SELECT count(*) FROM users;" "profiles|SELECT count(*) FROM profiles;" "posts|SELECT count(*) FROM posts;" "transactions|SELECT count(*) FROM transactions;"; do
+      name=${pair%%|*}; sql=${pair#*|}
+      r=$(q restore_drill "$sql") || r=""
+      l=$(q "$POSTGRES_DB" "$sql") || l=""
+      # A failed or empty query must fail the drill, never pass silently.
+      case "$r$l" in *[!0-9]*) echo "RESULT database: FAIL (query failed: $name)"; exit 1 ;; esac
+      if [ -z "$r" ] || [ -z "$l" ]; then echo "RESULT database: FAIL (query failed: $name)"; exit 1; fi
+      printf "%-22s %10s %10s\n" "$name" "$r" "$l"
+      # The dump is from last night, so the live database may have grown since.
+      if [ "$r" -gt "$l" ]; then ok=0; fi
+      # An empty restore of a table that has rows live is a failure.
+      if [ "$l" -gt 0 ] && [ "$r" -le 0 ]; then ok=0; fi
+      # The drill runs two hours after the nightly dump: tables and
+      # migrations must match exactly.
+      if [ "$name" = tables ] || [ "$name" = migrations ]; then [ "$r" -eq "$l" ] || ok=0; fi
+    done
+    if [ "$ok" = 1 ]; then echo "RESULT database: PASS"; else echo "RESULT database: FAIL (counts)"; exit 1; fi
+  ' || FAIL=1
+fi
+
+echo "=== Media ==="
+ARCHIVE=$(ls -1t "$B"/uploads/uploads_*.tar 2>/dev/null | head -n 1 || true)
+if [ -z "$ARCHIVE" ]; then
+  echo "no media archive (uploads_*.tar) found"
+  echo "RESULT media: FAIL"
+  FAIL=1
+else
+  echo "archive: $(basename "$ARCHIVE") ($(du -h "$ARCHIVE" | cut -f1))"
+  tar -xf "$ARCHIVE" -C "$WORK"
+  R=$(find "$WORK/uploads" -type f | wc -l)
+  RS=$(du -sh "$WORK/uploads" | cut -f1)
+  L=$($DC exec -T backend sh -c 'find /app/circlesfera-backend/uploads -type f | wc -l')
+  printf "%-22s %10s %10s\n" "check" "restored" "live"
+  printf "%-22s %10s %10s\n" "files" "$R" "$L"
+  echo "restored size: $RS"
+  # The archive is from the last backup, so live media may have grown since.
+  if [ "$R" -gt 0 ] && [ "$R" -le "$L" ]; then echo "RESULT media: PASS"; else echo "RESULT media: FAIL"; FAIL=1; fi
+fi
+
+if [ "$FAIL" = 1 ]; then echo "Drill FAILED"; exit 1; fi
+echo "Drill PASSED"

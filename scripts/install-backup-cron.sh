@@ -71,16 +71,49 @@ ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 EOF
 chmod +x "${WRAPPER}"
 
-# 02:00 UTC daily
+# Weekly restore drill (ED-016): proves the latest backups restore, two hours
+# after Sunday's nightly backup, and alerts when it fails.
+DRILL_MARKER="# circlesfera-restore-drill"
+DRILL_WRAPPER="${ROOT}/scripts/.run-restore-drill.sh"
+cat > "${DRILL_WRAPPER}" <<EOF
+#!/usr/bin/env bash
+set -o pipefail
+umask 077
+cd "${ROOT}"
+# Read without -u, so a value of the environment file never stops the drill
+# before it can alert.
+set -a
+# shellcheck disable=SC1091
+source "${ROOT}/.env.production"
+set +a
+export BACKUP_DIR="${BACKUP_DIR}"
+{
+  echo "[\$(date -u +%Y-%m-%dT%H:%M:%SZ)] Starting restore drill"
+  # One at a time with a deploy, which takes the same lock: a deploy never
+  # recreates the containers or migrates in the middle of the drill.
+  if ! flock -w 1800 "${ROOT}/.ops.lock" "${ROOT}/scripts/backup-restore-drill.sh"; then
+    if [ -n "\${SLACK_WEBHOOK_ALERTS:-}" ]; then
+      curl -s -m 10 -X POST -H 'Content-type: application/json' \\
+        --data '{"text":"CircleSfera: the weekly backup restore drill FAILED on the VPS. See backups/restore-drill.log."}' \\
+        "\${SLACK_WEBHOOK_ALERTS}" > /dev/null 2>&1 || true
+    fi
+  fi
+} >> "${BACKUP_DIR}/restore-drill.log" 2>&1
+EOF
+chmod +x "${DRILL_WRAPPER}"
+
+# 02:00 UTC daily; the drill at 04:00 UTC on Sundays
 CRON_LINE="0 2 * * * ${WRAPPER} ${CRON_MARKER}"
+DRILL_LINE="0 4 * * 0 ${DRILL_WRAPPER} ${DRILL_MARKER}"
 
 EXISTING="$(crontab -l 2>/dev/null || true)"
-FILTERED="$(printf '%s\n' "${EXISTING}" | grep -v "${CRON_MARKER}" || true)"
+FILTERED="$(printf '%s\n' "${EXISTING}" | grep -v -e "${CRON_MARKER}" -e "${DRILL_MARKER}" || true)"
 {
   printf '%s\n' "${FILTERED}"
   echo "${CRON_LINE}"
+  echo "${DRILL_LINE}"
 } | crontab -
 
 echo "Installed cron:"
-crontab -l | grep "${CRON_MARKER}" || true
+crontab -l | grep -e "${CRON_MARKER}" -e "${DRILL_MARKER}" || true
 echo "BACKUP_DIR=${BACKUP_DIR}"
