@@ -29,7 +29,29 @@ export interface ScheduledLive {
   reminderCount?: number;
 }
 
+/**
+ * Before going live (PD-092): whether as many lives are on air as the live
+ * server takes, and whether a live started now would be recorded (OFF where
+ * the environment records nothing). A guide: the start checks again.
+ */
+export interface LiveCapacity {
+  livesFull: boolean;
+  recording: 'AVAILABLE' | 'FULL' | 'OFF';
+}
+
+/** What became of the recording of a live just started. */
+export type LiveRecordingStart =
+  | 'OFF'
+  | 'RECORDING'
+  | 'SKIPPED_LIMIT'
+  | 'FAILED';
+
 export const liveApi = {
+  getCapacity: async (): Promise<LiveCapacity> => {
+    const response = await api.get('/live/capacity');
+    return response.data;
+  },
+
   getActiveStreams: async () => {
     const response = await api.get('/live/active');
     return response.data;

@@ -5,6 +5,7 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
+import { LiveCapacityModule } from '../live/capacity/live-capacity.module.js';
 import { SecurityReportsModule } from '../security-reports/security-reports.module.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { WarehouseModule } from '../warehouse/warehouse.module.js';
@@ -24,6 +25,7 @@ const QUEUES = Object.values(QUEUE_NAMES);
 @Module({
   imports: [
     BullModule.registerQueue(...QUEUES.map(getRegisterQueueOptions)),
+    LiveCapacityModule,
     SecurityReportsModule,
     UploadsModule,
     WarehouseModule,

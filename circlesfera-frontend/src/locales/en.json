@@ -4531,6 +4531,16 @@
       "none": "none",
       "set": "Set",
       "unset": "Not set",
+      "lives_title": "Lives",
+      "lives_subtitle": "Lives on air and recordings running, against the limits in Settings.",
+      "lives_on_air": "Lives on air",
+      "lives_recorded": "Being recorded",
+      "lives_of_limit": "{{value}} of {{limit}}",
+      "lives_without_room_one": "{{count}} more marked on air with no room: its host left without ending it. Not counted.",
+      "lives_without_room_other": "{{count}} more marked on air with no room: their hosts left without ending them. Not counted.",
+      "lives_rooms_unread": "The live server did not answer: the lives marked on air in the last 6 hours are counted.",
+      "lives_recording_off": "Recording is off in this environment.",
+      "lives_limits_hint": "At the limit, a new live is refused and its host told to try again in a few minutes; past the recordings' limit, lives go on unrecorded and their hosts are told. Change the limits in Settings.",
       "resources_title": "Server resources",
       "resources_subtitle": "As the backend container sees them. Alerts reach Slack once a day per threshold of ADR-0024.",
       "disk_root": "Server disk",
@@ -4803,6 +4813,7 @@
       "saving": "Saving...",
       "saved_success": "Settings saved successfully",
       "saved_error": "Failed to save settings",
+      "saved_error_range": "{{label}}: use a whole number from {{min}} to {{max}}. Nothing was saved.",
       "keys": {
         "maintenance_mode": "Maintenance mode",
         "registration_open": "Registration open",
@@ -4811,7 +4822,9 @@
         "turnstile_required": "Bot check required",
         "email_verification_required": "Verified email required",
         "payments_enabled": "Payments enabled",
-        "promotions_on_sale": "Promotions on sale"
+        "promotions_on_sale": "Promotions on sale",
+        "max_concurrent_lives": "Lives at once",
+        "max_concurrent_recordings": "Recordings at once"
       },
       "descriptions": {
         "maintenance_mode": "When on, the consumer API returns 503 except health, CSRF, webhooks and Admin Panel.",
@@ -4821,7 +4834,9 @@
         "turnstile_required": "Asks for the bot check when signing up and signing in.",
         "email_verification_required": "Requires a verified email to post, follow, message, like, upload and edit the profile.",
         "payments_enabled": "Allow new payments: plans and promotions. While off nothing new is charged.",
-        "promotions_on_sale": "Sell new promotions. While off nobody can buy one; promotions already bought keep running."
+        "promotions_on_sale": "Sell new promotions. While off nobody can buy one; promotions already bought keep running.",
+        "max_concurrent_lives": "Most lives on air at once, from 1 to 500. A host past it is told lives are full and does not go live.",
+        "max_concurrent_recordings": "Most lives recorded at once, from 1 to 50. A live past it goes on unrecorded; its host is told before going live."
       }
     },
     "roles": {
@@ -5817,6 +5832,11 @@
     "end_confirm_keep": "Keep broadcasting",
     "end_failed": "Could not end the live. It is still on air: try again.",
     "start_failed": "Could not start the live. Try again.",
+    "capacity": {
+      "full": "Lives are full right now. Try again in a few minutes.",
+      "not_recorded": "This live won’t be recorded this time: too many lives are being recorded right now.",
+      "not_recorded_started": "This live isn’t being recorded this time: too many lives are being recorded right now."
+    },
     "connection_lost": "The connection to the live was lost.",
     "send_comment": "Send comment",
     "cohost_invite_button": "Invite a co-host",
@@ -6620,6 +6640,7 @@
       "ALREADY_ON_AIR": "You're on air in this live.",
       "CANNOT_RECONNECT_GUEST": "You can't rejoin as a guest.",
       "LIVE_STREAMS_DISABLED": "Live streams are turned off right now.",
+      "LIVES_FULL": "Lives are full right now. Try again in a few minutes.",
       "RECORDING_NOT_READY": "This recording isn't ready.",
       "LIVE_SCHEDULE_TIME_INVALID": "Pick a time a little later, and not too far ahead.",
       "LIVE_SCHEDULE_AUDIENCE_INVALID": "A scheduled live is for everyone or for your close friends.",

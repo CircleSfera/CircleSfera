@@ -20,6 +20,7 @@ import {
   createControllerApp,
   TEST_USER,
 } from '../common/testing/http-controller.js';
+import { LiveCapacityService } from './capacity/live-capacity.service.js';
 import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
 import { LiveScheduleController } from './live-schedule.controller.js';
@@ -225,6 +226,7 @@ describe('the routes of scheduled lives beside those of a live', () => {
         { provide: LiveScheduleService, useValue: schedule },
         { provide: LiveService, useValue: live },
         { provide: LiveStartNoticeService, useValue: {} },
+        { provide: LiveCapacityService, useValue: {} },
       ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },

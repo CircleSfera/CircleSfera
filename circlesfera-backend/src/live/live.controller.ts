@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { LiveAudience } from '@prisma/client';
 import {
   CurrentUser,
@@ -16,6 +17,7 @@ import {
 } from '../auth/decorators/current-user.decorator.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { LiveCapacityService } from './capacity/live-capacity.service.js';
 import { InviteCoHostDto } from './dto/invite-cohost.dto.js';
 import { InviteGuestDto } from './dto/invite-guest.dto.js';
 import { StartStreamDto } from './dto/start-stream.dto.js';
@@ -30,6 +32,7 @@ export class LiveController {
     private readonly liveService: LiveService,
     private readonly startNotice: LiveStartNoticeService,
     private readonly schedule: LiveScheduleService,
+    private readonly capacity: LiveCapacityService,
   ) {}
 
   @Post('start')
@@ -88,6 +91,19 @@ export class LiveController {
   @ApiResponse({ status: 200 })
   getActiveStreams(@CurrentUser() user: CurrentUserData) {
     return this.liveService.getActiveStreams(user.profileId);
+  }
+
+  // Before going live (PD-092): whether lives are full now, and whether a
+  // live started now would be recorded. For who may go live (a verified
+  // email, as the start), asked every 30 seconds by the go-live screen: 20 a
+  // minute leaves room for reopening it. Before `:streamId`, which would
+  // take the word for an id.
+  @Get('capacity')
+  @UseGuards(EmailVerifiedGuard)
+  @Throttle({ short: { limit: 20, ttl: 60000 } })
+  @ApiResponse({ status: 200 })
+  getCapacity(@CurrentUser() user: CurrentUserData) {
+    return this.capacity.forHost(user.profileId);
   }
 
   @Get(':streamId')

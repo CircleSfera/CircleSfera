@@ -4531,6 +4531,16 @@
       "none": "ninguno",
       "set": "Definida",
       "unset": "Sin definir",
+      "lives_title": "Directos",
+      "lives_subtitle": "Directos en emisión y grabaciones en curso, frente a los límites de Configuración.",
+      "lives_on_air": "Directos en emisión",
+      "lives_recorded": "Grabándose",
+      "lives_of_limit": "{{value}} de {{limit}}",
+      "lives_without_room_one": "{{count}} más marcado en emisión sin sala: quien lo emitía salió sin terminarlo. No cuenta.",
+      "lives_without_room_other": "{{count}} más marcados en emisión sin sala: quienes los emitían salieron sin terminarlos. No cuentan.",
+      "lives_rooms_unread": "El servidor de directos no respondió: cuentan los directos marcados en emisión en las últimas 6 horas.",
+      "lives_recording_off": "La grabación está desactivada en este entorno.",
+      "lives_limits_hint": "En el límite, un directo nuevo se rechaza y se pide a quien lo emite que lo intente en unos minutos; pasado el límite de grabaciones, los directos siguen sin grabarse y se avisa a quien los emite. Los límites se cambian en Configuración.",
       "resources_title": "Recursos del servidor",
       "resources_subtitle": "Tal como los ve el contenedor del backend. Las alertas llegan a Slack una vez al día por umbral del ADR-0024.",
       "disk_root": "Disco del servidor",
@@ -4803,6 +4813,7 @@
       "saving": "Guardando...",
       "saved_success": "Configuración guardada correctamente",
       "saved_error": "Error al guardar la configuración",
+      "saved_error_range": "{{label}}: usa un número entero del {{min}} al {{max}}. No se ha guardado nada.",
       "keys": {
         "maintenance_mode": "Modo mantenimiento",
         "registration_open": "Registro abierto",
@@ -4811,7 +4822,9 @@
         "turnstile_required": "Comprobación anti-bots obligatoria",
         "email_verification_required": "Correo verificado obligatorio",
         "payments_enabled": "Pagos habilitados",
-        "promotions_on_sale": "Promociones a la venta"
+        "promotions_on_sale": "Promociones a la venta",
+        "max_concurrent_lives": "Directos a la vez",
+        "max_concurrent_recordings": "Grabaciones a la vez"
       },
       "descriptions": {
         "maintenance_mode": "Si está activo, la API de consumidores responde 503 salvo health, CSRF, webhooks y Admin Panel.",
@@ -4821,7 +4834,9 @@
         "turnstile_required": "Pide la comprobación anti-bots al registrarse y al iniciar sesión.",
         "email_verification_required": "Exige un correo verificado para publicar, seguir, escribir mensajes, dar me gusta, subir archivos y editar el perfil.",
         "payments_enabled": "Permite pagos nuevos: planes y promociones. Desactivado, no se cobra nada nuevo.",
-        "promotions_on_sale": "Vende promociones nuevas. Mientras está desactivado nadie puede comprar una; las ya compradas siguen."
+        "promotions_on_sale": "Vende promociones nuevas. Mientras está desactivado nadie puede comprar una; las ya compradas siguen.",
+        "max_concurrent_lives": "Máximo de directos en emisión a la vez, del 1 al 500. A quien lo supere se le dice que los directos están llenos y no empieza.",
+        "max_concurrent_recordings": "Máximo de directos grabándose a la vez, del 1 al 50. Un directo que lo supere sigue sin grabarse; se avisa a quien lo emite antes de empezar."
       }
     },
     "roles": {
@@ -5817,6 +5832,11 @@
     "end_confirm_keep": "Seguir emitiendo",
     "end_failed": "No se pudo terminar el directo. Sigue en emisión: inténtalo de nuevo.",
     "start_failed": "No se pudo empezar el directo. Inténtalo de nuevo.",
+    "capacity": {
+      "full": "Los directos están llenos ahora mismo. Inténtalo de nuevo en unos minutos.",
+      "not_recorded": "Esta vez el directo no se grabará: ahora mismo se están grabando demasiados directos.",
+      "not_recorded_started": "Esta vez el directo no se está grabando: ahora mismo se están grabando demasiados directos."
+    },
     "connection_lost": "Se perdió la conexión con el directo.",
     "send_comment": "Enviar comentario",
     "cohost_invite_button": "Invitar a un coanfitrión",
@@ -6620,6 +6640,7 @@
       "ALREADY_ON_AIR": "Estás emitiendo en este directo.",
       "CANNOT_RECONNECT_GUEST": "No puedes volver a entrar como invitado.",
       "LIVE_STREAMS_DISABLED": "Los directos están desactivados ahora mismo.",
+      "LIVES_FULL": "Los directos están llenos ahora mismo. Inténtalo de nuevo en unos minutos.",
       "RECORDING_NOT_READY": "Esta grabación no está lista.",
       "LIVE_SCHEDULE_TIME_INVALID": "Elige una hora un poco más tarde y no tan lejana.",
       "LIVE_SCHEDULE_AUDIENCE_INVALID": "Un directo programado es para todos o para tus mejores amigos.",

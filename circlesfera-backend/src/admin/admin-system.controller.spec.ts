@@ -9,6 +9,7 @@ import {
   it,
   vi,
 } from 'vitest';
+import type { CurrentAdminData } from '../auth/decorators/current-admin.decorator.js';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import {
@@ -198,5 +199,72 @@ describe('AdminSystemController', () => {
       TEST_ADMIN.adminId,
       updates,
     );
+  });
+});
+
+// The limits of lives and recordings are settings: only staff with the
+// system permission change them, checked by the real AdminGuard.
+describe('AdminSystemController settings permission', () => {
+  const service = {
+    getSystemSettings: vi.fn(async () => []),
+    updateSystemSettings: vi.fn(async () => ({ count: 1 })),
+  };
+  const staff = (permissions: string[]): CurrentAdminData => ({
+    adminId: 'staff-1',
+    userId: 'staff-1',
+    email: 'staff@example.com',
+    displayName: 'Staff',
+    permissions,
+    roles: ['SUPPORT'],
+    stepUpVerified: true,
+  });
+  const appFor = (admin: CurrentAdminData) =>
+    createControllerApp({
+      controllers: [AdminSystemController],
+      providers: [{ provide: AdminService, useValue: service }],
+      guards: [{ guard: AdminJwtAuthGuard, mode: 'admin' }],
+      admin,
+    });
+  const limit = { updates: [{ key: 'max_concurrent_lives', value: '20' }] };
+
+  let withSystem: INestApplication;
+  let withoutSystem: INestApplication;
+
+  beforeAll(async () => {
+    withSystem = await appFor(staff(['system']));
+    withoutSystem = await appFor(staff(['users.read', 'moderation']));
+  });
+
+  afterAll(async () => {
+    await withSystem.close();
+    await withoutSystem.close();
+  });
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it('lets staff with the system permission change a limit', async () => {
+    await request(withSystem.getHttpServer())
+      .patch('/api/v1/admin/settings')
+      .set(ADMIN_BEARER)
+      .send(limit)
+      .expect(200);
+    expect(service.updateSystemSettings).toHaveBeenCalledWith(
+      'staff-1',
+      limit.updates,
+    );
+  });
+
+  it('refuses staff without it, and a session of the app', async () => {
+    await request(withoutSystem.getHttpServer())
+      .patch('/api/v1/admin/settings')
+      .set(ADMIN_BEARER)
+      .send(limit)
+      .expect(403);
+    await request(withSystem.getHttpServer())
+      .patch('/api/v1/admin/settings')
+      .set(BEARER)
+      .send(limit)
+      .expect(401);
+    expect(service.updateSystemSettings).not.toHaveBeenCalled();
   });
 });

@@ -11,7 +11,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../services/api';
 import { liveApi } from '../../services/live';
 import { profileApi } from '../../services/profile.service';
-import { renderWithProviders } from '../../test/test-utils';
+import {
+  createTestQueryClient,
+  renderWithProviders,
+} from '../../test/test-utils';
 import LiveBroadcaster from './LiveBroadcaster';
 
 vi.mock('@livekit/components-styles', () => ({}));
@@ -61,6 +64,7 @@ vi.mock('../../services/live', () => ({
     inviteGuest: vi.fn(),
     removeGuest: vi.fn(),
     getStream: vi.fn().mockResolvedValue({ guests: [] }),
+    getCapacity: vi.fn(),
   },
 }));
 
@@ -117,6 +121,116 @@ async function endStream(i18n: I18n) {
 describe('LiveBroadcaster', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(liveApi.getCapacity).mockResolvedValue({
+      livesFull: false,
+      recording: 'AVAILABLE',
+    });
+  });
+
+  // PD-092: the live server takes so many lives, and the recorder so many
+  // recordings, at once.
+  describe('when the live server is full', () => {
+    it('says lives are full and does not offer to go live', async () => {
+      vi.mocked(liveApi.getCapacity).mockResolvedValue({
+        livesFull: true,
+        recording: 'AVAILABLE',
+      });
+      const { i18n } = renderWithProviders(<LiveBroadcaster />);
+
+      expect(await screen.findByRole('status')).toHaveTextContent(
+        'Lives are full right now. Try again in a few minutes.',
+      );
+      expect(
+        screen.getByRole('button', { name: i18n!.t('live.start_button') }),
+      ).toBeDisabled();
+    });
+
+    it('says before going live that this live will not be recorded, and still lets it start', async () => {
+      vi.mocked(liveApi.getCapacity).mockResolvedValue({
+        livesFull: false,
+        recording: 'FULL',
+      });
+      const { i18n } = renderWithProviders(<LiveBroadcaster />);
+
+      expect(await screen.findByRole('status')).toHaveTextContent(
+        'This live won’t be recorded this time: too many lives are being recorded right now.',
+      );
+      expect(
+        screen.getByRole('button', { name: i18n!.t('live.start_button') }),
+      ).toBeEnabled();
+
+      // A practice is never recorded: nothing is said of it.
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n!.t('live.audience.PRACTICE') }),
+      );
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('does not keep an older "full" once asking again fails: the start decides', async () => {
+      // An answer from a moment ago said lives were full; asking again fails.
+      const queryClient = createTestQueryClient();
+      queryClient.setQueryData(['live', 'capacity'], {
+        livesFull: true,
+        recording: 'FULL',
+      });
+      vi.mocked(liveApi.getCapacity).mockRejectedValue(new Error('offline'));
+      const { i18n } = renderWithProviders(<LiveBroadcaster />, {
+        queryClient,
+      });
+
+      await waitFor(() => expect(liveApi.getCapacity).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: i18n!.t('live.start_button') }),
+        ).toBeEnabled(),
+      );
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('says nothing when there is room and the live will be recorded', async () => {
+      renderWithProviders(<LiveBroadcaster />);
+      await waitFor(() => expect(liveApi.getCapacity).toHaveBeenCalled());
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('tells the host on air when the recorder filled up meanwhile', async () => {
+      vi.mocked(apiClient.post).mockResolvedValue({
+        data: {
+          token: 'lk-token',
+          stream: { id: 'stream-1' },
+          recording: 'SKIPPED_LIMIT',
+        },
+      });
+      const { i18n } = renderWithProviders(<LiveBroadcaster />);
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n!.t('live.start_button') }),
+      );
+
+      await waitFor(() =>
+        expect(toast).toHaveBeenCalledWith(
+          'This live isn’t being recorded this time: too many lives are being recorded right now.',
+        ),
+      );
+    });
+
+    it('says lives are full when they filled up meanwhile, and asks again', async () => {
+      vi.mocked(apiClient.post).mockRejectedValue({
+        status: 409,
+        data: { errorCode: 'LIVES_FULL' },
+      });
+      const { i18n } = renderWithProviders(<LiveBroadcaster />);
+      await waitFor(() => expect(liveApi.getCapacity).toHaveBeenCalledTimes(1));
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n!.t('live.start_button') }),
+      );
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          'Lives are full right now. Try again in a few minutes.',
+        ),
+      );
+      await waitFor(() => expect(liveApi.getCapacity).toHaveBeenCalledTimes(2));
+    });
   });
 
   it('uses catalog copy on the setup screen', () => {

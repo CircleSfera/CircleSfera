@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { LiveCapacityService } from './capacity/live-capacity.service.js';
 import {
   canWatchStream,
   HOST_SHOWN_SELECT,
@@ -31,7 +32,10 @@ import {
   refuseRemove,
 } from './live-guest.policy.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
-import { LiveRecordingService } from './recording/live-recording.service.js';
+import {
+  LiveRecordingService,
+  type RecordingStart,
+} from './recording/live-recording.service.js';
 
 // A ban of the Profile or of the whole account, or a suspension still
 // running: a decision of staff.
@@ -118,6 +122,7 @@ export class LiveService {
     private systemSettings: SystemSettingsService,
     private liveKitTokenService: LiveKitTokenService,
     private recording: LiveRecordingService,
+    private capacity: LiveCapacityService,
   ) {}
 
   private mapStreamHost(
@@ -206,6 +211,9 @@ export class LiveService {
 
     const streamPromise = (async () => {
       try {
+        // What the live counts against (PD-092), read before the
+        // transaction: it asks the live service for its rooms.
+        const placeCheck = await this.capacity.placeCheck();
         // Atomic: terminate previous streams and create the new one in a single transaction.
         const stream = await this.prisma.$transaction(async (tx) => {
           if (scheduledLiveId) {
@@ -233,6 +241,9 @@ export class LiveService {
             tx,
             previous.map((stream) => stream.id),
           );
+          // The host's own live just ended holds no place. Refused at the
+          // limit: the transaction is undone, the live before kept.
+          await this.capacity.takePlace(tx, placeCheck);
 
           const created = await tx.liveStream.create({
             data: {
@@ -259,15 +270,21 @@ export class LiveService {
           hostProfileId,
           true,
         );
-        // Not waited for: the host is on air whether or not the recorder
-        // has started. A broadcast ended above has its recording stopped by
-        // the recorder's check.
         // A practice is only for checking light, sound and connection: it
-        // is not recorded.
+        // is not recorded. Otherwise a recorder's place is taken now, so the
+        // host is told whether the live is recorded; asking the recorder is
+        // not waited for: the host is on air whether or not it has started.
+        // A broadcast ended above has its recording stopped by the
+        // recorder's check.
+        let recording: RecordingStart = 'OFF';
         if (audience !== 'PRACTICE') {
-          void this.recording.start(stream.id, hostProfileId);
+          const place = await this.recording.place(stream.id);
+          recording = place.status;
+          if (place.partId) {
+            void this.recording.begin(stream.id, hostProfileId, place.partId);
+          }
         }
-        return { stream, token };
+        return { stream, token, recording };
       } finally {
         this.startStreamInFlight.delete(hostProfileId);
       }

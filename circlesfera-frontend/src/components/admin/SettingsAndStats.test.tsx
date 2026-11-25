@@ -169,6 +169,36 @@ describe('SettingsTab', () => {
     expect(api.updateSystemSettings).toHaveBeenCalledTimes(1);
   });
 
+  it('names the limit and its range when the server refuses a value', async () => {
+    api.getSystemSettings.mockResolvedValue([
+      ...settings,
+      { key: 'max_concurrent_lives', value: '10', description: null },
+    ] as never);
+    api.updateSystemSettings.mockRejectedValue({
+      status: 400,
+      data: {
+        errorCode: 'INVALID_INPUT',
+        details: { key: 'max_concurrent_lives', min: 1, max: 500 },
+      },
+    });
+    renderWithProviders(<SettingsTab onToast={onToast} />);
+    const limit = await screen.findByRole('textbox', {
+      name: /Lives at once/,
+    });
+    expect(limit).toHaveAttribute('inputmode', 'numeric');
+    fireEvent.change(limit, { target: { value: '0' } });
+
+    fireEvent.click(save());
+
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith(
+        'Lives at once: use a whole number from 1 to 500. Nothing was saved.',
+        'error',
+      ),
+    );
+    expect(limit).toHaveValue('0');
+  });
+
   it('says so when saving fails and keeps what was typed', async () => {
     api.updateSystemSettings.mockRejectedValue(new Error('no'));
     renderWithProviders(<SettingsTab onToast={onToast} />);

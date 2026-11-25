@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
@@ -8,7 +9,12 @@ import {
 } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
 import { Queue } from 'bullmq';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  isValidSettingValue,
+  SYSTEM_SETTING_DEFAULTS,
+} from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import type {
   CreateFirewallRuleDto,
@@ -126,6 +132,21 @@ export class AdminService {
 
   async updateSystemSettings(adminId: string, updates: any[]) {
     if (!updates || !Array.isArray(updates)) return { count: 0 };
+
+    // Every value of the catalog fits its setting before anything is
+    // written: a limit of 0 lives, or "ten", would stop every live.
+    for (const setting of updates) {
+      const known = SYSTEM_SETTING_DEFAULTS.find((s) => s.key === setting?.key);
+      if (known && !isValidSettingValue(known.key, setting.value)) {
+        throw AppException.BadRequest(
+          ErrorCode.INVALID_INPUT,
+          known.range
+            ? `${known.key} must be a whole number from ${known.range.min} to ${known.range.max}`
+            : `${known.key} must be true or false`,
+          { key: known.key, ...(known.range ?? {}) },
+        );
+      }
+    }
 
     let count = 0;
     for (const setting of updates) {

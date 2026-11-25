@@ -136,6 +136,22 @@ export interface OperationsCspSummary {
   }[];
 }
 
+/** Lives and recordings running against the limits staff set (PD-092). */
+export interface OperationsLives {
+  generatedAt: string;
+  lives: {
+    onAir: number;
+    limit: number;
+    // Marked on air with no room at the live service: they hold no place.
+    // 0 when the rooms could not be read.
+    withoutRoom: number;
+    // False when the live service could not be asked: the lives marked on
+    // air in the last 6 hours were counted.
+    roomsRead: boolean;
+  };
+  recordings: { running: number; limit: number; enabled: boolean };
+}
+
 export interface OperationsOrphanFiles {
   generatedAt: string;
   status: 'ok' | 'no_local_storage';
@@ -1049,6 +1065,13 @@ export const adminApi = {
   getOperationsOrphanFiles: async (): Promise<OperationsOrphanFiles> => {
     const { data } = await apiClient.get<OperationsOrphanFiles>(
       '/admin/operations/orphan-files',
+    );
+    return data;
+  },
+
+  getOperationsLives: async (): Promise<OperationsLives> => {
+    const { data } = await apiClient.get<OperationsLives>(
+      '/admin/operations/lives',
     );
     return data;
   },

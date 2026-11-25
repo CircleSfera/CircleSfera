@@ -5,6 +5,7 @@ import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { LiveCapacityService } from './capacity/live-capacity.service.js';
 import { LiveService } from './live.service.js';
 import { listedForViewer } from './live-audience.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
@@ -199,13 +200,20 @@ describe('LiveService', () => {
   };
 
   const mockRecording = {
-    start: vi.fn(async () => undefined),
+    place: vi.fn<AnyFn>(async () => ({ status: 'RECORDING', partId: 'P1' })),
+    begin: vi.fn(async () => 'RECORDING'),
     stop: vi.fn(async () => undefined),
     startCoHost: vi.fn(async () => undefined),
     stopCoHost: vi.fn(async () => undefined),
     closeRoom: vi.fn(async () => undefined),
     removeFromRoom: vi.fn(async () => undefined),
     stopPublishing: vi.fn(async () => undefined),
+  };
+
+  // The lives' limit is proven in live-capacity.spec.ts: here, always room.
+  const mockCapacity = {
+    placeCheck: vi.fn(async () => ({ where: { status: 'LIVE' }, limit: 10 })),
+    takePlace: vi.fn(async () => undefined),
   };
 
   const mockConfigService = {
@@ -229,6 +237,7 @@ describe('LiveService', () => {
           useValue: { isEnabled: vi.fn(async () => true) },
         },
         { provide: LiveRecordingService, useValue: mockRecording },
+        { provide: LiveCapacityService, useValue: mockCapacity },
         {
           provide: LiveKitTokenService,
           useValue: new LiveKitTokenService(
@@ -271,7 +280,13 @@ describe('LiveService', () => {
       expect(mockPrismaService.liveGuest.updateMany).not.toHaveBeenCalled();
       expect(result.stream).toEqual(mockStream);
       expect(typeof result.token).toBe('string');
-      expect(mockRecording.start).toHaveBeenCalledWith('stream-1', 'user-1');
+      expect(mockRecording.place).toHaveBeenCalledWith('stream-1');
+      expect(mockRecording.begin).toHaveBeenCalledWith(
+        'stream-1',
+        'user-1',
+        'P1',
+      );
+      expect(result.recording).toBe('RECORDING');
     });
   });
 
@@ -325,7 +340,7 @@ describe('LiveService', () => {
         service.startStream('host-1', undefined, undefined, 'sl-1'),
       ).rejects.toMatchObject({ errorCode: 'SCHEDULED_LIVE_NOT_FOUND' });
       expect(mockPrismaService.liveStream.create).not.toHaveBeenCalled();
-      expect(mockRecording.start).not.toHaveBeenCalled();
+      expect(mockRecording.place).not.toHaveBeenCalled();
     });
 
     it('starts no live when the scheduled live was started or cancelled at the same time', async () => {
@@ -341,7 +356,7 @@ describe('LiveService', () => {
         service.startStream('host-1', undefined, undefined, 'sl-1'),
       ).rejects.toMatchObject({ errorCode: 'SCHEDULED_LIVE_NOT_FOUND' });
       // Thrown within the transaction: the live made is undone with it.
-      expect(mockRecording.start).not.toHaveBeenCalled();
+      expect(mockRecording.place).not.toHaveBeenCalled();
     });
 
     it('a live not started from a schedule touches none', async () => {
@@ -365,7 +380,7 @@ describe('LiveService', () => {
         'CLOSE_FRIENDS',
         'PRACTICE',
       ] as const) {
-        mockRecording.start.mockClear();
+        mockRecording.place.mockClear();
         mockPrismaService.liveStream.create.mockResolvedValue({
           id: `s-${audience}`,
           hostId: 'host-1',
@@ -377,10 +392,28 @@ describe('LiveService', () => {
         expect(mockPrismaService.liveStream.create).toHaveBeenLastCalledWith({
           data: expect.objectContaining({ audience }),
         });
-        expect(mockRecording.start).toHaveBeenCalledTimes(
+        expect(mockRecording.place).toHaveBeenCalledTimes(
           audience === 'PRACTICE' ? 0 : 1,
         );
       }
+    });
+
+    it('tells the host when the recorder is full, and asks the recorder for nothing', async () => {
+      mockPrismaService.liveStream.create.mockResolvedValue({ id: 's-full' });
+      mockRecording.place.mockResolvedValueOnce({ status: 'SKIPPED_LIMIT' });
+
+      const result = await service.startStream('host-1', 'x');
+
+      expect(result.recording).toBe('SKIPPED_LIMIT');
+      expect(mockRecording.begin).not.toHaveBeenCalled();
+    });
+
+    it('a practice says it is not recorded', async () => {
+      mockPrismaService.liveStream.create.mockResolvedValue({ id: 's-p' });
+
+      const result = await service.startStream('host-1', 'x', 'PRACTICE');
+
+      expect(result.recording).toBe('OFF');
     });
 
     it('is for everyone when not chosen', async () => {

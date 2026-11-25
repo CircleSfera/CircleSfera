@@ -18,6 +18,7 @@ import {
   createControllerApp,
   TEST_USER,
 } from '../common/testing/http-controller.js';
+import { LiveCapacityService } from './capacity/live-capacity.service.js';
 import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
 import { LiveScheduleService } from './live-schedule.service.js';
@@ -28,6 +29,7 @@ describe('LiveController', () => {
 
   const mockStartNotice = { tellFollowers: vi.fn().mockResolvedValue(0) };
   const mockSchedule = { tellStarted: vi.fn().mockResolvedValue([]) };
+  const mockCapacity = { forHost: vi.fn() };
   const mockLiveService = {
     startStream: vi.fn(),
     endStream: vi.fn(),
@@ -49,6 +51,7 @@ describe('LiveController', () => {
         { provide: LiveService, useValue: mockLiveService },
         { provide: LiveStartNoticeService, useValue: mockStartNotice },
         { provide: LiveScheduleService, useValue: mockSchedule },
+        { provide: LiveCapacityService, useValue: mockCapacity },
       ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
@@ -69,6 +72,34 @@ describe('LiveController', () => {
   it('rejects live routes without a session', async () => {
     await request(app.getHttpServer()).get('/api/v1/live/active').expect(401);
     expect(mockLiveService.getActiveStreams).not.toHaveBeenCalled();
+    await request(app.getHttpServer()).get('/api/v1/live/capacity').expect(401);
+    expect(mockCapacity.forHost).not.toHaveBeenCalled();
+  });
+
+  it('tells a host before going live whether lives are full and the live would be recorded, not a live called "capacity"', async () => {
+    mockCapacity.forHost.mockResolvedValue({
+      livesFull: false,
+      recording: 'FULL',
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/live/capacity')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual({ livesFull: false, recording: 'FULL' });
+    // The host's own live on air is left out of the count.
+    expect(mockCapacity.forHost).toHaveBeenCalledWith(TEST_USER.profileId);
+    expect(mockLiveService.getStream).not.toHaveBeenCalled();
+  });
+
+  it('asks for a verified email, as going live does, and limits how often the screen asks', () => {
+    const method = LiveController.prototype.getCapacity;
+    expect(Reflect.getMetadata('__guards__', method)).toContain(
+      EmailVerifiedGuard,
+    );
+    expect(Reflect.getMetadata('THROTTLER:LIMITshort', method)).toBe(20);
+    expect(Reflect.getMetadata('THROTTLER:TTLshort', method)).toBe(60000);
   });
 
   it('starts a stream as the session profileId', async () => {

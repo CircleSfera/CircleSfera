@@ -16,6 +16,7 @@ import {
   BEARER,
   createControllerApp,
 } from '../common/testing/http-controller.js';
+import { LiveCapacityService } from '../live/capacity/live-capacity.service.js';
 import { CspReportStore } from '../security-reports/csp-report.store.js';
 import { OperationsController } from './operations.controller.js';
 import { OrphanFilesReportService } from './orphan-files-report.service.js';
@@ -27,6 +28,7 @@ const ROUTES = [
   ['warehouse', 'report'],
   ['csp', 'summary'],
   ['orphan-files', 'report'],
+  ['lives', 'report'],
 ] as const;
 
 const staff = (permissions: string[]): CurrentAdminData => ({
@@ -44,11 +46,13 @@ describe('OperationsController', () => {
   const warehouse = { report: vi.fn() };
   const csp = { summary: vi.fn() };
   const orphans = { report: vi.fn() };
+  const lives = { report: vi.fn() };
   const services: Record<string, Record<string, ReturnType<typeof vi.fn>>> = {
     resources,
     warehouse,
     csp,
     'orphan-files': orphans,
+    lives,
   };
 
   // The real AdminGuard: only the staff session itself is stubbed.
@@ -60,6 +64,7 @@ describe('OperationsController', () => {
         { provide: WarehouseReportService, useValue: warehouse },
         { provide: CspReportStore, useValue: csp },
         { provide: OrphanFilesReportService, useValue: orphans },
+        { provide: LiveCapacityService, useValue: lives },
       ],
       guards: [{ guard: AdminJwtAuthGuard, mode: 'admin' }],
       admin,
