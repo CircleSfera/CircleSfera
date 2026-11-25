@@ -23,7 +23,7 @@ import { WarehouseExportService } from './warehouse-export.service.js';
     ClickHouseLoadService,
     WarehouseExportProcessor,
   ],
-  exports: [WarehouseExportService],
+  exports: [WarehouseExportService, ClickHouseLoadService],
 })
 export class WarehouseModule implements OnApplicationBootstrap {
   private readonly logger = new Logger(WarehouseModule.name);

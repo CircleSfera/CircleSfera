@@ -10,13 +10,15 @@ export const AGE_GROUPS_DAYS = [7, 30, 90] as const;
 /** Size groups, in bytes, the report sorts unused files into. */
 export const SIZE_GROUPS_BYTES = [10 * KB, 100 * KB, KB * KB] as const;
 
-/** How many of a group, by its label. */
+/** How many of a group, by its key. */
 export type Tally = Record<string, number>;
 
 /**
- * What the files no row uses are, in counts only (a public log may show
- * it): whether the storage gave them their name, their kind of file, whether
- * the record knows who uploaded them, how old and how large they are.
+ * What the files no row uses are, in counts only: whether the storage gave
+ * them their name, their kind of file, whether the record knows who uploaded
+ * them, how old and how large they are. Each group is keyed by a fixed key
+ * (the page words it): `lt_7d` is under 7 days, `ge_90d` 90 days or more,
+ * `lt_10kb` under 10 KB, `ge_1mb` 1 MB or more.
  */
 export interface UnusedFilesBreakdown {
   shape: Tally;
@@ -26,22 +28,22 @@ export interface UnusedFilesBreakdown {
   size: Tally;
 }
 
-function add(tally: Tally, label: string): void {
-  tally[label] = (tally[label] ?? 0) + 1;
+function add(tally: Tally, key: string): void {
+  tally[key] = (tally[key] ?? 0) + 1;
 }
 
 function groupOf(
   value: number,
   limits: readonly number[],
-  label: (limit: number) => string,
+  key: (limit: number) => string,
   last: string,
 ): string {
   const limit = limits.find((bound) => value < bound);
-  return limit === undefined ? last : label(limit);
+  return limit === undefined ? last : key(limit);
 }
 
-function sizeLabel(bytes: number): string {
-  return bytes >= KB * KB ? `${bytes / KB / KB} MB` : `${bytes / KB} KB`;
+function sizeKey(bytes: number): string {
+  return bytes >= KB * KB ? `${bytes / KB / KB}mb` : `${bytes / KB}kb`;
 }
 
 export function breakdownUnusedFiles(
@@ -61,23 +63,20 @@ export function breakdownUnusedFiles(
   for (const file of files) {
     add(
       breakdown.shape,
-      LOCAL_UPLOAD_URL.test(file.url) ? 'named by the storage' : 'another name',
+      LOCAL_UPLOAD_URL.test(file.url) ? 'storage_named' : 'other_name',
     );
     add(
       breakdown.extension,
       path.extname(file.url).slice(1).toLowerCase() || 'none',
     );
-    add(
-      breakdown.owner,
-      owners.has(file.url) ? 'with an owner' : 'with no owner',
-    );
+    add(breakdown.owner, owners.has(file.url) ? 'with_owner' : 'no_owner');
     add(
       breakdown.age,
       groupOf(
         (now - file.lastModified.getTime()) / DAY_MS,
         AGE_GROUPS_DAYS,
-        (days) => `under ${days} days`,
-        `${lastAge} days or more`,
+        (days) => `lt_${days}d`,
+        `ge_${lastAge}d`,
       ),
     );
     add(
@@ -85,28 +84,10 @@ export function breakdownUnusedFiles(
       groupOf(
         file.sizeBytes,
         SIZE_GROUPS_BYTES,
-        (bytes) => `under ${sizeLabel(bytes)}`,
-        `${sizeLabel(lastSize)} or more`,
+        (bytes) => `lt_${sizeKey(bytes)}`,
+        `ge_${sizeKey(lastSize)}`,
       ),
     );
   }
   return breakdown;
-}
-
-/** The breakdown as lines for the report, each group sorted by count. */
-export function breakdownLines(breakdown: UnusedFilesBreakdown): string[] {
-  const titles: Record<keyof UnusedFilesBreakdown, string> = {
-    shape: 'name',
-    extension: 'kind',
-    owner: 'owner',
-    age: 'age',
-    size: 'size',
-  };
-  return (Object.keys(titles) as Array<keyof UnusedFilesBreakdown>).map(
-    (group) =>
-      `    by ${titles[group]}: ${Object.entries(breakdown[group])
-        .sort(([, a], [, b]) => b - a)
-        .map(([label, count]) => `${label} ${count}`)
-        .join(', ')}`,
-  );
 }

@@ -1,6 +1,6 @@
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Queue } from 'bullmq';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SocketPresenceService } from '../socket/services/socket-presence.service.js';
 import {
   DEFAULT_OPERATIONAL_THRESHOLDS,
@@ -190,5 +190,143 @@ describe('OperationalMetricsService', () => {
 
     expect(snapshot.realtime.status).toBe('DEGRADED');
     expect(snapshot.overallStatus).toBe('DEGRADED');
+  });
+
+  describe('escalation once per threshold per UTC day', () => {
+    /** A Redis that keeps the keys it is given. */
+    const fakeRedis = () => {
+      const keys = new Map<string, string>();
+      return {
+        keys,
+        set: vi.fn(async (key: string, value: string) => {
+          keys.set(key, value);
+          return 'OK';
+        }),
+        exists: vi.fn(async (key: string) => (keys.has(key) ? 1 : 0)),
+      };
+    };
+    const incidents = () =>
+      mockEventEmitter.emit.mock.calls.filter(
+        ([event]) => event === 'system.incident',
+      );
+    const backlog = (waiting: number) =>
+      mockNotificationsQueue.getJobCounts.mockResolvedValue({
+        waiting,
+        active: 5,
+        failed: 0,
+        delayed: 0,
+      });
+    let redis: ReturnType<typeof fakeRedis>;
+
+    beforeEach(() => {
+      redis = fakeRedis();
+      // Slack receives every incident and says so.
+      mockEventEmitter.emit.mockImplementation(
+        (_event: string, payload: { onDelivered?: (ok: boolean) => void }) => {
+          payload?.onDelivered?.(true);
+        },
+      );
+      service = new OperationalMetricsService(
+        mockEventEmitter as unknown as EventEmitter2,
+        mockPresenceService as unknown as SocketPresenceService,
+        mockVideoQueue as unknown as Queue,
+        mockNotificationsQueue as unknown as Queue,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        redis as never,
+      );
+      vi.useFakeTimers({ toFake: ['Date'] });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('tells a lasting backlog once a day, not on every run', async () => {
+      backlog(600);
+      vi.setSystemTime(new Date('2026-11-25T08:00:00Z'));
+      await service.collectMetrics();
+      vi.setSystemTime(new Date('2026-11-25T08:01:00Z'));
+      const second = await service.collectMetrics();
+
+      // Still critical on the page, but told once.
+      expect(second.overallStatus).toBe('CRITICAL');
+      expect(incidents()).toHaveLength(1);
+      expect(redis.set).toHaveBeenCalledWith(
+        'ops:queue-alert:queue:notifications-processing:waiting:ALERT:500:2026-11-25',
+        '1',
+        'EX',
+        2 * 24 * 60 * 60,
+      );
+
+      vi.setSystemTime(new Date('2026-11-26T08:00:00Z'));
+      await service.collectMetrics();
+      expect(incidents()).toHaveLength(2);
+    });
+
+    it('still tells a higher tier reached the same day, once', async () => {
+      vi.setSystemTime(new Date('2026-11-25T08:00:00Z'));
+      backlog(150); // WARN: shown, never escalated
+      await service.collectMetrics();
+      expect(incidents()).toHaveLength(0);
+
+      backlog(600); // ALERT
+      vi.setSystemTime(new Date('2026-11-25T09:00:00Z'));
+      await service.collectMetrics();
+      expect(incidents()).toHaveLength(1);
+      expect(incidents()[0][1].message).toContain(
+        'Queue [notifications-processing] backlog critical: 600 jobs waiting.',
+      );
+
+      vi.setSystemTime(new Date('2026-11-25T10:00:00Z'));
+      await service.collectMetrics();
+      expect(incidents()).toHaveLength(1);
+    });
+
+    it('tells a new threshold crossed later the same day, with only what is new', async () => {
+      vi.setSystemTime(new Date('2026-11-25T08:00:00Z'));
+      backlog(600);
+      await service.collectMetrics();
+
+      mockNotificationsQueue.getJobCounts.mockResolvedValue({
+        waiting: 600,
+        active: 5,
+        failed: 60,
+        delayed: 0,
+      });
+      vi.setSystemTime(new Date('2026-11-25T09:00:00Z'));
+      await service.collectMetrics();
+
+      expect(incidents()).toHaveLength(2);
+      expect(incidents()[1][1].message).toContain('excessive failures');
+      expect(incidents()[1][1].message).not.toContain('backlog critical');
+    });
+
+    it('tells again later the same day a backlog Slack did not receive', async () => {
+      backlog(600);
+      mockEventEmitter.emit.mockImplementation(
+        (_event: string, payload: { onDelivered?: (ok: boolean) => void }) => {
+          payload?.onDelivered?.(false);
+        },
+      );
+      vi.setSystemTime(new Date('2026-11-25T08:00:00Z'));
+      await service.collectMetrics();
+      expect(redis.keys.size).toBe(0);
+
+      mockEventEmitter.emit.mockImplementation(
+        (_event: string, payload: { onDelivered?: (ok: boolean) => void }) => {
+          payload?.onDelivered?.(true);
+        },
+      );
+      vi.setSystemTime(new Date('2026-11-25T08:01:00Z'));
+      await service.collectMetrics();
+      vi.setSystemTime(new Date('2026-11-25T08:02:00Z'));
+      await service.collectMetrics();
+
+      expect(incidents()).toHaveLength(2);
+    });
   });
 });

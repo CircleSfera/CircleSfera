@@ -130,7 +130,9 @@ describe('SlackService', () => {
         { get: () => mockReviews } as any,
       );
 
-      await emptyService.sendProductionAlert({ message: 'No webhook alert' });
+      await expect(
+        emptyService.sendProductionAlert({ message: 'No webhook alert' }),
+      ).resolves.toBe(false);
       expect(axios.post).not.toHaveBeenCalled();
     });
 
@@ -152,7 +154,7 @@ describe('SlackService', () => {
           message: 'Axios fails once',
         });
         await vi.advanceTimersByTimeAsync(300);
-        await expect(promise).resolves.toBeUndefined();
+        await expect(promise).resolves.toBe(true);
         expect(axios.post).toHaveBeenCalledTimes(2);
       });
 
@@ -168,7 +170,7 @@ describe('SlackService', () => {
         });
         await vi.advanceTimersByTimeAsync(300);
         await vi.advanceTimersByTimeAsync(600);
-        await expect(promise).resolves.toBeUndefined();
+        await expect(promise).resolves.toBe(true);
         expect(axios.post).toHaveBeenCalledTimes(3);
       });
 
@@ -181,7 +183,7 @@ describe('SlackService', () => {
         });
         await vi.advanceTimersByTimeAsync(300);
         await vi.advanceTimersByTimeAsync(600);
-        await expect(promise).resolves.toBeUndefined();
+        await expect(promise).resolves.toBe(false);
         expect(axios.post).toHaveBeenCalledTimes(3);
         expect(errorSpy).toHaveBeenCalledWith(
           expect.stringContaining('SLACK_DELIVERY_FAILED after 3 attempt(s)'),
@@ -196,7 +198,7 @@ describe('SlackService', () => {
 
         await expect(
           service.sendProductionAlert({ message: 'Bad payload' }),
-        ).resolves.toBeUndefined();
+        ).resolves.toBe(false);
         expect(axios.post).toHaveBeenCalledTimes(1);
         expect(errorSpy).toHaveBeenCalledWith(
           expect.stringContaining('SLACK_DELIVERY_FAILED after 1 attempt(s)'),
@@ -232,7 +234,7 @@ describe('SlackService', () => {
     it('delegates handleSystemIncident to sendProductionAlert', async () => {
       const spy = vi
         .spyOn(service, 'sendProductionAlert')
-        .mockResolvedValue(undefined);
+        .mockResolvedValue(true);
 
       await service.handleSystemIncident({
         message: 'System crash',
@@ -243,6 +245,22 @@ describe('SlackService', () => {
         message: 'System crash',
         path: '/api/crash',
       });
+    });
+
+    it('tells the producer whether the incident reached Slack', async () => {
+      const spy = vi.spyOn(service, 'sendProductionAlert');
+      const onDelivered = vi.fn();
+
+      spy.mockResolvedValueOnce(true);
+      await service.handleSystemIncident({ message: 'a', onDelivered });
+      spy.mockResolvedValueOnce(false);
+      await service.handleSystemIncident({ message: 'b', onDelivered });
+      spy.mockRejectedValueOnce(new Error('boom'));
+      await expect(
+        service.handleSystemIncident({ message: 'c', onDelivered }),
+      ).rejects.toThrow('boom');
+
+      expect(onDelivered.mock.calls).toEqual([[true], [false], [false]]);
     });
   });
 

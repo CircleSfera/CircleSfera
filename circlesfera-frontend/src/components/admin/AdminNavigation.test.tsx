@@ -264,12 +264,17 @@ describe('staff panel navigation', () => {
     },
   );
 
-  it('shows the one group of the Backoffice whole, with nothing to fold', () => {
+  it('shows the groups of the Backoffice whole, the business and the platform, with nothing to fold', () => {
     site.backoffice = true;
     show('plans');
 
-    expect(navGroupsFor('backoffice')).toHaveLength(1);
+    expect(navGroupsFor('backoffice')).toHaveLength(2);
     expect(sidebar().querySelector('[aria-expanded]')).toBeNull();
+    expect(within(sidebar()).getByText('Business')).toBeInTheDocument();
+    expect(within(sidebar()).getByText('Platform')).toBeInTheDocument();
+    expect(
+      within(sidebar()).getByRole('button', { name: 'Operations' }),
+    ).toBeInTheDocument();
   });
 
   it('marks the open section and changes section on a click', () => {

@@ -5,5 +5,6 @@ import { CspReportStore } from './csp-report.store.js';
 @Module({
   controllers: [CspReportController],
   providers: [CspReportStore],
+  exports: [CspReportStore],
 })
 export class SecurityReportsModule {}

@@ -42,10 +42,10 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
   const hasPermission = useAdminAuthStore((s) => s.hasPermission);
   // The sections of the staff site this is: Admin Panel or Backoffice.
   const navGroups = navGroupsFor(currentStaffSite());
-  // With several groups the list is longer than the screen: a group is
-  // folded until it is opened, and the group of the open section is always
-  // shown. A site with one group shows it whole.
-  const foldable = navGroups.length > 1;
+  // With several groups the Admin Panel's list is longer than the screen: a
+  // group is folded until it is opened, and the group of the open section is
+  // always shown. The Backoffice's list fits: its groups are shown whole.
+  const foldable = navGroups.length > 1 && currentStaffSite() === 'admin';
   const [openGroups, setOpenGroups] = useState(readOpenGroups);
   const toggleGroup = (labelKey: string, open: boolean) => {
     const next = { ...openGroups, [labelKey]: open };

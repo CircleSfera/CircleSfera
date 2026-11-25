@@ -46,7 +46,25 @@ describe('the two staff sites', () => {
       'monetization',
       'newsletter',
       'review-business',
+      'operations',
     ]);
+  });
+
+  it('puts Operations in the Backoffice, in a group of the platform, for the system permission', () => {
+    expect(tabSite('operations')).toBe('backoffice');
+    expect(ADMIN_TAB_PERMISSIONS.operations).toBe('system');
+    const groups = navGroupsFor('backoffice').map((group) => ({
+      labelKey: group.labelKey,
+      ids: group.items.map((item) => item.id),
+    }));
+    expect(groups.map((group) => group.labelKey)).toEqual([
+      'backoffice.nav.business',
+      'backoffice.nav.platform',
+    ]);
+    expect(groups[0].ids).not.toContain('operations');
+    expect(groups[1].ids).toEqual(['operations']);
+    expect(canOpenTab((key) => key === 'system', 'operations')).toBe(true);
+    expect(canOpenTab((key) => key === 'payments', 'operations')).toBe(false);
   });
 
   it('opens company verification only to staff with its own permission, in the Backoffice', () => {
