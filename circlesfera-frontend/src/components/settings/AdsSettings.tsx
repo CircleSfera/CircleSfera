@@ -8,17 +8,31 @@ import {
   adsConsentApi,
 } from '../../services/adsConsent.service';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import AdInterests from '../ads/AdInterests';
 import AdsConsentChoices from '../ads/AdsConsentChoices';
 import { ErrorState } from '../ErrorEmptyStates';
 
 /**
- * Settings → Ads (PD-084): the answer in force, and the same two answers as
- * the first screen to change it at any time. Withdrawing is one tap, as
- * giving was. Someone under 18 gets general ads only and is not offered the
- * other answer; an account with no date of birth is told that is why, and
- * where to add one.
+ * Settings → Ads (PD-084): how ads are chosen, then the interests the person
+ * chooses for them. Each part loads on its own: one that fails to load does
+ * not hide the other.
  */
 export default function AdsSettings() {
+  return (
+    <div className="space-y-10">
+      <AdsConsentSettings />
+      <AdInterests />
+    </div>
+  );
+}
+
+/**
+ * The answer in force, and the same two answers as the first screen to
+ * change it at any time. Withdrawing is one tap, as giving was. Someone under
+ * 18 gets general ads only and is not offered the other answer; an account
+ * with no date of birth is told that is why, and where to add one.
+ */
+function AdsConsentSettings() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const language = i18n.resolvedLanguage ?? i18n.language;

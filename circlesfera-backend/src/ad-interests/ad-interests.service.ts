@@ -5,11 +5,11 @@ import {
   AD_INTERESTS_MIN_AGE,
   type AdInterestsStatus,
   type AdInterestTopic,
-  ageOn,
   ErrorCode,
 } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
+import { type AdAge, adAgeOf } from '../common/utils/ad-age.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -42,9 +42,9 @@ function inListOrder(topics: readonly string[]): AdInterestTopic[] {
  * section 2): chosen by the person, visible and editable by them, never
  * worked out from what they do. Of the User, for every Profile of theirs.
  *
- * Nothing is taken while the ads flag is off. Someone under 18, or an
+ * No interest is taken while the ads flag is off. Someone under 18, or an
  * account without a date of birth, can choose none: none is stored, so
- * none can ever be used for them.
+ * none can ever be used for them. Clearing is always possible.
  */
 @Injectable()
 export class AdInterestsService {
@@ -72,12 +72,17 @@ export class AdInterestsService {
 
   /**
    * Replaces the person's interests with `topics`. An empty list clears
-   * them: the row goes, nothing is kept.
+   * them: the row goes, nothing is kept. Clearing is always taken, whatever
+   * the flag or the age, so what is stored can always be removed.
    */
   async choose(
     userId: string,
     topics: readonly string[],
   ): Promise<AdInterestsStatus> {
+    if (topics.length === 0) {
+      await this.prisma.adInterests.deleteMany({ where: { userId } });
+      return this.status(userId);
+    }
     if (!(await this.flagOn(userId))) {
       // Settings → Ads is not offered yet (Ads 0, the legal review): what
       // nobody was shown is not taken.
@@ -92,10 +97,6 @@ export class AdInterestsService {
         `Choose up to ${AD_INTERESTS_MAX} different topics from the list.`,
         { max: AD_INTERESTS_MAX },
       );
-    }
-    if (topics.length === 0) {
-      await this.prisma.adInterests.deleteMany({ where: { userId } });
-      return this.status(userId);
     }
     const age = await this.age(userId);
     if (!age.adult) {
@@ -142,19 +143,8 @@ export class AdInterestsService {
     });
   }
 
-  // By the date of birth on the account, as the ads consent reads it: an
-  // account without one is treated as under age, and says so.
-  private async age(
-    userId: string,
-  ): Promise<{ adult: boolean; missing: boolean }> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { dateOfBirth: true },
-    });
-    const dateOfBirth = user?.dateOfBirth ?? null;
-    return {
-      adult: !!dateOfBirth && ageOn(dateOfBirth) >= AD_INTERESTS_MIN_AGE,
-      missing: !dateOfBirth,
-    };
+  // The same rule as the ads consent reads.
+  private age(userId: string): Promise<AdAge> {
+    return adAgeOf(this.prisma, userId, AD_INTERESTS_MIN_AGE);
   }
 }

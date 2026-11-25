@@ -6,12 +6,12 @@ import {
   type AdChoice,
   type AdConsentSource,
   type AdConsentStatus,
-  ageOn,
   ErrorCode,
 } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Locale } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
+import { type AdAge, adAgeOf } from '../common/utils/ad-age.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -191,20 +191,8 @@ export class AdsConsentService {
     return this.experiments.isFeatureEnabled(ADS_CONSENT_FLAG, userId);
   }
 
-  // By the date of birth on the account, as payments read it: an account
-  // without one is treated as under age, and says so.
-  private async age(
-    userId: string,
-  ): Promise<{ adult: boolean; missing: boolean }> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { dateOfBirth: true },
-    });
-    const dateOfBirth = user?.dateOfBirth ?? null;
-    return {
-      adult: !!dateOfBirth && ageOn(dateOfBirth) >= AD_PERSONALISATION_MIN_AGE,
-      missing: !dateOfBirth,
-    };
+  private age(userId: string): Promise<AdAge> {
+    return adAgeOf(this.prisma, userId, AD_PERSONALISATION_MIN_AGE);
   }
 
   private latest(userId: string): Promise<LatestAnswer | null> {

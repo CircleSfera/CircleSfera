@@ -152,16 +152,25 @@ describe('AdInterestsService (PD-084)', () => {
       expect(prisma.adInterests.deleteMany).not.toHaveBeenCalled();
     });
 
-    it('takes nothing while the flag is off, not even a clear', async () => {
+    it('takes no interest while the flag is off', async () => {
       experiments.isFeatureEnabled.mockResolvedValue(false);
 
-      for (const topics of [['travel'], []]) {
-        await expect(service.choose('u1', topics)).rejects.toMatchObject(
-          refusedWith(ErrorCode.FEATURE_DISABLED),
-        );
-      }
+      await expect(service.choose('u1', ['travel'])).rejects.toMatchObject(
+        refusedWith(ErrorCode.FEATURE_DISABLED),
+      );
       expect(prisma.adInterests.upsert).not.toHaveBeenCalled();
       expect(prisma.adInterests.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('always lets the person clear what is stored, even with the flag off', async () => {
+      experiments.isFeatureEnabled.mockResolvedValue(false);
+
+      await expect(service.choose('u1', [])).resolves.toMatchObject({
+        interests: [],
+      });
+      expect(prisma.adInterests.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'u1' },
+      });
     });
 
     it('stores no interest for someone under 18, and says so', async () => {
