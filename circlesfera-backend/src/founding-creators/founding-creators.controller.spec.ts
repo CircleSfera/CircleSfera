@@ -122,10 +122,20 @@ describe('FoundingCreatorsController', () => {
     expect(service.apply).not.toHaveBeenCalled();
   });
 
-  it('starts the free year of the session Profile', async () => {
-    await request(app.getHttpServer())
+  it('starts the free year of the session Profile only with its terms accepted', async () => {
+    const server = app.getHttpServer();
+    for (const body of [{}, { accept: false }, { accept: 'yes' }]) {
+      await request(server)
+        .post('/api/v1/founding-creators/free-year')
+        .set(BEARER)
+        .send(body)
+        .expect(400);
+    }
+    expect(service.startFreeYear).not.toHaveBeenCalled();
+    await request(server)
       .post('/api/v1/founding-creators/free-year')
       .set(BEARER)
+      .send({ accept: true })
       .expect(200, { ok: 1 });
     expect(service.startFreeYear).toHaveBeenCalledWith(...who);
   });
@@ -134,15 +144,16 @@ describe('FoundingCreatorsController', () => {
 describe('AdminFoundingCreatorsController', () => {
   const review = { queue: vi.fn(), decide: vi.fn() };
   // The real staff guard: only the permission opens it.
-  const appFor = (permissions: string[], roles: string[]) =>
+  const appFor = (permissions: string[], roles: string[], stepUp = true) =>
     createControllerApp({
       controllers: [AdminFoundingCreatorsController],
       providers: [{ provide: FoundingCreatorsReviewService, useValue: review }],
       guards: [{ guard: AdminJwtAuthGuard, mode: 'admin' }],
-      admin: { ...TEST_ADMIN, permissions, roles },
+      admin: { ...TEST_ADMIN, permissions, roles, stepUpVerified: stepUp },
     });
   let allowed: INestApplication;
   let support: INestApplication;
+  let notSteppedUp: INestApplication;
 
   beforeAll(async () => {
     allowed = await appFor(['founding_creators'], ['PLATFORM_ADMIN']);
@@ -150,10 +161,30 @@ describe('AdminFoundingCreatorsController', () => {
       ['support', 'company_verification', 'payments'],
       ['SUPPORT_ADMIN'],
     );
+    notSteppedUp = await appFor(
+      ['founding_creators'],
+      ['PLATFORM_ADMIN'],
+      false,
+    );
   });
   afterAll(async () => {
     await allowed.close();
     await support.close();
+    await notSteppedUp.close();
+  });
+
+  it('asks the member of staff to prove again who they are before a decision, as for other actions on money', async () => {
+    await request(notSteppedUp.getHttpServer())
+      .get('/api/v1/admin/founding-creators')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    const res = await request(notSteppedUp.getHttpServer())
+      .post(`/api/v1/admin/founding-creators/${TEST_UUID}/decision`)
+      .set(ADMIN_BEARER)
+      .send({ approve: true })
+      .expect(401);
+    expect(res.body.message).toBe('ADMIN_STEP_UP_REQUIRED');
+    expect(review.decide).not.toHaveBeenCalled();
   });
   beforeEach(() => {
     vi.clearAllMocks();

@@ -557,6 +557,47 @@ export const EmailTemplates = {
     };
   },
 
+  // A founding creator's free year ends in a few days (BD-034): the day it
+  // ends, the monthly price a saved card then pays (in cents, VAT
+  // included), and how to cancel.
+  freeYearEnding: (
+    ctx: EmailContext,
+    planName: string,
+    username: string,
+    endsAt: Date,
+    priceCents: number,
+    currency: string,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    const language = ctx.locale === 'es' ? 'es-ES' : 'en-GB';
+    const date = endsAt.toLocaleDateString(language, {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+    const price = new Intl.NumberFormat(language, {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(priceCents / 100);
+    return {
+      subject: fill(copy.freeYearEnding.subject, { plan: planName, date }),
+      html: layout(ctx, copy, {
+        title: copy.freeYearEnding.title,
+        content: fill(copy.freeYearEnding.body, {
+          plan: escapeHtml(planName),
+          username: escapeHtml(username),
+          date: escapeHtml(date),
+          price: escapeHtml(price),
+        }),
+        button: {
+          text: copy.freeYearEnding.button,
+          url: `${ctx.frontendUrl}/accounts/billing`,
+        },
+      }),
+    };
+  },
+
   // A plan withdrawn from within 14 days: it ended at once, and the unused
   // part of what was paid is refunded. The amount is in cents.
   planWithdrawn: (

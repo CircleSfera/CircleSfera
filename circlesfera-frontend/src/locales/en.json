@@ -345,7 +345,7 @@
       "pro_desc": "Elite creator upgrade",
       "status_active": "Active",
       "status_trialing": "Free trial",
-      "free_year_until": "Free as a founding creator until {{date}}. Nothing is charged. To keep the plan after that day, add a payment method in Manage billing; otherwise it ends then.",
+      "free_year_until": "Free as a founding creator until {{date}}. We charge you nothing during the year. When it ends, if you have a card saved, the plan continues with a charge of €4.99 a month, VAT included, until you cancel it; otherwise it ends by itself.",
       "status_past_due": "Payment overdue: we keep trying and you keep your plan. Check your card in the billing portal.",
       "status_unpaid": "Unpaid: your plan is paused until you pay the open invoice in the billing portal.",
       "status_incomplete": "Payment pending",
@@ -2690,7 +2690,7 @@
       "benefits": {
         "badge": "The Verified plan free for twelve months, with its badge once your identity is verified.",
         "no_card": "No card and no charge: the year is given by CircleSfera.",
-        "end": "When the year ends, the plan ends too, unless you add a payment method to keep it. You can cancel it at any time."
+        "end": "When the year ends, if you have a card saved, the plan continues at €4.99 a month, VAT included, until you cancel it; otherwise it ends by itself. We'll let you know a few days before."
       },
       "form_title": "Apply",
       "form_hint": "One application per profile. You'll see the answer here.",
@@ -2715,13 +2715,17 @@
       "approved_title": "You're a founding creator",
       "free_until": "Your Verified plan is free until {{date}}.",
       "free_over": "Your free year has ended. Your plan shows in Billing.",
-      "after_year": "Nothing is charged. When the year ends, the plan ends too unless you add a payment method in Billing.",
+      "after_year": "We charge you nothing during the year. When it ends, if you have a card saved on CircleSfera, the plan continues with a charge of €4.99 a month, VAT included, until you cancel it. If you have no card, the plan ends by itself. We'll let you know a few days before, and you can cancel it at any time in Settings → Subscription.",
+      "ends_cancelled": "You cancelled it: the plan ends on {{date}} and nothing is charged.",
+      "ends_no_address": "Your year ends on {{date}} and won't continue by itself: we don't have a billing address to work out the VAT of a charge. If you want to keep Verified after that, choose it in Plans, where you're asked for the address.",
       "see_billing": "See it in Billing",
       "needs_identity": "Verify your identity to start your free year: the Verified badge needs it. The twelve months start when you start them, so none of the year is lost.",
       "verify": "Verify my identity",
       "verify_failed": "The identity check could not open. Try again.",
       "has_plan": "Your profile already has a plan, so no second one is added. If that plan ends, you can start your free year here.",
-      "ready": "Your free year is ready to start: twelve months of Verified, with no card.",
+      "terms_title": "Your free year of Verified",
+      "terms_year": "It starts today and ends on {{date}}. We charge you nothing during the year.",
+      "terms_after": "When it ends, if you have a card saved on CircleSfera, the plan continues with a charge of €4.99 a month, VAT included, until you cancel it. If you have no card, the plan ends by itself. We'll let you know a few days before, and you can cancel it at any time in Settings → Subscription.",
       "start": "Start my free year",
       "started": "Your free year has started",
       "start_failed": "Your free year could not start. Try again.",
@@ -4975,11 +4979,7 @@
       "confirm_decline": "Decline",
       "cancel": "Cancel",
       "declined": "Application declined",
-      "approved_started": "Approved: the free year of Verified has started",
-      "waits_identity": "Approved: the free year starts once their identity is verified",
-      "has_plan": "Approved: the profile already has a plan, so no free year was added",
-      "under_age": "Approved: the free year does not start for someone under the paying age",
-      "not_started": "Approved, but the free year could not start now. They can start it from the app.",
+      "approved": "Approved: the person can start their free year from the app, accepting its terms",
       "decide_failed": "The decision could not be saved",
       "reasons": {
         "LINKS_UNREACHABLE": "We couldn't open the links",
@@ -6508,7 +6508,8 @@
       "FOUNDING_CREATOR_PROFILE_TYPE": "Founding creators is for Creator profiles.",
       "FOUNDING_CREATOR_ALREADY_APPLIED": "This profile already has an application under review or approved.",
       "FOUNDING_CREATOR_NOT_FOUND": "There's no approved application to act on.",
-      "FREE_YEAR_NOT_WITHDRAWABLE": "Nothing was paid for this free year, so there's nothing to withdraw from. You can cancel it instead."
+      "FREE_YEAR_NOT_WITHDRAWABLE": "Nothing was paid for this free year, so there's nothing to withdraw from. You can cancel it instead.",
+      "FREE_YEAR_NOT_RENEWABLE": "This free year ends on its date. To keep Verified after that, choose it in Plans."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

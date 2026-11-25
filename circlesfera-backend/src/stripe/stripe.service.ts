@@ -538,14 +538,32 @@ export class StripeService implements OnModuleInit {
     });
   }
 
+  // Whether the provider can work out the VAT of a customer from the address
+  // it holds: its location is supported, or one where the account collects
+  // no tax (the VAT is then nothing). An unknown or failed location, or a
+  // deleted customer, cannot be taxed.
+  async canTaxCustomer(customerId: string): Promise<boolean> {
+    const customer = await this.stripe.customers.retrieve(customerId, {
+      expand: ['tax'],
+    });
+    if ((customer as { deleted?: boolean }).deleted) return false;
+    const status = (customer as Stripe.Customer).tax?.automatic_tax;
+    return status === 'supported' || status === 'not_collecting';
+  }
+
   // The free year of a founding creator (BD-034): a subscription to the
-  // plan's price whose trial lasts until `trialEnd`, started with no payment
-  // method and nothing charged. When the trial ends without a payment method
-  // the provider cancels it; with one added meanwhile it renews as any plan.
+  // plan's price whose trial lasts until `trialEnd`, nothing charged during
+  // it. When the trial ends without a payment method the provider cancels
+  // it; with one saved it continues at the price, its VAT worked out by the
+  // provider (`automaticTax`), as at Checkout. `endAtTrialEnd` ends it at
+  // the trial's end whatever is saved: for a customer whose VAT cannot be
+  // worked out, so no charge without it is ever made.
   async createFreeYearSubscription(params: {
     customerId: string;
     priceId: string;
     trialEnd: Date;
+    automaticTax: boolean;
+    endAtTrialEnd: boolean;
     metadata: Record<string, string>;
     idempotencyKey: string;
   }): Promise<Stripe.Subscription> {
@@ -557,6 +575,8 @@ export class StripeService implements OnModuleInit {
         trial_settings: {
           end_behavior: { missing_payment_method: 'cancel' },
         },
+        automatic_tax: { enabled: params.automaticTax },
+        cancel_at_period_end: params.endAtTrialEnd,
         metadata: params.metadata,
       },
       { idempotencyKey: params.idempotencyKey },

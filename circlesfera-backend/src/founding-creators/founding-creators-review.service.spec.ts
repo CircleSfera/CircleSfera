@@ -1,52 +1,77 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { ForbiddenException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AppException } from '../common/errors/app.exception.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
-import type { FoundingCreatorsService } from './founding-creators.service.js';
-import { FoundingCreatorsReviewService } from './founding-creators-review.service.js';
+import {
+  decidableProfileWhere,
+  FoundingCreatorsReviewService,
+} from './founding-creators-review.service.js';
 
 describe('FoundingCreatorsReviewService', () => {
+  const NOW = new Date('2026-11-25T10:00:00.000Z');
   let prisma: Record<string, any>;
-  let founders: { startYearOf: ReturnType<typeof vi.fn> };
   let service: FoundingCreatorsReviewService;
   const secretKey = process.env.STRIPE_SECRET_KEY;
 
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
     // Where money is real, as in production.
     process.env.STRIPE_SECRET_KEY = 'sk_live_placeholder';
     prisma = {
       foundingCreatorApplication: {
         findMany: vi.fn().mockResolvedValue([{ id: 'app_1' }]),
         count: vi.fn().mockResolvedValue(1),
-        findFirst: vi.fn().mockResolvedValue({ profile: { userId: 'u_1' } }),
+        findFirst: vi.fn().mockResolvedValue({
+          profileId: 'prof_1',
+          profile: { userId: 'u_1' },
+        }),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         findUniqueOrThrow: vi
           .fn()
           .mockResolvedValue({ id: 'app_1', status: 'APPROVED' }),
       },
+      profile: { count: vi.fn().mockResolvedValue(1) },
       adminAuditLog: { create: vi.fn().mockResolvedValue({}) },
       user: { findUnique: vi.fn().mockResolvedValue({ isTestAccount: false }) },
       $transaction: vi.fn((work: (tx: unknown) => unknown) => work(prisma)),
     };
-    founders = { startYearOf: vi.fn().mockResolvedValue(undefined) };
     service = new FoundingCreatorsReviewService(
       prisma as unknown as PrismaService,
-      founders as unknown as FoundingCreatorsService,
     );
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     if (secretKey === undefined) delete process.env.STRIPE_SECRET_KEY;
     else process.env.STRIPE_SECRET_KEY = secretKey;
   });
 
-  it('lists the applications waiting, oldest first', async () => {
+  it('decides only on Profiles not banned nor suspended, of accounts active and not being deleted', () => {
+    expect(decidableProfileWhere(NOW)).toEqual({
+      isAccountBanned: false,
+      OR: [{ suspendedUntil: null }, { suspendedUntil: { lte: NOW } }],
+      user: {
+        isActive: true,
+        isRootBanned: false,
+        deletedAt: null,
+        scheduledDeletionAt: null,
+      },
+    });
+  });
+
+  it('lists the applications waiting, oldest first, without those of suspended or closing accounts', async () => {
     const res = await service.queue();
 
     expect(res).toEqual({ items: [{ id: 'app_1' }], total: 1 });
     const query = prisma.foundingCreatorApplication.findMany.mock.calls[0][0];
-    expect(query.where).toEqual({ status: 'PENDING' });
+    expect(query.where).toEqual({
+      status: 'PENDING',
+      profile: decidableProfileWhere(NOW),
+    });
+    expect(prisma.foundingCreatorApplication.count).toHaveBeenCalledWith({
+      where: query.where,
+    });
     expect(query.orderBy).toEqual({ createdAt: 'asc' });
     // Staff see whether the identity is verified: the year waits for it.
     expect(query.select.profile.select.user).toEqual({
@@ -55,7 +80,7 @@ describe('FoundingCreatorsReviewService', () => {
   });
 
   describe('approving', () => {
-    it('records the approval and its audit together, then starts the free year', async () => {
+    it('records the approval and its audit together, and gives nothing by itself: the person starts the year accepting its terms', async () => {
       const res = await service.decide('admin_1', 'app_1', { approve: true });
 
       expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
@@ -63,7 +88,7 @@ describe('FoundingCreatorsReviewService', () => {
           where: { id: 'app_1', status: 'PENDING' },
           data: {
             status: 'APPROVED',
-            decidedAt: expect.any(Date),
+            decidedAt: NOW,
             decidedById: 'admin_1',
             declineReason: null,
             declineNote: null,
@@ -80,60 +105,24 @@ describe('FoundingCreatorsReviewService', () => {
         },
       });
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-      // The year starts after the decision is committed.
+      expect(res).toEqual({ id: 'app_1', status: 'APPROVED' });
+    });
+
+    it('refuses the approval of a suspended Profile or an account being deleted, with nothing recorded', async () => {
+      prisma.profile.count.mockResolvedValue(0);
+
+      await expect(
+        service.decide('admin_1', 'app_1', { approve: true }),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.FOUNDING_CREATOR_NOT_FOUND,
+      });
+      expect(prisma.profile.count).toHaveBeenCalledWith({
+        where: { id: 'prof_1', ...decidableProfileWhere(NOW) },
+      });
       expect(
-        prisma.adminAuditLog.create.mock.invocationCallOrder[0],
-      ).toBeLessThan(founders.startYearOf.mock.invocationCallOrder[0]);
-      expect(founders.startYearOf).toHaveBeenCalledWith('app_1');
-      expect(res).toEqual({
-        id: 'app_1',
-        status: 'APPROVED',
-        freeYearNotStarted: null,
-      });
-    });
-
-    it('keeps the approval when the year cannot start yet, and says why: the identity, a plan held', async () => {
-      founders.startYearOf.mockRejectedValueOnce(
-        AppException.Forbidden(ErrorCode.IDENTITY_VERIFICATION_REQUIRED),
-      );
-      const waiting = await service.decide('admin_1', 'app_1', {
-        approve: true,
-      });
-      expect(waiting.freeYearNotStarted).toBe(
-        ErrorCode.IDENTITY_VERIFICATION_REQUIRED,
-      );
-
-      founders.startYearOf.mockRejectedValueOnce(
-        AppException.Conflict(ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS),
-      );
-      const holding = await service.decide('admin_1', 'app_1', {
-        approve: true,
-      });
-      expect(holding.freeYearNotStarted).toBe(
-        ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
-      );
-
-      // The Test Account refusal comes as the code in its message.
-      founders.startYearOf.mockRejectedValueOnce(
-        new ForbiddenException('TEST_ACCOUNT_NO_REAL_MONEY'),
-      );
-      const test = await service.decide('admin_1', 'app_1', { approve: true });
-      expect(test.freeYearNotStarted).toBe('TEST_ACCOUNT_NO_REAL_MONEY');
-    });
-
-    it('keeps the approval when the provider fails, which the person can start again', async () => {
-      founders.startYearOf.mockRejectedValueOnce(new Error('provider down'));
-      const logged = vi
-        .spyOn(
-          (service as unknown as { logger: { error: () => void } }).logger,
-          'error',
-        )
-        .mockImplementation(() => {});
-
-      const res = await service.decide('admin_1', 'app_1', { approve: true });
-
-      expect(res.freeYearNotStarted).toBe('FAILED');
-      expect(logged).toHaveBeenCalled();
+        prisma.foundingCreatorApplication.updateMany,
+      ).not.toHaveBeenCalled();
+      expect(prisma.adminAuditLog.create).not.toHaveBeenCalled();
     });
 
     it('never approves a Test Account where money is real: nothing is recorded', async () => {
@@ -146,12 +135,12 @@ describe('FoundingCreatorsReviewService', () => {
         prisma.foundingCreatorApplication.updateMany,
       ).not.toHaveBeenCalled();
       expect(prisma.adminAuditLog.create).not.toHaveBeenCalled();
-      expect(founders.startYearOf).not.toHaveBeenCalled();
     });
   });
 
   describe('declining', () => {
-    it('records the reason and the note the person reads, audited, and gives nothing', async () => {
+    it('records the reason and the note the person reads, audited, also for an account not open to approval', async () => {
+      prisma.profile.count.mockResolvedValue(0);
       await service.decide('admin_1', 'app_1', {
         approve: false,
         reason: 'NOT_VIDEO_WORK',
@@ -163,7 +152,7 @@ describe('FoundingCreatorsReviewService', () => {
           where: { id: 'app_1', status: 'PENDING' },
           data: {
             status: 'DECLINED',
-            decidedAt: expect.any(Date),
+            decidedAt: NOW,
             decidedById: 'admin_1',
             declineReason: 'NOT_VIDEO_WORK',
             declineNote: 'Show us edits of your own.',
@@ -176,7 +165,6 @@ describe('FoundingCreatorsReviewService', () => {
           details: 'Declined: NOT_VIDEO_WORK',
         }),
       });
-      expect(founders.startYearOf).not.toHaveBeenCalled();
       // A Test Account may be declined.
       expect(prisma.user.findUnique).not.toHaveBeenCalled();
     });
@@ -212,6 +200,5 @@ describe('FoundingCreatorsReviewService', () => {
       errorCode: ErrorCode.FOUNDING_CREATOR_NOT_FOUND,
     });
     expect(prisma.adminAuditLog.create).not.toHaveBeenCalled();
-    expect(founders.startYearOf).not.toHaveBeenCalled();
   });
 });

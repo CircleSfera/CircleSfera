@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { adminAuthApi } from '../../services/admin-auth.service';
 import { foundingCreatorsStaffApi } from '../../services/foundingCreators.service';
 import { renderWithProviders } from '../../test/test-utils';
 import { adminToast } from './adminToast';
@@ -9,6 +10,9 @@ vi.mock('../../services/foundingCreators.service', () => ({
   foundingCreatorsStaffApi: { queue: vi.fn(), decide: vi.fn() },
 }));
 vi.mock('./adminToast', () => ({ adminToast: vi.fn() }));
+vi.mock('../../services/admin-auth.service', () => ({
+  adminAuthApi: { stepUp: vi.fn() },
+}));
 
 const api = vi.mocked(foundingCreatorsStaffApi);
 
@@ -34,10 +38,8 @@ describe('FoundingCreatorsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.queue.mockResolvedValue({ items: [application()], total: 1 });
-    api.decide.mockResolvedValue({
-      ...application(),
-      freeYearNotStarted: null,
-    });
+    api.decide.mockResolvedValue(application());
+    vi.mocked(adminAuthApi.stepUp).mockResolvedValue({} as never);
   });
 
   it('shows what staff decide on: the work, the city, the note and whether the identity is verified', async () => {
@@ -54,25 +56,35 @@ describe('FoundingCreatorsTab', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer nofollow');
   });
 
-  it('approves, and says when the free year waits for the identity', async () => {
-    api.decide.mockResolvedValue({
-      ...application(),
-      status: 'APPROVED',
-      freeYearNotStarted: 'IDENTITY_VERIFICATION_REQUIRED',
-    });
+  it('approves after the member of staff proves again who they are, and says the person starts the year', async () => {
+    api.decide
+      .mockRejectedValueOnce({
+        response: { status: 401, data: { message: 'ADMIN_STEP_UP_REQUIRED' } },
+      })
+      .mockResolvedValue({ ...application(), status: 'APPROVED' });
     const { i18n } = renderWithProviders(<FoundingCreatorsTab />);
     fireEvent.click(
       await screen.findByText(i18n!.t('admin.founding_creators.approve')),
     );
+    await screen.findByRole('dialog');
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: '123456' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
     await waitFor(() =>
-      expect(api.decide).toHaveBeenCalledWith('app-1', { approve: true }),
+      expect(adminAuthApi.stepUp).toHaveBeenCalledWith({
+        totpCode: '123456',
+      }),
     );
     await waitFor(() =>
       expect(adminToast).toHaveBeenCalledWith(
-        i18n!.t('admin.founding_creators.waits_identity'),
+        i18n!.t('admin.founding_creators.approved'),
         'success',
       ),
     );
+    expect(api.decide).toHaveBeenCalledTimes(2);
+    expect(api.decide).toHaveBeenLastCalledWith('app-1', { approve: true });
   });
 
   it('declines with a reason the person reads and a note', async () => {

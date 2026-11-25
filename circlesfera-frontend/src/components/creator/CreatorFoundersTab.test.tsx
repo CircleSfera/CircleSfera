@@ -25,6 +25,14 @@ vi.mock('react-hot-toast', () => ({
 
 const api = vi.mocked(foundingCreatorsApi);
 
+// The last day of the year in the tests, written out in the reader's
+// language.
+const yearEnd = (language: string) =>
+  new Date('2027-11-25T10:00:00Z').toLocaleDateString(language, {
+    dateStyle: 'long',
+    timeZone: 'UTC',
+  });
+
 const view = (
   over: Partial<FoundingCreatorView> = {},
 ): FoundingCreatorView => ({
@@ -33,6 +41,7 @@ const view = (
   identityVerified: true,
   application: null,
   freeYear: null,
+  freeYearEndsAt: null,
   ...over,
 });
 const application = (over = {}) => ({
@@ -45,6 +54,7 @@ const application = (over = {}) => ({
   decidedAt: null,
   declineReason: null,
   declineNote: null,
+  freeYearTaxable: null,
   platformSubscription: null,
   ...over,
 });
@@ -221,19 +231,73 @@ describe('the founding creators page', () => {
     expect(api.startFreeYear).not.toHaveBeenCalled();
   });
 
-  it('starts a year that is ready, and says so for a Profile with a plan', async () => {
+  it('shows the terms of the year, with the day it ends, before the button that accepts them and starts it', async () => {
     api.status.mockResolvedValue(
       view({
         freeYear: 'READY',
+        freeYearEndsAt: '2027-11-25T10:00:00Z',
         application: application({ status: 'APPROVED' }),
       }),
     );
     api.startFreeYear.mockResolvedValue(view({ freeYear: 'HAS_PLAN' }));
     const { i18n } = renderWithProviders(<CreatorFoundersTab />);
     const t = i18n!.t.bind(i18n);
-    fireEvent.click(await screen.findByText(t('creator.founders.start')));
+    const terms = await screen.findByTestId('founders-terms');
+    expect(terms).toHaveTextContent(t('creator.founders.terms_title'));
+    expect(terms).toHaveTextContent(
+      t('creator.founders.terms_year', { date: yearEnd(i18n!.language) }),
+    );
+    expect(terms).toHaveTextContent(t('creator.founders.terms_after'));
+    expect(terms).toHaveTextContent('€4.99 a month, VAT included');
+    fireEvent.click(screen.getByText(t('creator.founders.start')));
     await waitFor(() => expect(api.startFreeYear).toHaveBeenCalled());
     expect(toast.success).toHaveBeenCalledWith(t('creator.founders.started'));
+  });
+
+  it('says the year ends at its end, and why, when no VAT can be worked out for the address', async () => {
+    api.status.mockResolvedValue(
+      view({
+        freeYear: 'STARTED',
+        application: application({
+          status: 'APPROVED',
+          freeYearTaxable: false,
+          platformSubscription: {
+            status: 'TRIALING',
+            currentPeriodEnd: '2027-11-25T10:00:00Z',
+            cancelAtPeriodEnd: true,
+          },
+        }),
+      }),
+    );
+    const { i18n } = renderWithProviders(<CreatorFoundersTab />);
+    expect(await screen.findByTestId('founders-after-year')).toHaveTextContent(
+      i18n!.t('creator.founders.ends_no_address', {
+        date: yearEnd(i18n!.language),
+      }),
+    );
+  });
+
+  it('says a year cancelled by the person ends at its end with nothing charged', async () => {
+    api.status.mockResolvedValue(
+      view({
+        freeYear: 'STARTED',
+        application: application({
+          status: 'APPROVED',
+          freeYearTaxable: true,
+          platformSubscription: {
+            status: 'TRIALING',
+            currentPeriodEnd: '2027-11-25T10:00:00Z',
+            cancelAtPeriodEnd: true,
+          },
+        }),
+      }),
+    );
+    const { i18n } = renderWithProviders(<CreatorFoundersTab />);
+    expect(await screen.findByTestId('founders-after-year')).toHaveTextContent(
+      i18n!.t('creator.founders.ends_cancelled', {
+        date: yearEnd(i18n!.language),
+      }),
+    );
   });
 
   it('is for Creator Profiles only', async () => {

@@ -3600,6 +3600,15 @@ model FoundingCreatorApplication {
   decidedById            String?
   declineReason          FoundingCreatorDeclineReason?
   declineNote            String?
+  // When the person accepted the terms of the free year, and which wording
+  // (FREE_YEAR_CONSENT_VERSION): its twelve months count from then, so
+  // every try to start it asks the provider for the same year.
+  freeYearAcceptedAt     DateTime?
+  freeYearConsentVersion String?
+  // Whether the provider can work out the VAT of the person's address: when
+  // it cannot, the year ends at its end and never turns into a charge.
+  // Null until the year starts.
+  freeYearTaxable        Boolean?
   // The free year, once started.
   platformSubscriptionId String?                       @unique
   createdAt              DateTime                      @default(now())

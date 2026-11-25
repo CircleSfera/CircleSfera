@@ -24,7 +24,7 @@ describe('foundingCreatorsApi', () => {
     expect(client.get).toHaveBeenCalledWith('/founding-creators');
     expect(client.post.mock.calls).toEqual([
       ['/founding-creators', request],
-      ['/founding-creators/free-year'],
+      ['/founding-creators/free-year', { accept: true }],
     ]);
   });
 

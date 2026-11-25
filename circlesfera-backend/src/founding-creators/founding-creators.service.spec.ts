@@ -154,6 +154,7 @@ describe('FoundingCreatorsService', () => {
         identityVerified: false,
         application: null,
         freeYear: null,
+        freeYearEndsAt: null,
       });
       expect(
         prisma.foundingCreatorApplication.findFirst,
@@ -216,8 +217,18 @@ describe('FoundingCreatorsService', () => {
       );
       prisma.platformSubscription.count.mockResolvedValueOnce(1);
 
-      expect((await service.status('u_1', 'prof_1')).freeYear).toBe('HAS_PLAN');
-      expect((await service.status('u_1', 'prof_1')).freeYear).toBe('READY');
+      const holding = await service.status('u_1', 'prof_1');
+      expect(holding.freeYear).toBe('HAS_PLAN');
+      expect(holding.freeYearEndsAt).toBeNull();
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-25T10:00:00.000Z'));
+      const ready = await service.status('u_1', 'prof_1');
+      vi.useRealTimers();
+      expect(ready.freeYear).toBe('READY');
+      // The day a year started now ends, for the terms shown before it.
+      expect(ready.freeYearEndsAt).toEqual(
+        new Date('2027-11-25T10:00:00.000Z'),
+      );
       expect(prisma.platformSubscription.count).toHaveBeenCalledWith({
         where: {
           profileId: 'prof_1',
@@ -236,15 +247,10 @@ describe('FoundingCreatorsService', () => {
 
   describe('startFreeYear', () => {
     it('starts the year of the approved application of the owner, for the person who owns the Profile', async () => {
-      prisma.foundingCreatorApplication.findFirst
-        // The approved application of the Profile.
-        .mockResolvedValueOnce({ id: 'app_1' })
-        // Read again to start it.
-        .mockResolvedValueOnce({
-          profileId: 'prof_1',
-          platformSubscriptionId: null,
-          profile: { userId: 'u_1' },
-        });
+      prisma.foundingCreatorApplication.findFirst.mockResolvedValueOnce({
+        id: 'app_1',
+        platformSubscriptionId: null,
+      });
 
       await service.startFreeYear('u_1', 'prof_1');
 
@@ -252,7 +258,7 @@ describe('FoundingCreatorsService', () => {
         prisma.foundingCreatorApplication.findFirst,
       ).toHaveBeenNthCalledWith(1, {
         where: { profileId: 'prof_1', status: 'APPROVED' },
-        select: { id: true },
+        select: { id: true, platformSubscriptionId: true },
       });
       expect(payments.startFoundingYear).toHaveBeenCalledWith({
         userId: 'u_1',
@@ -277,26 +283,14 @@ describe('FoundingCreatorsService', () => {
     });
 
     it('never gives a year twice: one already given is left as it is', async () => {
-      prisma.foundingCreatorApplication.findFirst.mockResolvedValue({
-        profileId: 'prof_1',
+      prisma.foundingCreatorApplication.findFirst.mockResolvedValueOnce({
+        id: 'app_1',
         platformSubscriptionId: 'row_1',
-        profile: { userId: 'u_1' },
       });
 
-      await service.startYearOf('app_1');
+      await service.startFreeYear('u_1', 'prof_1');
 
       expect(payments.startFoundingYear).not.toHaveBeenCalled();
-    });
-
-    it('starts nothing for an application not approved', async () => {
-      await expect(service.startYearOf('app_1')).rejects.toMatchObject({
-        errorCode: ErrorCode.FOUNDING_CREATOR_NOT_FOUND,
-      });
-      expect(prisma.foundingCreatorApplication.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'app_1', status: 'APPROVED' },
-        }),
-      );
     });
   });
 

@@ -588,6 +588,26 @@ describe('EmailService', () => {
       );
     });
 
+    it('enqueues the notice that a founding creator free year ends, with the day and the price a saved card pays', async () => {
+      await service.sendFreeYearEndingEmail(
+        'subscriber@example.com',
+        'Verified',
+        'ana',
+        new Date('2027-11-25T10:00:00.000Z'),
+        499,
+        'EUR',
+      );
+      expect(mockEmailQueue.add).toHaveBeenCalledWith(
+        'send-transactional-email',
+        expect.objectContaining({
+          to: 'subscriber@example.com',
+          subject:
+            'Tu año gratis de Verified termina el 25 de noviembre de 2027',
+          html: expect.stringMatching(/4,99\s€ al mes, IVA incluido/),
+        }),
+      );
+    });
+
     it('should enqueue a subscription receipt email', async () => {
       await service.sendSubscriptionReceipt(
         'subscriber@example.com',

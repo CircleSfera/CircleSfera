@@ -120,6 +120,14 @@ export interface EmailCopy {
     byTeam: string;
     button: string;
   };
+  // A founding creator's free year ends in a few days (BD-034): with a card
+  // saved it continues at the monthly price, VAT included.
+  freeYearEnding: {
+    subject: string;
+    title: string;
+    body: string;
+    button: string;
+  };
   greeting: string;
   fallbackName: string;
 }
@@ -274,6 +282,12 @@ const en: EmailCopy = {
       'Nothing was left to refund: no part of the period paid was unused.',
     byTeam:
       'The other <strong>{amount}</strong>, paid from your account balance, is returned to you by the CircleSfera team.',
+    button: 'See my plan',
+  },
+  freeYearEnding: {
+    subject: 'Your free year of {plan} ends on {date}',
+    title: 'Your free year is ending',
+    body: 'The free year of the <strong>{plan}</strong> plan of @{username} ends on <strong>{date}</strong>.<br><br>If you have a card saved on CircleSfera, the plan continues from that day at <strong>{price} a month, VAT included</strong>, until you cancel it. If you have no card saved, the plan ends by itself and nothing is charged.<br><br>You can cancel it at any time in Settings → Subscription.',
     button: 'See my plan',
   },
   greeting: 'Hello',
@@ -435,6 +449,12 @@ const es: EmailCopy = {
       'No quedaba nada por devolver: no había ninguna parte del periodo pagado sin usar.',
     byTeam:
       'Los otros <strong>{amount}</strong>, pagados con el saldo de tu cuenta, te los devuelve el equipo de CircleSfera.',
+    button: 'Ver mi plan',
+  },
+  freeYearEnding: {
+    subject: 'Tu año gratis de {plan} termina el {date}',
+    title: 'Tu año gratis está terminando',
+    body: 'El año gratis del plan <strong>{plan}</strong> de @{username} termina el <strong>{date}</strong>.<br><br>Si tienes una tarjeta guardada en CircleSfera, el plan seguirá desde ese día con un cobro de <strong>{price} al mes, IVA incluido</strong>, hasta que lo canceles. Si no tienes tarjeta guardada, el plan termina solo y no se cobra nada.<br><br>Puedes cancelarlo cuando quieras en Ajustes → Suscripción.',
     button: 'Ver mi plan',
   },
   greeting: 'Hola',

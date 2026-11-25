@@ -15,6 +15,7 @@ import {
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ApplyFoundingCreatorDto } from './dto/apply-founding-creator.dto.js';
+import { StartFreeYearDto } from './dto/start-free-year.dto.js';
 import { FoundingCreatorsService } from './founding-creators.service.js';
 
 // The founding creator application of the Creator Profile in use, by its
@@ -43,12 +44,16 @@ export class FoundingCreatorsController {
     return this.service.apply(user.userId, user.profileId, body);
   }
 
-  // Starts the free year of an approved application once it can start.
+  // Starts the free year of an approved application once it can start, the
+  // person accepting its terms.
   @Post('free-year')
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 5, ttl: 60_000 } })
   @ApiResponse({ status: 200 })
-  startFreeYear(@CurrentUser() user: CurrentUserData) {
+  startFreeYear(
+    @CurrentUser() user: CurrentUserData,
+    @Body() _body: StartFreeYearDto,
+  ) {
     return this.service.startFreeYear(user.userId, user.profileId);
   }
 }

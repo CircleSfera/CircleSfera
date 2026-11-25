@@ -97,7 +97,12 @@ describe('BillingSettings', () => {
 
     const line = await screen.findByTestId('billing-free-year');
     expect(line).toHaveTextContent('2027');
-    expect(screen.queryByText(/4[.,]99/)).toBeNull();
+    // What happens at its end (owner decision A): with a saved card it
+    // continues at the monthly price with VAT; without one it ends.
+    expect(line).toHaveTextContent('VAT included');
+    expect(line).toHaveTextContent('ends by itself');
+    // No price line of a running plan.
+    expect(screen.queryByText(/a month$/)).toBeNull();
     expect(screen.queryByText(t('settings.billing.renews_on'))).toBeNull();
     // It can be cancelled like any plan.
     expect(

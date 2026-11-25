@@ -234,6 +234,9 @@ export enum ErrorCode {
   // A free year is not withdrawn from: nothing was paid for it. It is
   // cancelled instead.
   FREE_YEAR_NOT_WITHDRAWABLE = 'FREE_YEAR_NOT_WITHDRAWABLE',
+  // A free year whose VAT the provider cannot work out ends at its end: it
+  // is not resumed into a charge. Verified is chosen in Plans instead.
+  FREE_YEAR_NOT_RENEWABLE = 'FREE_YEAR_NOT_RENEWABLE',
   CAPTCHA_FAILED = 'CAPTCHA_FAILED',
   CAPTCHA_REQUIRED = 'CAPTCHA_REQUIRED',
 }

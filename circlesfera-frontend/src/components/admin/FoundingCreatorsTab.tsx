@@ -15,6 +15,7 @@ import { Textarea } from '../ui/Textarea';
 import { ADMIN_PAGE_LIST_STATE, AdminEmptyState } from './AdminEmptyState';
 import { AdminPageHeader } from './AdminPageHeader';
 import { adminToast } from './adminToast';
+import { isStepUpCancelled, useAdminStepUp } from './useAdminStepUp';
 
 const REASONS: FoundingCreatorDeclineReason[] = [
   'LINKS_UNREACHABLE',
@@ -24,17 +25,12 @@ const REASONS: FoundingCreatorDeclineReason[] = [
   'OTHER',
 ];
 
-// Why an approved application's free year did not start yet, as the server
-// says it, in words staff read.
-const NOT_STARTED: Record<string, string> = {
-  IDENTITY_VERIFICATION_REQUIRED: 'admin.founding_creators.waits_identity',
-  ACTIVE_SUBSCRIPTION_EXISTS: 'admin.founding_creators.has_plan',
-  PAYER_UNDER_AGE: 'admin.founding_creators.under_age',
-};
-
 // Founding creators (BD-034): the applications waiting for staff, oldest
-// first. Approving gives the Verified plan free for a year; the person sees
-// the decision in the app (nothing is sent to them).
+// first (those of suspended or closing accounts are left out). Approving
+// lets the person start the Verified plan free for a year from the app,
+// accepting its terms; the person sees the decision there (nothing is sent
+// to them). A decision asks the member of staff to prove again who they
+// are.
 export default function FoundingCreatorsTab() {
   const { t } = useTranslation();
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
@@ -107,34 +103,35 @@ function ApplicationCard({
     useState<FoundingCreatorDeclineReason>('NOT_VIDEO_WORK');
   const [note, setNote] = useState('');
 
+  const stepUp = useAdminStepUp();
   const decide = useMutation({
     mutationFn: (approve: boolean) =>
-      foundingCreatorsStaffApi.decide(
-        application.id,
-        approve
-          ? { approve: true }
-          : { approve: false, reason, note: note.trim() || undefined },
+      stepUp.run(() =>
+        foundingCreatorsStaffApi.decide(
+          application.id,
+          approve
+            ? { approve: true }
+            : { approve: false, reason, note: note.trim() || undefined },
+        ),
       ),
-    onSuccess: (res, approve) => {
-      if (!approve) {
-        adminToast(t('admin.founding_creators.declined'), 'success');
-      } else if (!res.freeYearNotStarted) {
-        adminToast(t('admin.founding_creators.approved_started'), 'success');
-      } else {
-        adminToast(
-          t(
-            NOT_STARTED[res.freeYearNotStarted] ??
-              'admin.founding_creators.not_started',
-          ),
-          'success',
-        );
-      }
+    onSuccess: (_res, approve) => {
+      adminToast(
+        t(
+          approve
+            ? 'admin.founding_creators.approved'
+            : 'admin.founding_creators.declined',
+        ),
+        'success',
+      );
       queryClient.invalidateQueries({
         queryKey: ['admin', 'founding-creators'],
       });
     },
-    onError: () =>
-      adminToast(t('admin.founding_creators.decide_failed'), 'error'),
+    onError: (err) => {
+      // Closing the confirmation is not a failure.
+      if (isStepUpCancelled(err)) return;
+      adminToast(t('admin.founding_creators.decide_failed'), 'error');
+    },
   });
 
   const fact = (label: string, value: ReactNode) => (
@@ -262,6 +259,7 @@ function ApplicationCard({
           </Button>
         </div>
       )}
+      {stepUp.dialog}
     </article>
   );
 }

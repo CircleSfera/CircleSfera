@@ -417,6 +417,30 @@ export class EmailService {
     );
   }
 
+  // A founding creator's free year ends in a few days (BD-034): a notice
+  // of a charge to come, to the account's address.
+  async sendFreeYearEndingEmail(
+    email: string,
+    planName: string,
+    username: string,
+    endsAt: Date,
+    priceCents: number,
+    currency: string,
+  ) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.freeYearEnding(
+        ctx,
+        planName,
+        username,
+        endsAt,
+        priceCents,
+        currency,
+      ),
+    );
+  }
+
   // A plan was withdrawn from within 14 days: it ended at once and the
   // unused part, in cents, is refunded.
   async sendPlanWithdrawnEmail(

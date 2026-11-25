@@ -23,6 +23,9 @@ export interface FoundingCreatorApplication {
   decidedAt: string | null;
   declineReason: FoundingCreatorDeclineReason | null;
   declineNote: string | null;
+  // False when the year ends at its end because no VAT can be worked out
+  // for the person's address; null until it starts.
+  freeYearTaxable: boolean | null;
   platformSubscription: {
     status: string;
     currentPeriodEnd: string;
@@ -36,6 +39,8 @@ export interface FoundingCreatorView {
   identityVerified: boolean;
   application: FoundingCreatorApplication | null;
   freeYear: FreeYearState | null;
+  // The day a year started now would end (READY only), for its terms.
+  freeYearEndsAt: string | null;
 }
 
 export interface FoundingCreatorRequest {
@@ -57,8 +62,11 @@ export const foundingCreatorsApi = {
     const { data } = await apiClient.post(BASE, request);
     return data;
   },
+  // Starts the free year, the person accepting the terms shown with it.
   async startFreeYear(): Promise<FoundingCreatorView> {
-    const { data } = await apiClient.post(`${BASE}/free-year`);
+    const { data } = await apiClient.post(`${BASE}/free-year`, {
+      accept: true,
+    });
     return data;
   },
 };
@@ -98,14 +106,12 @@ export const foundingCreatorsStaffApi = {
     const { data } = await apiClient.get(STAFF);
     return data;
   },
-  // The decision; for an approval, why the free year did not start yet
-  // (an error code), or null when it did.
+  // The decision. An approval gives nothing by itself: the person starts the
+  // year from the app, accepting its terms.
   async decide(
     id: string,
     decision: FoundingCreatorDecision,
-  ): Promise<
-    StaffFoundingCreatorApplication & { freeYearNotStarted: string | null }
-  > {
+  ): Promise<StaffFoundingCreatorApplication> {
     const { data } = await apiClient.post(`${STAFF}/${id}/decision`, decision);
     return data;
   },

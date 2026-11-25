@@ -17,6 +17,7 @@ import {
 } from '../auth/decorators/current-admin.decorator.js';
 import {
   AdminGuard,
+  RequireAdminStepUp,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
@@ -40,7 +41,10 @@ export class AdminFoundingCreatorsController {
     return this.review.queue();
   }
 
+  // An approval gives a plan for free: the member of staff proves again who
+  // they are, as for other actions on money.
   @Post(':id/decision')
+  @RequireAdminStepUp()
   @HttpCode(HttpStatus.OK)
   @ApiResponse({ status: 200 })
   decide(

@@ -32,6 +32,25 @@ export function planStartConsentMetadata(): Record<string, string> {
   };
 }
 
+// The free year of Verified of a founding creator (BD-034): the person
+// accepts its terms before it starts (that nothing is charged during the
+// year; that at its end, with a card saved, it continues at the monthly
+// price, VAT included, until cancelled, and without one it ends). The
+// wording is the owner's of 2026-11-25. Its version and the moment it was
+// accepted go into the subscription's metadata at the provider and onto
+// the application.
+export const FREE_YEAR_CONSENT_VERSION = '2026-11-25';
+
+export function freeYearConsentMetadata(
+  acceptedAt: Date,
+): Record<string, string> {
+  return {
+    free_year_consent: 'accepted',
+    free_year_consent_version: FREE_YEAR_CONSENT_VERSION,
+    free_year_consent_at: acceptedAt.toISOString(),
+  };
+}
+
 // The 14 days to withdraw from a plan, counted from its purchase.
 export const WITHDRAWAL_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
 

@@ -12,6 +12,7 @@ const day = new Date('2026-11-03T12:00:00Z');
 const EVERY_NOTICE: Notice[] = [
   { key: 'company_verified' },
   { key: 'company_rejected', reason: 'DOCUMENTS_UNREADABLE', note: null },
+  { key: 'free_year_ending', endsAt: day, priceCents: 499, currency: 'EUR' },
   { key: 'post_liked' },
   { key: 'comment_liked' },
   { key: 'post_commented' },
@@ -377,6 +378,23 @@ describe('renderChatPush', () => {
   it('says only that there is a message when the sender has no handle', () => {
     expect(renderChatPush('es', null).body).toBe('Tienes un mensaje nuevo');
     expect(renderChatPush('en', undefined).body).toBe('You have a new message');
+  });
+});
+
+describe('the end of a founding creator free year (BD-034)', () => {
+  it('says the day it ends, the monthly price with VAT a saved card pays, and how to cancel, in each language', () => {
+    const notice = {
+      key: 'free_year_ending' as const,
+      endsAt: new Date('2027-11-25T10:00:00Z'),
+      priceCents: 499,
+      currency: 'EUR',
+    };
+    expect(renderNotice('es', notice)).toBe(
+      'Tu año gratis de Verified termina el 25 de noviembre de 2027. Si tienes una tarjeta guardada en CircleSfera, el plan seguirá con un cobro de 4,99 € al mes, IVA incluido, hasta que lo canceles. Si no tienes tarjeta, el plan termina solo. Puedes cancelarlo cuando quieras en Ajustes → Suscripción.',
+    );
+    expect(renderNotice('en', notice)).toBe(
+      'Your free year of Verified ends on 25 November 2027. If you have a card saved on CircleSfera, the plan continues at €4.99 a month, VAT included, until you cancel it. Without a card, it ends by itself. You can cancel it at any time in Settings → Subscription.',
+    );
   });
 });
 

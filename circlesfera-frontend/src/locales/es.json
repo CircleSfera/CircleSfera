@@ -345,7 +345,7 @@
       "pro_desc": "Mejora para creadores élite",
       "status_active": "Activa",
       "status_trialing": "Prueba gratuita",
-      "free_year_until": "Gratis como creador fundador hasta el {{date}}. No se cobra nada. Para mantener el plan después de ese día, añade un método de pago en Gestionar facturación; si no, termina ese día.",
+      "free_year_until": "Gratis como creador fundador hasta el {{date}}. No te cobramos nada durante el año. Al terminar, si tienes una tarjeta guardada, el plan seguirá con un cobro de 4,99 € al mes, IVA incluido, hasta que lo canceles; si no, termina solo.",
       "status_past_due": "Pago atrasado: lo seguimos intentando y mantienes tu plan. Revisa tu tarjeta en el portal de pagos.",
       "status_unpaid": "Sin pagar: tu plan está en pausa hasta que pagues la factura pendiente en el portal de pagos.",
       "status_incomplete": "Pago pendiente",
@@ -2690,7 +2690,7 @@
       "benefits": {
         "badge": "El plan Verified gratis durante doce meses, con su insignia en cuanto tu identidad esté verificada.",
         "no_card": "Sin tarjeta y sin cargos: el año lo da CircleSfera.",
-        "end": "Cuando termina el año, el plan termina también, salvo que añadas un método de pago para mantenerlo. Puedes cancelarlo cuando quieras."
+        "end": "Al terminar el año, si tienes una tarjeta guardada, el plan sigue a 4,99 € al mes, IVA incluido, hasta que lo canceles; si no, termina solo. Te avisamos unos días antes."
       },
       "form_title": "Solicitar",
       "form_hint": "Una solicitud por perfil. Verás la respuesta aquí.",
@@ -2715,13 +2715,17 @@
       "approved_title": "Eres creador fundador",
       "free_until": "Tu plan Verified es gratis hasta el {{date}}.",
       "free_over": "Tu año gratis ha terminado. Tu plan aparece en Facturación.",
-      "after_year": "No se cobra nada. Cuando termina el año, el plan termina también salvo que añadas un método de pago en Facturación.",
+      "after_year": "No te cobramos nada durante el año. Al terminar, si tienes una tarjeta guardada en CircleSfera, el plan seguirá con un cobro de 4,99 € al mes, IVA incluido, hasta que lo canceles. Si no tienes tarjeta, el plan termina solo. Te avisaremos unos días antes y puedes cancelarlo cuando quieras en Ajustes → Suscripción.",
+      "ends_cancelled": "Lo has cancelado: el plan termina el {{date}} y no se cobra nada.",
+      "ends_no_address": "Tu año termina el {{date}} y no seguirá solo: no tenemos una dirección de facturación con la que calcular el IVA de un cobro. Si quieres seguir con Verified después, elígelo en Planes, donde se te pide la dirección.",
       "see_billing": "Verlo en Facturación",
       "needs_identity": "Verifica tu identidad para empezar tu año gratis: la insignia Verified lo necesita. Los doce meses empiezan cuando tú los empiezas, así que no pierdes nada del año.",
       "verify": "Verificar mi identidad",
       "verify_failed": "No se pudo abrir la verificación de identidad. Inténtalo de nuevo.",
       "has_plan": "Tu perfil ya tiene un plan, así que no se añade otro. Si ese plan termina, puedes empezar aquí tu año gratis.",
-      "ready": "Tu año gratis está listo para empezar: doce meses de Verified, sin tarjeta.",
+      "terms_title": "Tu año gratis de Verified",
+      "terms_year": "Empieza hoy y termina el {{date}}. No te cobramos nada durante el año.",
+      "terms_after": "Al terminar, si tienes una tarjeta guardada en CircleSfera, el plan seguirá con un cobro de 4,99 € al mes, IVA incluido, hasta que lo canceles. Si no tienes tarjeta, el plan termina solo. Te avisaremos unos días antes y puedes cancelarlo cuando quieras en Ajustes → Suscripción.",
       "start": "Empezar mi año gratis",
       "started": "Tu año gratis ha empezado",
       "start_failed": "Tu año gratis no pudo empezar. Inténtalo de nuevo.",
@@ -4975,11 +4979,7 @@
       "confirm_decline": "Rechazar",
       "cancel": "Cancelar",
       "declined": "Solicitud rechazada",
-      "approved_started": "Aprobada: el año gratis de Verified ha empezado",
-      "waits_identity": "Aprobada: el año gratis empieza cuando verifique su identidad",
-      "has_plan": "Aprobada: el perfil ya tiene un plan, así que no se añadió el año gratis",
-      "under_age": "Aprobada: el año gratis no empieza para quien no tiene la edad para pagar",
-      "not_started": "Aprobada, pero el año gratis no pudo empezar ahora. Puede empezarlo desde la app.",
+      "approved": "Aprobada: la persona puede empezar su año gratis desde la app, aceptando sus condiciones",
       "decide_failed": "No se pudo guardar la decisión",
       "reasons": {
         "LINKS_UNREACHABLE": "No pudimos abrir los enlaces",
@@ -6508,7 +6508,8 @@
       "FOUNDING_CREATOR_PROFILE_TYPE": "Creadores fundadores es para perfiles de creador.",
       "FOUNDING_CREATOR_ALREADY_APPLIED": "Este perfil ya tiene una solicitud en revisión o aprobada.",
       "FOUNDING_CREATOR_NOT_FOUND": "No hay ninguna solicitud aprobada sobre la que actuar.",
-      "FREE_YEAR_NOT_WITHDRAWABLE": "No se pagó nada por este año gratis, así que no hay nada de lo que desistir. Puedes cancelarlo."
+      "FREE_YEAR_NOT_WITHDRAWABLE": "No se pagó nada por este año gratis, así que no hay nada de lo que desistir. Puedes cancelarlo.",
+      "FREE_YEAR_NOT_RENEWABLE": "Este año gratis termina en su fecha. Para seguir con Verified después, elígelo en Planes."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

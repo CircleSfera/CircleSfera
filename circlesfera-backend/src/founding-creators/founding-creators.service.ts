@@ -1,4 +1,4 @@
-import { ErrorCode } from '@circlesfera/shared';
+import { ErrorCode, FOUNDING_CREATOR_FREE_MONTHS } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AccountType,
@@ -22,6 +22,9 @@ const OWNER_SELECT = {
   decidedAt: true,
   declineReason: true,
   declineNote: true,
+  // Whether the year ends at its end because the provider cannot work out
+  // the VAT of the person's address.
+  freeYearTaxable: true,
   platformSubscription: {
     select: { status: true, currentPeriodEnd: true, cancelAtPeriodEnd: true },
   },
@@ -33,8 +36,8 @@ const OWNER_SELECT = {
 //   the badge needs (PD-076); it starts once they start it, never before,
 //   so none of the year is lost waiting.
 // - HAS_PLAN: the Profile holds a plan, which keeps; no second one is given.
-// - READY: it can start now (verified since the approval, or a try that
-//   failed).
+// - READY: the person can start it, accepting its terms: the year counts
+//   from then.
 export type FreeYearState = 'STARTED' | 'NEEDS_IDENTITY' | 'HAS_PLAN' | 'READY';
 
 // The plans a Profile holds while they run or are owed.
@@ -44,6 +47,14 @@ const HELD: SubscriptionStatus[] = [
   SubscriptionStatus.PAST_DUE,
   SubscriptionStatus.UNPAID,
 ];
+
+// The day a free year started at `from` ends: twelve calendar months on,
+// as the provider is asked.
+export function freeYearEnd(from: Date): Date {
+  const end = new Date(from);
+  end.setUTCMonth(end.getUTCMonth() + FOUNDING_CREATOR_FREE_MONTHS);
+  return end;
+}
 
 // The links as the person gave them, each once.
 export function distinctLinks(links: readonly string[]): string[] {
@@ -74,6 +85,7 @@ export class FoundingCreatorsService {
         identityVerified: false,
         application: null,
         freeYear: null,
+        freeYearEndsAt: null,
       };
     }
     const application = await this.prisma.foundingCreatorApplication.findFirst({
@@ -82,14 +94,18 @@ export class FoundingCreatorsService {
       select: OWNER_SELECT,
     });
     const identityVerified = !!profile.user?.identityVerifiedAt;
+    const freeYear = application
+      ? await this.freeYearState(profileId, application, identityVerified)
+      : null;
     return {
       isOwner: true,
       isCreator: profile.accountType === AccountType.CREATOR,
       identityVerified,
       application,
-      freeYear: application
-        ? await this.freeYearState(profileId, application, identityVerified)
-        : null,
+      freeYear,
+      // The day a year started now would end, for the terms the person
+      // accepts before starting it.
+      freeYearEndsAt: freeYear === 'READY' ? freeYearEnd(new Date()) : null,
     };
   }
 
@@ -141,38 +157,26 @@ export class FoundingCreatorsService {
   }
 
   // Starts the free year of the Profile's approved application, by its
-  // owner: once their identity is verified, or after a try that failed.
+  // owner, who accepts its terms in the same request (the DTO refuses a
+  // request without the acceptance): never by staff, never without them. One
+  // already given is left as it is.
   async startFreeYear(userId: string, profileId: string) {
     const profile = await this.ownProfile(userId, profileId);
     const application = profile
       ? await this.prisma.foundingCreatorApplication.findFirst({
           where: { profileId, status: FoundingCreatorStatus.APPROVED },
-          select: { id: true },
+          select: { id: true, platformSubscriptionId: true },
         })
       : null;
     if (!application) throw this.notFound();
-    await this.startYearOf(application.id);
+    if (!application.platformSubscriptionId) {
+      await this.payments.startFoundingYear({
+        userId,
+        profileId,
+        applicationId: application.id,
+      });
+    }
     return this.status(userId, profileId);
-  }
-
-  // Starts the free year of an approved application, for its owner or for
-  // staff approving it. One already given is left as it is.
-  async startYearOf(applicationId: string): Promise<void> {
-    const application = await this.prisma.foundingCreatorApplication.findFirst({
-      where: { id: applicationId, status: FoundingCreatorStatus.APPROVED },
-      select: {
-        profileId: true,
-        platformSubscriptionId: true,
-        profile: { select: { userId: true } },
-      },
-    });
-    if (!application) throw this.notFound();
-    if (application.platformSubscriptionId) return;
-    await this.payments.startFoundingYear({
-      userId: application.profile.userId,
-      profileId: application.profileId,
-      applicationId,
-    });
   }
 
   private async freeYearState(

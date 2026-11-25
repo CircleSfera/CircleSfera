@@ -26,6 +26,14 @@ import { CreatorSection } from './CreatorPieces';
 
 const QUERY_KEY = ['founding-creators'];
 
+// A day written out ("25 de noviembre de 2027"), as the provider counts it.
+function longDay(value: string, language: string): string {
+  return new Date(value).toLocaleDateString(language, {
+    dateStyle: 'long',
+    timeZone: 'UTC',
+  });
+}
+
 // A web address with http or https, as the server accepts.
 export function isWebLink(value: string): boolean {
   const text = value.trim();
@@ -269,17 +277,29 @@ function FreeYear({
   const state: FreeYearState | null = view.freeYear;
   const plan = application.platformSubscription;
   if (state === 'STARTED' && plan) {
-    const until = formatDay(plan.currentPeriodEnd, i18n.language);
+    const until = longDay(plan.currentPeriodEnd, i18n.language);
+    const free = plan.status === 'TRIALING';
+    // What happens at the end: it continues with a saved card; it ends when
+    // cancelled, or when no VAT can be worked out for the address.
+    const after =
+      application.freeYearTaxable === false
+        ? t('creator.founders.ends_no_address', { date: until })
+        : plan.cancelAtPeriodEnd
+          ? t('creator.founders.ends_cancelled', { date: until })
+          : t('creator.founders.after_year');
     return (
       <div className="mt-1 space-y-3">
         <p className="text-sm text-white/70 leading-relaxed">
-          {plan.status === 'TRIALING'
+          {free
             ? t('creator.founders.free_until', { date: until })
             : t('creator.founders.free_over')}
         </p>
-        {plan.status === 'TRIALING' ? (
-          <p className="text-xs text-white/50 leading-relaxed">
-            {t('creator.founders.after_year')}
+        {free ? (
+          <p
+            className="text-xs text-white/50 leading-relaxed"
+            data-testid="founders-after-year"
+          >
+            {after}
           </p>
         ) : null}
         <Link
@@ -316,10 +336,26 @@ function FreeYear({
       </p>
     );
   }
+  // The terms the person accepts by starting the year (owner's wording,
+  // BD-034, 2026-11-25): the button sends the acceptance.
   return (
-    <div className="mt-1 space-y-3">
+    <section
+      className="mt-2 space-y-3"
+      aria-labelledby="free-year-terms"
+      data-testid="founders-terms"
+    >
+      <h3 id="free-year-terms" className="text-base font-semibold text-white">
+        {t('creator.founders.terms_title')}
+      </h3>
+      <p className="text-sm text-white/80 leading-relaxed">
+        {t('creator.founders.terms_year', {
+          date: view.freeYearEndsAt
+            ? longDay(view.freeYearEndsAt, i18n.language)
+            : '',
+        })}
+      </p>
       <p className="text-sm text-white/70 leading-relaxed">
-        {t('creator.founders.ready')}
+        {t('creator.founders.terms_after')}
       </p>
       <Button
         variant="primary"
@@ -330,7 +366,7 @@ function FreeYear({
       >
         {t('creator.founders.start')}
       </Button>
-    </div>
+    </section>
   );
 }
 

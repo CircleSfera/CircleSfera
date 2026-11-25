@@ -1,5 +1,5 @@
 import { ErrorCode } from '@circlesfera/shared';
-import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   AdminAction,
   FoundingCreatorStatus,
@@ -9,7 +9,6 @@ import { AppException } from '../common/errors/app.exception.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { DecideFoundingCreatorDto } from './dto/decide-founding-creator.dto.js';
-import { FoundingCreatorsService } from './founding-creators.service.js';
 
 const QUEUE_PAGE = 50;
 
@@ -36,33 +35,38 @@ const STAFF_SELECT = {
   },
 } satisfies Prisma.FoundingCreatorApplicationSelect;
 
-// Why an approved application's free year did not start: the error code
-// the person would be shown (identity not verified, a plan already held, a
-// Test Account, not an adult payer), or FAILED for anything else.
-function notStartedBecause(err: unknown): string {
-  if (err instanceof AppException) return err.errorCode;
-  if (err instanceof HttpException && typeof err.message === 'string') {
-    return err.message;
-  }
-  return 'FAILED';
+// A Profile that can be made a founding creator now: not banned nor
+// suspended, of an account that is active, not banned, and not closed or
+// waiting to be deleted.
+export function decidableProfileWhere(now: Date): Prisma.ProfileWhereInput {
+  return {
+    isAccountBanned: false,
+    OR: [{ suspendedUntil: null }, { suspendedUntil: { lte: now } }],
+    user: {
+      isActive: true,
+      isRootBanned: false,
+      deletedAt: null,
+      scheduledDeletionAt: null,
+    },
+  };
 }
 
 // Staff with the founding-creators permission decide on applications in the
 // Backoffice. Every decision is recorded in the staff audit log, with the
-// application; who decided is never shown to the person.
+// application; who decided is never shown to the person. An approval gives
+// nothing by itself: the person starts the free year from the app,
+// accepting its terms.
 @Injectable()
 export class FoundingCreatorsReviewService {
-  private readonly logger = new Logger(FoundingCreatorsReviewService.name);
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  constructor(
-    @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(FoundingCreatorsService)
-    private readonly founders: FoundingCreatorsService,
-  ) {}
-
-  // The applications waiting, oldest first.
+  // The applications waiting, oldest first; those of a suspended Profile or
+  // account, or of an account being deleted, are left out until that ends.
   async queue() {
-    const where = { status: FoundingCreatorStatus.PENDING };
+    const where = {
+      status: FoundingCreatorStatus.PENDING,
+      profile: decidableProfileWhere(new Date()),
+    };
     const [items, total] = await Promise.all([
       this.prisma.foundingCreatorApplication.findMany({
         where,
@@ -75,19 +79,27 @@ export class FoundingCreatorsReviewService {
     return { items, total };
   }
 
-  // Approves or declines a waiting application. An approval starts the free
-  // year at once when it can; when it cannot yet (the identity not
-  // verified, a plan already held), the approval stands and the answer says
-  // why, and the person starts the year from the app later. A Test Account
-  // is never approved where money is real: nothing is recorded.
+  // Approves or declines a waiting application. An approval is refused, with
+  // nothing recorded, for a Test Account where money is real, and for a
+  // Profile or account suspended or being deleted. A decline is always
+  // possible.
   async decide(adminId: string, id: string, dto: DecideFoundingCreatorDto) {
     const waiting = await this.prisma.foundingCreatorApplication.findFirst({
       where: { id, status: FoundingCreatorStatus.PENDING },
-      select: { profile: { select: { userId: true } } },
+      select: { profileId: true, profile: { select: { userId: true } } },
     });
     if (!waiting) throw this.notWaiting();
     if (dto.approve) {
       await assertRealMoneyAllowed(this.prisma, waiting.profile.userId);
+      const decidable = await this.prisma.profile.count({
+        where: { id: waiting.profileId, ...decidableProfileWhere(new Date()) },
+      });
+      if (decidable === 0) {
+        throw AppException.Conflict(
+          ErrorCode.FOUNDING_CREATOR_NOT_FOUND,
+          'The profile or its account is suspended or being deleted',
+        );
+      }
     }
 
     const declineReason = dto.approve ? null : (dto.reason ?? 'OTHER');
@@ -118,27 +130,6 @@ export class FoundingCreatorsReviewService {
         },
       });
     });
-
-    // The decision stands once committed: a free year that cannot start
-    // now never reports the approval as failed.
-    let freeYearNotStarted: string | null = null;
-    if (dto.approve) {
-      try {
-        await this.founders.startYearOf(id);
-      } catch (err) {
-        freeYearNotStarted = notStartedBecause(err);
-        if (freeYearNotStarted === 'FAILED') {
-          this.logger.error(
-            `The free year of founding creator application ${id} could not start`,
-            err,
-          );
-        }
-      }
-    }
-    return { ...(await this.detail(id)), freeYearNotStarted };
-  }
-
-  private async detail(id: string) {
     return this.prisma.foundingCreatorApplication.findUniqueOrThrow({
       where: { id },
       select: STAFF_SELECT,
