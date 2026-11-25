@@ -137,6 +137,26 @@ jobs:
           cd circlesfera-backend
           npm run test:e2e
 
+      # The Help Desk is a product of its own with its own database (ADR-0034).
+      # It runs after the backend's database steps, and its drift check uses a
+      # schema of its own on the same Postgres service: neither sees the
+      # other's tables.
+      - name: "Help Desk: Install, Build, Lint and Test (Enforce Coverage Thresholds)"
+        run: |
+          cd circlesfera-helpdesk
+          npm ci
+          npx prisma generate
+          npm run build
+          npm run typecheck
+          npm run lint
+          npm run check:deps
+          npm run test:cov
+
+      - name: "Help Desk Prisma: schema vs migrations"
+        env:
+          HELPDESK_DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check?schema=helpdesk
+        run: ./scripts/check-prisma-schema-migrations.sh circlesfera-helpdesk HELPDESK_DATABASE_URL
+
       - name: "Frontend: Install, Lint, Test and Build"
         run: |
           cd circlesfera-frontend
