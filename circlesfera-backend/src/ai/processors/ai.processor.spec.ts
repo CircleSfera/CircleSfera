@@ -5,7 +5,12 @@ import { Job, UnrecoverableError } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService } from '../ai.service.js';
-import { AIProcessor, ruleMatches } from './ai.processor.js';
+import { PostTopicsService } from '../post-topics/post-topics.service.js';
+import {
+  AIProcessor,
+  ASSIGN_POST_TOPICS_JOB,
+  ruleMatches,
+} from './ai.processor.js';
 
 describe('AIProcessor', () => {
   let processor: AIProcessor;
@@ -47,8 +52,18 @@ describe('AIProcessor', () => {
   let eventEmitter: {
     emit: ReturnType<typeof vi.fn>;
   };
+  let postTopics: {
+    assignFromEmbedding: ReturnType<typeof vi.fn>;
+    assignWithoutWords: ReturnType<typeof vi.fn>;
+    sweep: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
+    postTopics = {
+      assignFromEmbedding: vi.fn().mockResolvedValue('music'),
+      assignWithoutWords: vi.fn().mockResolvedValue(undefined),
+      sweep: vi.fn(),
+    };
     aiService = {
       generateEmbedding: vi.fn(),
       moderateContent: vi.fn(),
@@ -89,6 +104,7 @@ describe('AIProcessor', () => {
         { provide: AIService, useValue: aiService },
         { provide: PrismaService, useValue: prisma },
         { provide: EventEmitter2, useValue: eventEmitter },
+        { provide: PostTopicsService, useValue: postTopics },
       ],
     }).compile();
 
@@ -246,20 +262,33 @@ describe('AIProcessor', () => {
   });
 
   describe('generate-embedding', () => {
-    it('throws UnrecoverableError when postId or text is missing', async () => {
+    it('throws UnrecoverableError when postId is missing', async () => {
       await expect(
         processor.process({
           name: 'generate-embedding',
           data: { text: 'hi' },
         } as Job),
       ).rejects.toThrow(UnrecoverableError);
+    });
 
-      await expect(
-        processor.process({
-          name: 'generate-embedding',
-          data: { postId: 'p-1' },
-        } as Job),
-      ).rejects.toThrow(UnrecoverableError);
+    it('gives a post with no words `other`, embeds nothing and drops an embedding of words it no longer has', async () => {
+      for (const data of [
+        { postId: 'p-1' },
+        { postId: 'p-1', text: '' },
+        { postId: 'p-1', text: '   ' },
+      ]) {
+        prisma.$executeRaw.mockClear();
+        postTopics.assignWithoutWords.mockClear();
+
+        await processor.process({ name: 'generate-embedding', data } as Job);
+
+        const sql = (prisma.$executeRaw.mock.calls[0][0] as string[]).join('?');
+        expect(sql).toContain('DELETE FROM post_embeddings WHERE "postId" = ?');
+        expect(prisma.$executeRaw.mock.calls[0][1]).toBe('p-1');
+        expect(postTopics.assignWithoutWords).toHaveBeenCalledWith('p-1');
+      }
+      expect(aiService.generateEmbedding).not.toHaveBeenCalled();
+      expect(postTopics.assignFromEmbedding).not.toHaveBeenCalled();
     });
 
     it('generates embedding and updates database', async () => {
@@ -279,6 +308,37 @@ describe('AIProcessor', () => {
       expect(prisma.$executeRaw).toHaveBeenCalled();
     });
 
+    it('gives the post its topic from the embedding, once it is stored', async () => {
+      aiService.generateEmbedding.mockResolvedValue([0.1, 0.2, 0.3]);
+      prisma.$executeRaw.mockResolvedValue(1);
+
+      await processor.process({
+        name: 'generate-embedding',
+        data: { postId: 'p-1', text: 'Concierto esta noche' },
+      } as Job);
+
+      expect(postTopics.assignFromEmbedding).toHaveBeenCalledWith(
+        'p-1',
+        [0.1, 0.2, 0.3],
+      );
+      expect(
+        postTopics.assignFromEmbedding.mock.invocationCallOrder[0],
+      ).toBeGreaterThan(prisma.$executeRaw.mock.invocationCallOrder[0]);
+    });
+
+    it('gives no topic when the embedding could not be made or stored', async () => {
+      aiService.generateEmbedding.mockResolvedValue([0.1, 0.2, 0.3]);
+      prisma.$executeRaw.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        processor.process({
+          name: 'generate-embedding',
+          data: { postId: 'p-1', text: 'Some text' },
+        } as Job),
+      ).rejects.toThrow('db down');
+      expect(postTopics.assignFromEmbedding).not.toHaveBeenCalled();
+    });
+
     it('catches and rethrows Error instance on failure', async () => {
       const job = {
         name: 'generate-embedding',
@@ -290,6 +350,7 @@ describe('AIProcessor', () => {
       );
 
       await expect(processor.process(job)).rejects.toThrow('Embedding fail');
+      expect(postTopics.assignFromEmbedding).not.toHaveBeenCalled();
     });
 
     it('catches and rethrows non-Error instance on failure', async () => {
@@ -333,6 +394,26 @@ describe('AIProcessor', () => {
       aiService.generateEmbedding.mockRejectedValue(rateLimitError);
 
       await expect(processor.process(job)).rejects.toBe(rateLimitError);
+    });
+  });
+
+  describe(ASSIGN_POST_TOPICS_JOB, () => {
+    it('runs the sweep of posts without a topic', async () => {
+      const result = { scanned: 3, assigned: 3 };
+      postTopics.sweep.mockResolvedValue(result);
+      await expect(
+        processor.process({ name: ASSIGN_POST_TOPICS_JOB, data: {} } as Job),
+      ).resolves.toBe(result);
+    });
+
+    it('does not retry a sweep the AI provider refused for good', async () => {
+      const { APIError } = await import('openai');
+      postTopics.sweep.mockRejectedValue(
+        new APIError(401, {}, 'bad key', new Headers()),
+      );
+      await expect(
+        processor.process({ name: ASSIGN_POST_TOPICS_JOB, data: {} } as Job),
+      ).rejects.toThrow(UnrecoverableError);
     });
   });
 

@@ -36,10 +36,18 @@ export const PARTICIPANT_PRIVATE_OMIT = {
   pinnedAt: true,
 } as const;
 
-const clientOmit = {
+// What a post is about (PD-084): for contextual ads, never shown to people
+// and in no public response. Every read of a post leaves it out; the code that
+// needs it selects it by name.
+export const POST_INTERNAL_OMIT = {
+  topic: true,
+} as const;
+
+export const CLIENT_OMIT = {
   user: USER_SECRET_OMIT,
   signIn: SIGN_IN_SECRET_OMIT,
   participant: PARTICIPANT_PRIVATE_OMIT,
+  post: POST_INTERNAL_OMIT,
 } as const;
 
 @Injectable()
@@ -51,7 +59,7 @@ export class PrismaService
     const pool = new Pool({ connectionString: dbUrl });
     // Each transaction runs its queries one after another on its connection.
     const adapter = new SerialTransactionPrismaPg(pool);
-    super({ adapter, omit: clientOmit });
+    super({ adapter, omit: CLIENT_OMIT });
   }
 
   async onModuleInit() {

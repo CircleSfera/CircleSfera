@@ -969,6 +969,13 @@ export class PostsService {
         post.caption ?? '',
       );
     }
+    // A new caption is embedded again, and so its topic given again.
+    if (dto.caption !== undefined) {
+      await this.postDistributionService.reembedEditedCaption(
+        id,
+        post.caption ?? '',
+      );
+    }
     return { ...post, media: post.media.map(resolveMediaFields) };
   }
 
