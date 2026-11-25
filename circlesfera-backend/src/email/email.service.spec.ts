@@ -20,7 +20,10 @@ import {
 import { NewsletterUnsubscribe } from './newsletter-unsubscribe.js';
 
 // No account owns these addresses, so emails use the default language.
-const mockPrisma = { user: { findUnique: vi.fn().mockResolvedValue(null) } };
+const mockPrisma = {
+  user: { findUnique: vi.fn().mockResolvedValue(null) },
+  foundingCreatorApplication: { findUnique: vi.fn() },
+};
 
 const mockSendTransacEmail = vi.fn();
 const newsletterTokens = { tokenFor: (id: string) => `tok.${id}` };
@@ -586,6 +589,59 @@ describe('EmailService', () => {
           subject: 'Tu plan Pro Creator continúa',
         }),
       );
+    });
+
+    describe('the reminder of a free year, written when its job runs', () => {
+      const year = (over: Record<string, unknown> = {}) => ({
+        platformSubscription: {
+          status: 'TRIALING',
+          cancelAtPeriodEnd: true,
+          currentPeriodEnd: new Date('2027-11-25T10:00:00.000Z'),
+          periodPriceCents: null,
+          profileId: 'prof_1',
+          user: { email: 'subscriber@example.com' },
+          profile: { username: 'ana' },
+          plan: { name: 'Verified', priceCents: 499, currency: 'EUR' },
+          ...over,
+        },
+      });
+
+      it('writes it from what is kept now: the address, the Profile, the day and whether it ends', async () => {
+        mockPrisma.foundingCreatorApplication.findUnique.mockResolvedValueOnce(
+          year(),
+        );
+
+        const mail = await service.freeYearEndingMailFor('app_1');
+
+        expect(
+          mockPrisma.foundingCreatorApplication.findUnique,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { id: 'app_1' } }),
+        );
+        expect(mail).toMatchObject({
+          to: 'subscriber@example.com',
+          subject:
+            'Tu año gratis de Verified termina el 25 de noviembre de 2027',
+        });
+        expect(mail?.html).toContain('/accounts/billing?profile=prof_1');
+        // Set to end: nothing is charged.
+        expect(mail?.html).toContain('no se cobra nada');
+      });
+
+      it.each([
+        ['the application is gone', null],
+        ['the year is gone', { platformSubscription: null }],
+        ['the account is gone', year({ user: null })],
+        ['the year is no longer free', year({ status: 'ACTIVE' })],
+      ])('sends nothing when %s', async (_what, found) => {
+        mockPrisma.foundingCreatorApplication.findUnique.mockResolvedValueOnce(
+          found,
+        );
+
+        await expect(service.freeYearEndingMailFor('app_1')).resolves.toBe(
+          null,
+        );
+      });
     });
 
     it('answers, without sending it, the notice that a founding creator free year ends, linking the billing of its Profile', async () => {

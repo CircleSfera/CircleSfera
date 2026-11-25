@@ -939,14 +939,23 @@ describe('PaymentsService', () => {
             billingCycle: 'YEARLY',
             profileId: 'prof_1',
           }),
+          // The subscription says whose plan it is, before its notice
+          // arrives.
+          subscription_data: {
+            metadata: expect.objectContaining({
+              userId: 'u_year',
+              planId: 'plan_1',
+              profileId: 'prof_1',
+            }),
+          },
         }),
         expect.objectContaining({
-          // The consent wording is part of the parameters: its version
-          // names the key, so a key used with the earlier wording is not
-          // reused with this one. The minute keeps a retry on the same page
-          // and a purchase made again later on a new one.
+          // The consent wording and the parameters are part of the key: a
+          // key used with earlier parameters is not reused with these. The
+          // minute keeps a retry on the same page and a purchase made again
+          // later on a new one.
           idempotencyKey: expect.stringMatching(
-            /^checkout_sub_tax_2026-2_u_year:prof_1:plan_1:YEARLY:\d+$/,
+            /^checkout_sub_meta_2026-2_u_year:prof_1:plan_1:YEARLY:\d+$/,
           ),
         }),
       );

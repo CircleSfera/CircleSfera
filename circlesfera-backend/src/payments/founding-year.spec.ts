@@ -555,31 +555,56 @@ describe('PaymentsService: the free year of a founding creator', () => {
       expect(stripe.endSubscriptionNow).toHaveBeenCalledWith('sub_free');
     });
 
-    it('lets a checkout completing after the year started find it, and refunds that second plan, keeping the year', async () => {
-      prisma.platformSubscription.findMany = vi
-        .fn()
-        .mockResolvedValue([{ stripeSubscriptionId: 'sub_free' }]);
-      stripe.getSubscription.mockResolvedValue(trialing);
-      stripe.latestPaidInvoice.mockResolvedValue(null);
+    it('gives no year beside a plan of the Profile paid at the provider whose notice has not arrived yet, so that paid plan is never refunded as a second one', async () => {
+      stripe.listSubscriptionsForCustomer.mockResolvedValue([
+        {
+          id: 'sub_paid',
+          status: 'active',
+          metadata: {
+            profileId: 'prof_1',
+            planId: 'plan_premium',
+            addOn: 'false',
+          },
+        },
+      ]);
 
-      const refunded = await (
-        service as unknown as {
-          refundDuplicatePlan: (
-            profileId: string,
-            subscription: object,
-            addOn: boolean,
-          ) => Promise<boolean>;
-        }
-      ).refundDuplicatePlan(
-        'prof_1',
-        { id: 'sub_paid', status: 'active', metadata: {} },
-        false,
-      );
-
-      expect(refunded).toBe(true);
-      expect(stripe.endDuplicateSubscription).toHaveBeenCalledWith('sub_paid');
-      expect(stripe.endSubscriptionNow).not.toHaveBeenCalledWith('sub_free');
+      await expect(start()).rejects.toMatchObject({
+        errorCode: ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+      });
+      expect(stripe.createFreeYearSubscription).not.toHaveBeenCalled();
+      expect(prisma.platformSubscription.upsert).not.toHaveBeenCalled();
+      // The next try asks afresh.
+      expect(accepted).toBeNull();
     });
+
+    it.each([
+      [
+        'a plan of another Profile of the person',
+        { profileId: 'prof_2', addOn: 'false' },
+        'active',
+      ],
+      [
+        'the add-on, held beside a plan',
+        { profileId: 'prof_1', addOn: 'true' },
+        'active',
+      ],
+      [
+        'a plan of the Profile that has ended',
+        { profileId: 'prof_1', addOn: 'false' },
+        'canceled',
+      ],
+    ])(
+      'starts the year beside %s at the provider',
+      async (_what, metadata, status) => {
+        stripe.listSubscriptionsForCustomer.mockResolvedValue([
+          { id: 'sub_other', status, metadata },
+        ]);
+
+        await start();
+
+        expect(stripe.createFreeYearSubscription).toHaveBeenCalled();
+      },
+    );
 
     it('is refused while payments are paused, before anything reaches the provider', async () => {
       stripe.assertPaymentsEnabled.mockRejectedValue(new Error('paused'));
@@ -608,7 +633,8 @@ describe('PaymentsService: the free year of a founding creator', () => {
               { freeYearStartingUntil: { lt: NOW } },
             ],
           },
-          data: { freeYearStartingUntil: new Date(NOW.getTime() + 300_000) },
+          // Ten minutes: the whole sequence of calls to the provider.
+          data: { freeYearStartingUntil: new Date(NOW.getTime() + 600_000) },
         },
       );
       expect(stripe.canTaxCustomer).not.toHaveBeenCalled();
@@ -632,7 +658,7 @@ describe('PaymentsService: the free year of a founding creator', () => {
         {
           where: {
             id: 'app_1',
-            freeYearStartingUntil: new Date(NOW.getTime() + 300_000),
+            freeYearStartingUntil: new Date(NOW.getTime() + 600_000),
           },
           data: { freeYearStartingUntil: null },
         },
@@ -929,19 +955,10 @@ describe('PaymentsService: the free year of a founding creator', () => {
           },
         }),
       );
-      // The email: built for the Profile whose year it is, and queued
-      // through the outbox in the transaction that marks it sent, under a
-      // job id of the application.
-      expect(email.freeYearEndingMail).toHaveBeenCalledWith({
-        email: 'ana@example.com',
-        planName: 'Verified',
-        username: 'ana',
-        profileId: 'prof_1',
-        endsAt: YEAR_END,
-        priceCents: 499,
-        currency: 'EUR',
-        continues: true,
-      });
+      // The email: queued through the outbox in the transaction that marks
+      // it sent, under a job id of the application, with ids only. It is
+      // written when the job runs: no address or text waits in the outbox.
+      expect(email.freeYearEndingMail).not.toHaveBeenCalled();
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(prisma.foundingCreatorApplication.updateMany).toHaveBeenCalledWith(
         {
@@ -949,10 +966,14 @@ describe('PaymentsService: the free year of a founding creator', () => {
           data: { freeYearReminderSentAt: NOW },
         },
       );
+      const [, queued] = outbox.enqueue.mock.calls[0];
+      expect(JSON.stringify(queued.payload)).not.toMatch(
+        /ana@example\.com|@|html|subject|Verified|499/,
+      );
       expect(outbox.enqueue).toHaveBeenCalledWith(prisma, {
         queueName: 'email-processing',
-        eventName: 'send-transactional-email',
-        payload: MAIL,
+        eventName: 'send-free-year-ending',
+        payload: { applicationId: 'app_1', kind: 'free-year-ending' },
         options: { jobId: 'free-year-ending-app_1' },
       });
       expect(outbox.triggerImmediatePublish).toHaveBeenCalled();
@@ -1024,9 +1045,8 @@ describe('PaymentsService: the free year of a founding creator', () => {
         'notification.create',
         notice(false),
       );
-      expect(email.freeYearEndingMail).toHaveBeenCalledWith(
-        expect.objectContaining({ continues: false }),
-      );
+      // Its email is written when it is sent (ending text then).
+      expect(outbox.enqueue).toHaveBeenCalled();
     });
 
     it('never switches a year set to end into one that charges, also when its customer could now be taxed and has a card', async () => {
@@ -1065,16 +1085,6 @@ describe('PaymentsService: the free year of a founding creator', () => {
       await remind();
 
       expect(events.emit).not.toHaveBeenCalled();
-      expect(email.freeYearEndingMail).toHaveBeenCalledWith({
-        email: 'ana@example.com',
-        planName: 'Verified',
-        username: '',
-        profileId: null,
-        endsAt: YEAR_END,
-        priceCents: 499,
-        currency: 'EUR',
-        continues: true,
-      });
       expect(outbox.enqueue).toHaveBeenCalled();
     });
 
@@ -1099,8 +1109,33 @@ describe('PaymentsService: the free year of a founding creator', () => {
 
       await remind();
 
-      expect(email.freeYearEndingMail).not.toHaveBeenCalled();
       expect(outbox.enqueue).not.toHaveBeenCalled();
+      expect(events.emit).toHaveBeenCalled();
+    });
+
+    it('says in the log when the email cannot be queued for want of the outbox, and still gives the notice', async () => {
+      service = new PaymentsService(
+        prisma as unknown as PrismaService,
+        stripe as unknown as StripeService,
+        email as unknown as EmailService,
+        users as unknown as UsersService,
+        {} as PaymentEventsService,
+        events as never,
+      );
+      const warned = vi
+        .spyOn(
+          (service as unknown as { logger: { warn: () => void } }).logger,
+          'warn',
+        )
+        .mockImplementation(() => {});
+      prisma.platformSubscription.findFirst.mockResolvedValue(row());
+
+      await remind();
+
+      expect(warned).toHaveBeenCalledWith(
+        'The reminder email of free year app_1 cannot be queued: no outbox',
+      );
+      expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(events.emit).toHaveBeenCalled();
     });
   });

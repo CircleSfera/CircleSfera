@@ -10,6 +10,7 @@ describe('EmailProcessor', () => {
 
   const mockEmailService = {
     deliverMail: vi.fn(),
+    freeYearEndingMailFor: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -37,6 +38,33 @@ describe('EmailProcessor', () => {
 
     await expect(processor.process(job)).rejects.toThrow(UnrecoverableError);
     expect(mockEmailService.deliverMail).not.toHaveBeenCalled();
+  });
+
+  describe('the reminder of a free year (ids only in the job)', () => {
+    const job = {
+      name: 'send-free-year-ending',
+      data: { applicationId: 'app_1', kind: 'free-year-ending' },
+    } as Job<any, void, string>;
+
+    it('writes the email when it runs, and delivers it', async () => {
+      const mail = { to: 'ana@example.com', subject: 's', html: 'h' };
+      mockEmailService.freeYearEndingMailFor.mockResolvedValue(mail);
+      mockEmailService.deliverMail.mockResolvedValue(undefined);
+
+      await processor.process(job);
+
+      expect(mockEmailService.freeYearEndingMailFor).toHaveBeenCalledWith(
+        'app_1',
+      );
+      expect(mockEmailService.deliverMail).toHaveBeenCalledWith(mail);
+    });
+
+    it('skips it quietly when the application or the account is gone', async () => {
+      mockEmailService.freeYearEndingMailFor.mockResolvedValue(null);
+
+      await expect(processor.process(job)).resolves.toBeUndefined();
+      expect(mockEmailService.deliverMail).not.toHaveBeenCalled();
+    });
   });
 
   it('delivers the mail on a valid job', async () => {

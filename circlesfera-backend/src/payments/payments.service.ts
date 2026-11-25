@@ -35,7 +35,11 @@ import {
   assertIdentityForBadge,
 } from '../common/policies/adult-payer.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
-import { EmailService } from '../email/email.service.js';
+import {
+  EmailService,
+  FREE_YEAR_ENDING_EMAIL_JOB,
+  type FreeYearEndingEmailJob,
+} from '../email/email.service.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -184,9 +188,12 @@ function isFreeYear(subscription: {
   );
 }
 
-// How long one request holds the start of a free year: longer than any call
-// to the provider with its retries; a request that dies lets it lapse.
-const FREE_YEAR_START_HOLD_MS = 5 * 60 * 1000;
+// How long one request holds the start of a free year: longer than its whole
+// sequence of calls to the provider (up to five: the tax check, placing the
+// customer, the check again, the list of its subscriptions and the
+// creation; each at most 20 s, tried three times), with the writes around
+// them. A request that dies lets it lapse.
+const FREE_YEAR_START_HOLD_MS = 10 * 60 * 1000;
 
 // The Profile holds a plan: it keeps it, and gets no second one.
 function planHeld() {
@@ -523,14 +530,26 @@ export class PaymentsService {
               [CHECKOUT_ADD_ON_METADATA_KEY]: String(buyingAddOn),
               ...planStartConsentMetadata(),
             },
+            // The subscription itself says whose plan it is, so it can be
+            // told apart at the provider before its notice arrives (a free
+            // year starting meanwhile refuses beside it).
+            subscription_data: {
+              metadata: {
+                userId,
+                planId: plan.id,
+                profileId: profile.id,
+                [CHECKOUT_ADD_ON_METADATA_KEY]: String(buyingAddOn),
+              },
+            },
           },
           {
             // A new prefix whenever the parameters change (here the
-            // consent wording, by its version): a key reused with other
-            // parameters is refused. The minute keeps a retry of the same
-            // request on the same session, and a purchase made again later
-            // (after a withdrawal) on a new one.
-            idempotencyKey: `checkout_sub_tax_${PLAN_START_CONSENT_VERSION}_${intentKey}:${Math.floor(Date.now() / 60_000)}`,
+            // consent wording, by its version, and the subscription's own
+            // metadata): a key reused with other parameters is refused. The
+            // minute keeps a retry of the same request on the same session,
+            // and a purchase made again later (after a withdrawal) on a new
+            // one.
+            idempotencyKey: `checkout_sub_meta_${PLAN_START_CONSENT_VERSION}_${intentKey}:${Math.floor(Date.now() / 60_000)}`,
           },
         );
         // One payment page open per Profile for a plan (and one for the
@@ -758,9 +777,10 @@ export class PaymentsService {
     }
   }
 
-  // Marks the application as being started by this request, for a few
-  // minutes (longer than any call to the provider). Refused while another
-  // request holds it, or once the year started.
+  // Marks the application as being started by this request, for ten
+  // minutes: longer than the whole sequence of calls to the provider the
+  // start makes. Refused while another request holds it, or once the year
+  // started.
   private async holdFreeYearStart(applicationId: string): Promise<Date> {
     const now = new Date();
     const until = new Date(now.getTime() + FREE_YEAR_START_HOLD_MS);
@@ -1029,6 +1049,18 @@ export class PaymentsService {
   ): Promise<Stripe.Subscription> {
     const held =
       await this.stripeService.listSubscriptionsForCustomer(customerId);
+    // A plan of this Profile the provider already holds and may charge (a
+    // checkout paid whose notice has not arrived yet) keeps it alone: the
+    // year is refused before it is made, so that paid plan is never taken
+    // for a second one and refunded. An add-on is held beside a plan.
+    const paidPlan = held.find(
+      (subscription) =>
+        subscription.metadata?.profileId === params.metadata.profileId &&
+        STANDING_STATUSES.includes(subscription.status) &&
+        !subscription.metadata?.[FOUNDING_APPLICATION_METADATA_KEY] &&
+        subscription.metadata?.[CHECKOUT_ADD_ON_METADATA_KEY] !== 'true',
+    );
+    if (paidPlan) throw planHeld();
     const earlier = held.find(
       (subscription) =>
         subscription.metadata?.[FOUNDING_APPLICATION_METADATA_KEY] ===
@@ -2144,18 +2176,14 @@ export class PaymentsService {
     const continues = !row.cancelAtPeriodEnd;
     const priceCents = row.periodPriceCents ?? row.plan.priceCents;
 
-    const email = row.user?.email;
-    if (email && this.outbox) {
-      const mail = await this.emailService.freeYearEndingMail({
-        email,
-        planName: row.plan.name,
-        username: row.profile?.username ?? '',
-        profileId: row.profileId,
-        endsAt: row.currentPeriodEnd,
-        priceCents,
-        currency: row.plan.currency,
-        continues,
-      });
+    // The job carries ids only: the email is written when it is sent, from
+    // what is kept then, so no address or text waits in the outbox; an
+    // account erased meanwhile is skipped then.
+    if (row.user?.email && !this.outbox) {
+      this.logger.warn(
+        `The reminder email of free year ${application.id} cannot be queued: no outbox`,
+      );
+    } else if (row.user?.email && this.outbox) {
       const outbox = this.outbox;
       await this.prisma.$transaction(async (tx) => {
         const { count } = await tx.foundingCreatorApplication.updateMany({
@@ -2165,12 +2193,15 @@ export class PaymentsService {
         if (count === 0) return;
         await outbox.enqueue(tx, {
           queueName: QUEUE_NAMES.EMAIL_PROCESSING,
-          eventName: 'send-transactional-email',
-          payload: { ...mail },
+          eventName: FREE_YEAR_ENDING_EMAIL_JOB,
+          payload: {
+            applicationId: application.id,
+            kind: 'free-year-ending',
+          } satisfies FreeYearEndingEmailJob,
           options: { jobId: `free-year-ending-${application.id}` },
         });
       });
-      this.outbox.triggerImmediatePublish();
+      outbox.triggerImmediatePublish();
     }
 
     if (row.profileId) {
