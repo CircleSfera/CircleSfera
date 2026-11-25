@@ -241,4 +241,12 @@ export enum ErrorCode {
   FREE_YEAR_STARTING = 'FREE_YEAR_STARTING',
   CAPTCHA_FAILED = 'CAPTCHA_FAILED',
   CAPTCHA_REQUIRED = 'CAPTCHA_REQUIRED',
+
+  // Interests for ads (PD-084)
+  // Interests are never chosen nor used for anyone under 18 or without a
+  // date of birth; details carry the minimum age and whether it is missing.
+  AD_INTERESTS_UNDER_AGE = 'AD_INTERESTS_UNDER_AGE',
+  // Not a set of topics from the list: an unknown key, `other`, a repeated
+  // one or more than the most allowed; details carry the most.
+  AD_INTERESTS_INVALID = 'AD_INTERESTS_INVALID',
 }
