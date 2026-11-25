@@ -99,7 +99,7 @@ npm run audit:deps:all
 ```
 
 #### `verify-lockfile-integrity.mjs`
-Performs 7-point lockfile integrity and provenance verification across all 4 workspaces (root, backend, frontend, shared):
+Performs 7-point lockfile integrity and provenance verification across all 5 workspaces (root, backend, frontend, shared, helpdesk):
 - **Check 1** — Enforces `lockfileVersion: 3` (npm 7+ / Node 18+) in every workspace.
 - **Check 2** — Registry allowlist: all resolved URLs must point to `https://registry.npmjs.org/`. Non-allowlisted registries (mirrors, Verdaccio, private) fail the gate.
 - **Check 3** — SHA-512 integrity presence: every non-bundled, non-local-symlink package must carry an `integrity` field.
