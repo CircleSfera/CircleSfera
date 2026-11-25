@@ -1,10 +1,11 @@
 import { ErrorCode } from '@circlesfera/shared';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { AppException } from '../../common/errors/app.exception.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../../system-settings/system-settings.service.js';
+import { JOIN_TOKEN_TTL_SECONDS } from '../live-kit-token.service.js';
 import { LiveRecordingService } from '../recording/live-recording.service.js';
 
 // The lock that lets one start at a time count the lives on air and take a
@@ -13,9 +14,26 @@ const LIVE_PLACES_LOCK = 7_340_002;
 
 /**
  * How long a live just started holds a place before its room is open at the
- * live service: the host's device is still reaching it.
+ * live service: as long as the host's join token is valid (they may join at
+ * any moment of it), and a minute more for the join itself.
  */
-export const ROOM_GRACE_MS = 2 * 60 * 1000;
+export const ROOM_GRACE_MS = JOIN_TOKEN_TTL_SECONDS * 1000 + 60 * 1000;
+
+/**
+ * When the live service cannot be asked, the lives marked on air that still
+ * hold a place: those started in the last 6 hours. Longer than the longest
+ * recording (4 hours) with room to spare, so a real long live is counted;
+ * short enough that lives left marked on air by a host who never ended them
+ * cannot pile up and keep every host off the air.
+ */
+export const UNREAD_ROOMS_WINDOW_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * How long one reading of the live service's rooms answers the go-live
+ * screen and the Operations page: the screen asks every 30 seconds per host.
+ * A start never uses it.
+ */
+export const ROOMS_CACHE_MS = 5 * 1000;
 
 /** Whether a live started now would be recorded. */
 export type RecordingOutlook = 'AVAILABLE' | 'FULL' | 'OFF';
@@ -35,8 +53,8 @@ export interface LiveCapacityReport {
     // Marked on air but with no room at the live service: their host left
     // without ending them. They hold no place.
     withoutRoom: number;
-    // False when the live service could not be asked: every live marked on
-    // air is counted.
+    // False when the live service could not be asked: the lives marked on
+    // air in the last UNREAD_ROOMS_WINDOW_MS are counted.
     roomsRead: boolean;
   };
   recordings: { running: number; limit: number; enabled: boolean };
@@ -63,6 +81,12 @@ const livesFull = () =>
  */
 @Injectable()
 export class LiveCapacityService {
+  private readonly logger = new Logger(LiveCapacityService.name);
+  // One reading of the rooms, shared by every caller while it is under
+  // ROOMS_CACHE_MS old, answered or not: callers never pile up on a live
+  // service that is slow (each reading gives up after 3 seconds).
+  private roomsRead?: { at: number; rooms: Promise<Set<string> | null> };
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly systemSettings: SystemSettingsService,
@@ -75,23 +99,44 @@ export class LiveCapacityService {
     );
   }
 
+  // The rooms read a moment ago, for the screens; a start reads them fresh.
+  private recentRooms(now: number): Promise<Set<string> | null> {
+    if (!this.roomsRead || now - this.roomsRead.at >= ROOMS_CACHE_MS) {
+      this.roomsRead = { at: now, rooms: this.recording.openRooms() };
+    }
+    return this.roomsRead.rooms;
+  }
+
   /**
-   * Which lives marked on air hold a place: those whose room is open at the
-   * live service, and those started within ROOM_GRACE_MS. A live whose room
-   * is gone (its host's app was closed without ending it) holds none. When
-   * the live service cannot be asked, every live marked on air holds one.
+   * Which lives marked on air hold a place, from the rooms open at the live
+   * service: those whose room is open, and those started within
+   * ROOM_GRACE_MS. A live whose room is gone (its host's app was closed
+   * without ending it) holds none. When the live service could not be asked,
+   * those started within UNREAD_ROOMS_WINDOW_MS.
    */
-  async onAirWhere(
+  onAirWhere(
+    rooms: Set<string> | null,
     now: Date = new Date(),
-  ): Promise<{ where: Prisma.LiveStreamWhereInput; roomsRead: boolean }> {
-    const rooms = await this.recording.openRooms();
-    if (!rooms) return { where: { status: 'LIVE' }, roomsRead: false };
+  ): { where: Prisma.LiveStreamWhereInput; roomsRead: boolean } {
+    const since = (ms: number) => new Date(now.getTime() - ms);
+    if (!rooms) {
+      this.logger.warn(
+        'Lives counted without the live service: those started in the last 6 hours',
+      );
+      return {
+        where: {
+          status: 'LIVE',
+          startedAt: { gte: since(UNREAD_ROOMS_WINDOW_MS) },
+        },
+        roomsRead: false,
+      };
+    }
     return {
       where: {
         status: 'LIVE',
         OR: [
           { id: { in: [...rooms] } },
-          { startedAt: { gte: new Date(now.getTime() - ROOM_GRACE_MS) } },
+          { startedAt: { gte: since(ROOM_GRACE_MS) } },
         ],
       },
       roomsRead: true,
@@ -100,14 +145,14 @@ export class LiveCapacityService {
 
   /**
    * What a start counts against: read before its transaction, as it asks
-   * the live service and the settings.
+   * the live service (fresh, never the screens' reading) and the settings.
    */
   async placeCheck(now: Date = new Date()): Promise<LivePlaceCheck> {
-    const [{ where }, limit] = await Promise.all([
-      this.onAirWhere(now),
+    const [rooms, limit] = await Promise.all([
+      this.recording.openRooms(),
       this.livesAtOnce(),
     ]);
-    return { where, limit };
+    return { where: this.onAirWhere(rooms, now).where, limit };
   }
 
   /**
@@ -134,24 +179,31 @@ export class LiveCapacityService {
 
   /**
    * What the host is told before going live: whether lives are full, and
-   * whether the live would be recorded. A guide only: the start itself
-   * checks again.
+   * whether the live would be recorded. The host's own live on air is not
+   * counted, as the start ends it. A guide only: the start checks again.
    */
-  async forHost(): Promise<LiveCapacityAnswer> {
-    const [check, recording] = await Promise.all([
-      this.placeCheck(),
+  async forHost(hostProfileId: string): Promise<LiveCapacityAnswer> {
+    const now = new Date();
+    const [rooms, limit, recording] = await Promise.all([
+      this.recentRooms(now.getTime()),
+      this.livesAtOnce(),
       this.recordingOutlook(),
     ]);
-    const onAir = await this.prisma.liveStream.count({ where: check.where });
-    return { livesFull: onAir >= check.limit, recording };
+    const { where } = this.onAirWhere(rooms, now);
+    const onAir = await this.prisma.liveStream.count({
+      where: { ...where, hostId: { not: hostProfileId } },
+    });
+    return { livesFull: onAir >= limit, recording };
   }
 
   /** The counts against their limits, for staff. */
   async report(): Promise<LiveCapacityReport> {
-    const [{ where, roomsRead }, livesLimit] = await Promise.all([
-      this.onAirWhere(),
+    const now = new Date();
+    const [rooms, livesLimit] = await Promise.all([
+      this.recentRooms(now.getTime()),
       this.livesAtOnce(),
     ]);
+    const { where, roomsRead } = this.onAirWhere(rooms, now);
     const enabled = this.recording.isEnabled();
     const [onAir, marked, running, recordingsLimit] = await Promise.all([
       this.prisma.liveStream.count({ where }),

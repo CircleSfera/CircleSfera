@@ -309,25 +309,11 @@ export class LiveRecordingService {
   }
 
   /**
-   * Starts recording a broadcast that has just begun, from its host's camera
-   * and microphone, if recording is on and the recorder has a free place;
-   * otherwise marks it as not recorded for the limit. Says what became of
-   * it. Never throws.
-   */
-  async start(
-    streamId: string,
-    hostProfileId: string,
-  ): Promise<RecordingStart> {
-    const place = await this.place(streamId);
-    if (!place.partId) return place.status;
-    return this.begin(streamId, hostProfileId, place.partId);
-  }
-
-  /**
-   * Takes a recorder's place for a broadcast that has just begun, when
-   * recording is on and one is free (marking it not recorded for the limit
-   * otherwise): quick, so the host is told at once whether the broadcast is
-   * recorded. begin() then asks the recorder. Never throws.
+   * Takes a recorder's place for a broadcast that has just begun, to record
+   * its host's camera and microphone, when recording is on and one is free
+   * (marking it not recorded for the limit otherwise): quick, so the host is
+   * told at once whether the broadcast is recorded. begin() then asks the
+   * recorder. Never throws.
    */
   async place(streamId: string): Promise<RecordingPlace> {
     if (!this.isEnabled()) return { status: 'OFF' };

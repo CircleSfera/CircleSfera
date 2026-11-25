@@ -88,7 +88,18 @@ describe('LiveController', () => {
       .expect(200);
 
     expect(res.body).toEqual({ livesFull: false, recording: 'FULL' });
+    // The host's own live on air is left out of the count.
+    expect(mockCapacity.forHost).toHaveBeenCalledWith(TEST_USER.profileId);
     expect(mockLiveService.getStream).not.toHaveBeenCalled();
+  });
+
+  it('asks for a verified email, as going live does, and limits how often the screen asks', () => {
+    const method = LiveController.prototype.getCapacity;
+    expect(Reflect.getMetadata('__guards__', method)).toContain(
+      EmailVerifiedGuard,
+    );
+    expect(Reflect.getMetadata('THROTTLER:LIMITshort', method)).toBe(20);
+    expect(Reflect.getMetadata('THROTTLER:TTLshort', method)).toBe(60000);
   });
 
   it('starts a stream as the session profileId', async () => {

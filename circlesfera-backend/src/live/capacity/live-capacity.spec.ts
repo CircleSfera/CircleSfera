@@ -3,9 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import type { SystemSettingsService } from '../../system-settings/system-settings.service.js';
 import { LiveService } from '../live.service.js';
-import { LiveKitTokenService } from '../live-kit-token.service.js';
+import {
+  JOIN_TOKEN_TTL_SECONDS,
+  LiveKitTokenService,
+} from '../live-kit-token.service.js';
 import type { LiveRecordingService } from '../recording/live-recording.service.js';
-import { LiveCapacityService, ROOM_GRACE_MS } from './live-capacity.service.js';
+import {
+  LiveCapacityService,
+  ROOM_GRACE_MS,
+  ROOMS_CACHE_MS,
+  UNREAD_ROOMS_WINDOW_MS,
+} from './live-capacity.service.js';
 
 interface LiveRow {
   id: string;
@@ -17,7 +25,8 @@ interface LiveRow {
 
 type Where = {
   status?: string;
-  hostId?: string;
+  hostId?: string | { not: string };
+  startedAt?: { gte: Date };
   OR?: ({ id: { in: string[] } } | { startedAt: { gte: Date } })[];
 };
 
@@ -26,7 +35,11 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 1));
 
 const fits = (row: LiveRow, where: Where = {}) =>
   (where.status === undefined || row.status === where.status) &&
-  (where.hostId === undefined || row.hostId === where.hostId) &&
+  (where.hostId === undefined ||
+    (typeof where.hostId === 'string'
+      ? row.hostId === where.hostId
+      : row.hostId !== where.hostId.not)) &&
+  (where.startedAt === undefined || row.startedAt >= where.startedAt.gte) &&
   (where.OR === undefined ||
     where.OR.some((side) =>
       'id' in side
@@ -232,38 +245,103 @@ describe('LiveCapacityService', () => {
       await expect(live.startStream('host-new', 'x')).resolves.toBeDefined();
     });
 
-    it('one just started whose host is still reaching its room', async () => {
+    it('one started while its host may still join with their token, room not open yet', async () => {
+      expect(ROOM_GRACE_MS).toBeGreaterThanOrEqual(
+        JOIN_TOKEN_TTL_SECONDS * 1000,
+      );
       fill(9);
-      onAir('reaching', ROOM_GRACE_MS / 60_000 / 2);
+      // Four and a half minutes ago: the host's 5-minute token still lets
+      // them in.
+      onAir('reaching', 4.5);
 
       await expect(live.startStream('host-new', 'x')).rejects.toMatchObject({
         errorCode: 'LIVES_FULL',
       });
     });
 
-    it('every live marked on air when the live service cannot be asked', async () => {
+    it('those started in the last 6 hours when the live service cannot be asked', async () => {
       fill(9);
-      onAir('stale', 60);
+      onAir('recent', 60);
       rooms = null;
 
       await expect(live.startStream('host-new', 'x')).rejects.toMatchObject({
         errorCode: 'LIVES_FULL',
       });
     });
+
+    it('not those left on air for longer when the live service cannot be asked: they never pile up', async () => {
+      for (let i = 0; i < 20; i++) onAir(`old${i}`, 7 * 60);
+      fill(9);
+      rooms = null;
+
+      await expect(live.startStream('host-new', 'x')).resolves.toBeDefined();
+      expect(UNREAD_ROOMS_WINDOW_MS).toBe(6 * 60 * 60 * 1000);
+    });
+  });
+
+  describe('reading the rooms', () => {
+    it('the screens share one reading for a few seconds; a start always reads fresh', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        await capacity.forHost('host-x');
+        await capacity.forHost('host-y');
+        await capacity.report();
+        expect(recorder.openRooms).toHaveBeenCalledTimes(1);
+
+        await live.startStream('host-new', 'x');
+        expect(recorder.openRooms).toHaveBeenCalledTimes(2);
+
+        vi.setSystemTime(Date.now() + ROOMS_CACHE_MS);
+        await capacity.forHost('host-x');
+        expect(recorder.openRooms).toHaveBeenCalledTimes(3);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('callers do not pile up on a live service slow to answer', async () => {
+      let answer: (value: Set<string> | null) => void = () => {};
+      recorder.openRooms.mockReturnValueOnce(
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+      );
+
+      const asked = Promise.all(
+        Array.from({ length: 5 }, (_, i) => capacity.forHost(`host-${i}`)),
+      );
+      await tick();
+      expect(recorder.openRooms).toHaveBeenCalledTimes(1);
+      answer(null);
+      await expect(asked).resolves.toHaveLength(5);
+    });
   });
 
   describe('what the host is told before going live', () => {
     it('that lives are full', async () => {
       fill(10);
-      await expect(capacity.forHost()).resolves.toEqual({
+      await expect(capacity.forHost('host-new')).resolves.toEqual({
         livesFull: true,
         recording: 'AVAILABLE',
       });
     });
 
+    it('not full because of their own live on air, which the start ends', async () => {
+      fill(9);
+      onAir('mine', 5, 'host-me');
+      rooms?.add('mine');
+
+      await expect(capacity.forHost('host-me')).resolves.toMatchObject({
+        livesFull: false,
+      });
+      await expect(capacity.forHost('host-other')).resolves.toMatchObject({
+        livesFull: true,
+      });
+    });
+
     it('that the live would not be recorded when the recorder is full', async () => {
       recorder.recordingsRunning.mockResolvedValue(2);
-      await expect(capacity.forHost()).resolves.toEqual({
+      await expect(capacity.forHost('host-new')).resolves.toEqual({
         livesFull: false,
         recording: 'FULL',
       });
@@ -271,7 +349,7 @@ describe('LiveCapacityService', () => {
 
     it('nothing of recording where the environment records nothing', async () => {
       recorder.isEnabled.mockReturnValue(false);
-      await expect(capacity.forHost()).resolves.toMatchObject({
+      await expect(capacity.forHost('host-new')).resolves.toMatchObject({
         recording: 'OFF',
       });
     });

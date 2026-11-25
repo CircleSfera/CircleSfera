@@ -121,11 +121,18 @@ same VPS, so they get a budget of their own: a count of what runs at once, not a
   `system` permission, without a deploy. A value outside the range is refused when saved. The
   defaults are written by `SystemSettingsService.ensureDefaults` and never overwrite a value staff
   set. `LIVE_RECORDINGS_AT_ONCE` (environment) is no longer read.
-- **What counts:** a live marked on air whose room is open at the live service, or started in the
-  last 2 minutes (its host is still reaching the room). A live whose room is gone (its host's app
-  was closed without ending it) holds no place. When the live service cannot be asked within 3
-  seconds, every live marked on air counts. A recording counts while its live is on air and its
-  recording runs; the recorder's minute check settles recordings whose host left.
+- **What counts:** a live marked on air whose room is open at the live service, or started within
+  the host's join token lifetime plus a minute (6 minutes: the host may still join with it). A live
+  whose room is gone (its host's app was closed without ending it) holds no place. When the live
+  service cannot be asked within 3 seconds, the lives marked on air in the last 6 hours count
+  (longer than the 4-hour longest recording, so long lives are counted; short enough that lives
+  never ended cannot pile up and keep everyone off the air), and it is logged. A recording counts
+  while its live is on air and its recording runs; the recorder's minute check settles recordings
+  whose host left.
+- **Reading the rooms:** a start reads them fresh. The go-live screen (`GET /live/capacity`,
+  verified email, 20 a minute) and the Operations page share one reading for 5 seconds, so a slow
+  live service is asked once, not once per caller. The screen does not count the host's own live
+  on air, which the start ends.
 - **Race safety:** each count and the write that takes a place happen under a Postgres advisory
   lock held to the end of the transaction (lives 7340002, recordings 7340001), so two starts at
   the same moment on any server never both take the last place.

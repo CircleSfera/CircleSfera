@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { LiveAudience } from '@prisma/client';
 import {
   CurrentUser,
@@ -93,12 +94,16 @@ export class LiveController {
   }
 
   // Before going live (PD-092): whether lives are full now, and whether a
-  // live started now would be recorded. Before `:streamId`, which would
+  // live started now would be recorded. For who may go live (a verified
+  // email, as the start), asked every 30 seconds by the go-live screen: 20 a
+  // minute leaves room for reopening it. Before `:streamId`, which would
   // take the word for an id.
   @Get('capacity')
+  @UseGuards(EmailVerifiedGuard)
+  @Throttle({ short: { limit: 20, ttl: 60000 } })
   @ApiResponse({ status: 200 })
-  getCapacity() {
-    return this.capacity.forHost();
+  getCapacity(@CurrentUser() user: CurrentUserData) {
+    return this.capacity.forHost(user.profileId);
   }
 
   @Get(':streamId')
