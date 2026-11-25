@@ -110,7 +110,7 @@ set to BLOCKED with the question, never built; the queue moves on to the next it
   included, it is installed, pinned exactly and listed with its reason and what moves it back to the
   stable line (same Notion page as below). Lockfiles are written with the CI npm:
   `npx -y npm@11.19.0 install --package-lock-only --save-exact --ignore-scripts`. Whenever a lockfile
-  changes, compare every direct dependency and override of the four workspaces with its latest
+  changes, compare every direct dependency and override of the five workspaces with its latest
   stable release and move what is behind. What is held back and why: Notion → Engineering →
   Technical Operations → Dependency & Supply Chain Management.
 - **Working folder:** the repository itself, in the package the change belongs to
