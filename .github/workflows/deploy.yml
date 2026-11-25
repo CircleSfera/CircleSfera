@@ -734,6 +734,29 @@ jobs:
               fi
             fi
 
+            # What the code declares is applied on every deploy, once the
+            # version is healthy (ED-016), as staging and development already
+            # do: the plan catalog (scripts/plan-catalog.ts, prices and plans
+            # decided by the owner before they reach the code) and the help
+            # centre articles kept in the code. Both are idempotent and change
+            # only what differs; an article staff took down stays down. A
+            # failure alerts without a rollback: the version is healthy, and
+            # the next deploy applies them again. Each has three minutes, so
+            # a hung database or provider call never stops the deploy before
+            # it records this version.
+            declared_ok=1
+            for script in sync-plan-catalog publish-help-articles; do
+              echo "--- Applying ${script} ---"
+              if ! timeout 180 docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
+                -e APPLY=1 backend node "scripts/${script}.ts"; then
+                echo "  FAIL ${script}"
+                declared_ok=0
+              fi
+            done
+            if [ "$declared_ok" != "1" ] && [ -n "$DEPLOY_WEBHOOK" ]; then
+              curl -X POST -H 'Content-type: application/json' --data '{"text":"⚠️ *Deployment done*: the plan catalog or the help articles could not be applied in full. See the deploy log; the next deploy applies them again."}' "$DEPLOY_WEBHOOK" || true
+            fi
+
             # Postgres and Redis keep running through a deploy, so a new pin
             # of theirs reaches them only through "Ops — recreate the
             # database and the cache", run by the owner. Say so when one runs
@@ -805,3 +828,25 @@ jobs:
             if [ -n "$DEPLOY_WEBHOOK" ]; then
               curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ *Deployment SUCCESS* to OVH VPS. All containers running."}' "$DEPLOY_WEBHOOK" || true
             fi
+
+      # Sentry's uptime checks of the site and their alert are declared in
+      # scripts/sentry-uptime.mjs and set to that on every deploy (ED-016):
+      # a missing one is added, a listed one is turned on, and an enabled
+      # check of an address not listed is turned off, so a check is changed
+      # in the script, not in Sentry. A failure here never fails the deploy.
+      - name: Checkout the uptime checks
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/sentry-uptime.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        continue-on-error: true
+        with:
+          node-version: '26'
+      - name: Apply the uptime checks
+        continue-on-error: true
+        env:
+          SENTRY_WRITE_TOKEN: ${{ secrets.SENTRY_WRITE_TOKEN }}
+        run: node scripts/sentry-uptime.mjs apply

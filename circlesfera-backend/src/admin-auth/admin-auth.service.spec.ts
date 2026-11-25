@@ -1249,18 +1249,29 @@ describe('AdminAuthService', () => {
     const reviewerRoles = [
       { role: { name: 'EXTERNAL_REVIEWER', permissions: [] } },
     ];
+    // A reviewer with an authenticator enrolled (PD-091).
     const reviewer = (extra: Record<string, unknown> = {}) => ({
       id: 'rev-1',
       email: 'stripereview@circlesfera.com',
       linkedUserId: 'user-1',
       status: 'ACTIVE',
-      totpEnabled: false,
+      totpEnabled: true,
+      totpSecret: 'enc:base32-admin-secret',
       accessExpiresAt: new Date(Date.now() + 30 * 24 * HOUR),
       roles: reviewerRoles,
       ...extra,
     });
+    const reviewerMfaToken = () =>
+      jwtService.sign(
+        {
+          sub: 'rev-1',
+          email: 'stripereview@circlesfera.com',
+          purpose: 'admin-mfa',
+        },
+        { secret: adminSecret, audience: 'circlesfera-admin' },
+      );
 
-    it("is signed in with the password alone, the session marked as a reviewer's", async () => {
+    it('is never signed in with the password alone: the authenticator code is asked for', async () => {
       withSignInPassword(await argon2.hash('review-password'));
       mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
 
@@ -1270,24 +1281,87 @@ describe('AdminAuthService', () => {
         { ip: '1.2.3.4' },
       );
 
-      expect(result.status).toBe('SIGNED_IN');
-      const { tokens } = result as { tokens: Record<string, string> };
+      expect(result.status).toBe('MFA_REQUIRED');
+      expect(result).not.toHaveProperty('tokens');
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('with no second factor, gets no further than the proof that enrols one', async () => {
+      withSignInPassword(await argon2.hash('review-password'));
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(
+        reviewer({ totpEnabled: false, totpSecret: null }),
+      );
+
+      const result = await service.login(
+        'stripereview@circlesfera.com',
+        'review-password',
+        {},
+      );
+
+      expect(result.status).toBe('ENROLMENT_PROOF_REQUIRED');
+      expect(
+        (jwt.decode(result.mfaToken) as Record<string, unknown>).purpose,
+      ).toBe('admin-enrol-proof');
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
+      // Nothing about the identity is changed by the refusal.
+      expect(mockPrisma.adminIdentity.update).not.toHaveBeenCalled();
+    });
+
+    it("finishes the second factor into a session marked as a reviewer's, capped at a working day", async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
+
+      const tokens = await service.verifyMfa(reviewerMfaToken(), '123456', {
+        ip: '1.2.3.4',
+      });
+
       const access = jwt.decode(tokens.accessToken) as Record<string, unknown>;
       const refresh = jwt.decode(tokens.refreshToken) as Record<
         string,
         number | boolean
       >;
-      expect(access).toMatchObject({ typ: 'access', rev: true });
-      expect(access.mfa).toBeUndefined();
-      expect(refresh).toMatchObject({ typ: 'refresh', rev: true });
+      expect(access).toMatchObject({ typ: 'access', mfa: true, rev: true });
+      expect(refresh).toMatchObject({ typ: 'refresh', mfa: true, rev: true });
       // The refresh token never outlives the working day of the session.
       expect(
         (refresh.exp as number) - (refresh.sst as number),
       ).toBeLessThanOrEqual(8 * 60 * 60 + 1);
+      const [{ data }] = mockPrisma.adminRefreshToken.create.mock.calls[0];
+      expect(data.expiresAt.getTime()).toBeLessThanOrEqual(
+        Date.now() + 8 * HOUR,
+      );
       expect(mockPrisma.adminAuditLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ action: 'ADMIN_LOGIN' }),
       });
     });
+
+    it('a session from the second factor never outlasts the access', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(
+        reviewer({ accessExpiresAt: new Date(Date.now() + HOUR) }),
+      );
+
+      await service.verifyMfa(reviewerMfaToken(), '123456', {});
+
+      const [{ data }] = mockPrisma.adminRefreshToken.create.mock.calls[0];
+      expect(data.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + HOUR);
+    });
+
+    it.each([
+      ['has no end date', { accessExpiresAt: null }],
+      [
+        'ends further than a reviewer is ever given',
+        { accessExpiresAt: new Date(Date.now() + 91 * 24 * HOUR) },
+      ],
+    ])(
+      'cannot finish the second factor when the access %s',
+      async (_label, extra) => {
+        mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer(extra));
+
+        await expect(
+          service.verifyMfa(reviewerMfaToken(), '123456', {}),
+        ).rejects.toThrow('MFA not configured');
+        expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
+      },
+    );
 
     it('is refused with a wrong password, like anyone', async () => {
       withSignInPassword(await argon2.hash('review-password'));
@@ -1350,7 +1424,10 @@ describe('AdminAuthService', () => {
       );
     });
 
-    const reviewerRefresh = (sst: number) =>
+    const reviewerRefresh = (
+      sst: number,
+      mark: { mfa?: boolean } = { mfa: true },
+    ) =>
       jwtService.sign(
         {
           sub: 'rev-1',
@@ -1359,6 +1436,7 @@ describe('AdminAuthService', () => {
           typ: 'refresh',
           rev: true,
           sst,
+          ...mark,
         },
         { secret: adminSecret, audience: 'circlesfera-admin' },
       );
@@ -1377,6 +1455,7 @@ describe('AdminAuthService', () => {
       const result = await service.refresh(reviewerRefresh(sst), {});
 
       const refresh = jwt.decode(result.refreshToken) as Record<string, number>;
+      expect(refresh).toMatchObject({ mfa: true, rev: true });
       expect(refresh.sst).toBe(sst);
       expect(refresh.exp).toBeLessThanOrEqual(sst + 8 * 60 * 60 + 1);
       const [{ data }] = mockPrisma.adminRefreshToken.create.mock.calls[0];
@@ -1417,6 +1496,11 @@ describe('AdminAuthService', () => {
           accessExpiresAt: new Date(Date.now() - 1000),
         },
       ],
+      [
+        'once its authenticator was reset',
+        0,
+        { totpEnabled: false, totpSecret: null },
+      ],
     ])('is not renewed %s', async (_label, startOffset, extra) => {
       storedToken();
       mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer(extra));
@@ -1426,6 +1510,16 @@ describe('AdminAuthService', () => {
           reviewerRefresh(Math.floor((Date.now() + startOffset) / 1000)),
           {},
         ),
+      ).rejects.toThrow('Sign in again');
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('a session opened with the password alone, before PD-091, is not renewed', async () => {
+      storedToken();
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
+
+      await expect(
+        service.refresh(reviewerRefresh(Math.floor(Date.now() / 1000), {}), {}),
       ).rejects.toThrow('Sign in again');
       expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
     });
@@ -1445,20 +1539,67 @@ describe('AdminAuthService', () => {
       expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
     });
 
-    it('never finishes a second factor, renews such a session nor steps up', async () => {
-      const enrolled = reviewer({
+    it('steps up within its session, the new token keeping the reviewer mark and when the session began', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
+      const sst = Math.floor((Date.now() - HOUR) / 1000);
+
+      const { accessToken } = await service.stepUp(
+        'rev-1',
+        { totpCode: '123456' },
+        sst,
+      );
+
+      expect(jwt.decode(accessToken)).toMatchObject({
+        typ: 'access',
+        mfa: true,
+        rev: true,
+        sst,
+        stepUp: true,
+      });
+    });
+
+    it.each([
+      ['with a wrong code', '000000', 0, {}],
+      ['past the working day of its session', '123456', -9 * HOUR, {}],
+      ['once its access has no end', '123456', 0, { accessExpiresAt: null }],
+      [
+        'without an authenticator',
+        '123456',
+        0,
+        { totpEnabled: false, totpSecret: null },
+      ],
+    ])('does not step up %s', async (_label, totpCode, startOffset, extra) => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer(extra));
+
+      await expect(
+        service.stepUp(
+          'rev-1',
+          { totpCode },
+          Math.floor((Date.now() + startOffset) / 1000),
+        ),
+      ).rejects.toThrow('Step-up verification failed');
+    });
+
+    it("a member of staff's session does not step up inside a reviewer's, nor the other way", async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        email: 'a@circlesfera.com',
+        status: 'ACTIVE',
         totpEnabled: true,
         totpSecret: 'enc:base32-admin-secret',
+        roles: [],
       });
-      mockPrisma.adminIdentity.findUnique.mockResolvedValue(enrolled);
+      await expect(
+        service.stepUp(
+          'admin-1',
+          { totpCode: '123456' },
+          Math.floor(Date.now() / 1000),
+        ),
+      ).rejects.toThrow('Step-up verification failed');
+    });
 
-      const mfaToken = jwtService.sign(
-        { sub: 'rev-1', email: 'r@circlesfera.com', purpose: 'admin-mfa' },
-        { secret: adminSecret, audience: 'circlesfera-admin' },
-      );
-      await expect(service.verifyMfa(mfaToken, '123456', {})).rejects.toThrow(
-        'MFA not configured',
-      );
+    it("never renews a member of staff's session, nor steps up outside its own", async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
 
       storedToken();
       const mfaRefresh = jwtService.sign(

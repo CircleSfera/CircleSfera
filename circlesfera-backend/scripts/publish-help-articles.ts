@@ -141,8 +141,10 @@ Una publicación promocionada aparece marcada como promocionada. Llega a los pa�
 // Creates or updates each article above, in every language it has, and
 // publishes it. It prints what would change and changes nothing unless
 // APPLY=1. Articles written in the Backoffice and not listed here are never
-// touched. Runs with plain Node inside the production image, through the
-// "Ops — publish help articles" workflow.
+// touched, and one listed here that staff took down stays down; the text of
+// the ones listed here is kept in the code, so it is changed here, not in the
+// Backoffice. Runs with plain Node inside the backend image, with APPLY=1 after
+// every deploy of each environment (ED-016).
 async function main() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error('DATABASE_URL is not set');
@@ -162,6 +164,14 @@ async function main() {
         },
         include: { texts: true },
       });
+      // One that staff took down in the Backoffice stays down: running on
+      // every deploy (ED-016) must never put back what a person withdrew.
+      if (stored && stored.status !== 'PUBLISHED') {
+        console.log(
+          `LEFT ${article.slug}: taken down in the Backoffice (${stored.status})`,
+        );
+        continue;
+      }
       const same =
         stored?.status === 'PUBLISHED' &&
         stored.topic === article.topic &&

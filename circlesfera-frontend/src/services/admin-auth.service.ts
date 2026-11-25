@@ -20,15 +20,13 @@ export type AdminMe = {
   accessExpiresAt?: string | null;
 };
 
-// A password alone never opens a member of staff's session: the server asks
-// for the code of the authenticator, or, with none yet, for the proof that
-// lets one be set up (the link sent to the staff email, or a code from an
-// administrator). An external reviewer is the one exception: signed in at
-// once, the session already in its cookies.
+// A password alone never opens a staff session, an external reviewer's
+// included (PD-091): the server asks for the code of the authenticator, or,
+// with none yet, for the proof that lets one be set up (the link sent to the
+// staff email, or a code from an administrator).
 export type AdminLoginResult =
   | { status: 'MFA_REQUIRED'; mfaToken: string }
-  | { status: 'ENROLMENT_PROOF_REQUIRED'; mfaToken: string }
-  | { status: 'SIGNED_IN' };
+  | { status: 'ENROLMENT_PROOF_REQUIRED'; mfaToken: string };
 
 // What the proof opens: the new authenticator, shown this once.
 export type AdminEnrolResult = {
@@ -39,9 +37,9 @@ export type AdminEnrolResult = {
   qrCodeDataUrl?: string;
 };
 
-// What setting up the access answers: a member of staff's new authenticator,
-// or, for an external reviewer, a session already in its cookies.
-export type AdminAccessResult = AdminEnrolResult | { status: 'SIGNED_IN' };
+// What setting up the access answers: the new authenticator, for an
+// external reviewer too.
+export type AdminAccessResult = AdminEnrolResult;
 
 // A staff passkey as listed: never its key.
 export type AdminPasskey = {

@@ -86,9 +86,24 @@ describe('StaffPasskeyNotice', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows nothing for a reviewer, with a passkey, or before who it is is known', () => {
+  it('asks an external reviewer with no passkey to add one too (PD-091)', () => {
+    signIn(
+      staff({
+        externalReviewer: true,
+        roles: ['EXTERNAL_REVIEWER'],
+        permissions: ['review'],
+      }),
+    );
+    const { i18n } = renderWithProviders(<StaffPasskeyNotice />);
+
+    expect(
+      screen.getByText(i18n!.t('adminPanel.passkeys.notice_title')),
+    ).toBeInTheDocument();
+  });
+
+  it('shows nothing with a passkey, or before who it is is known', () => {
     for (const admin of [
-      staff({ externalReviewer: true }),
+      staff({ externalReviewer: true, passkeyCount: 1 }),
       staff({ passkeyCount: 1 }),
       staff({ passkeyCount: undefined }),
       null,

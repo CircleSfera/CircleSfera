@@ -260,14 +260,14 @@ export function StaffPasskeysDialog({
 }
 
 /**
- * Asks a member of staff with no passkey to add one. Nothing shows for an
- * external reviewer, nor once the identity has a passkey.
+ * Asks a staff identity with no passkey to add one, an external reviewer's
+ * too (PD-091). Nothing shows once the identity has a passkey.
  */
 export function StaffPasskeyNotice() {
   const { t } = useTranslation();
   const admin = useAdminAuthStore((state) => state.admin);
   const [open, setOpen] = useState(false);
-  const show = !!admin && !admin.externalReviewer && admin.passkeyCount === 0;
+  const show = !!admin && admin.passkeyCount === 0;
 
   // The dialog stays open after the first passkey is added, when the
   // notice itself goes, so the person sees the passkey in the list.

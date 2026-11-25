@@ -60,7 +60,7 @@ export class AdminOperatorsService {
   ) {}
 
   // Sends the link that lets the identity set up its access: a password of
-  // its own, and for a member of staff an authenticator. A failure
+  // its own and an authenticator. A failure
   // to send never undoes what was done: the link can be sent again.
   private async sendEnrolmentLink(
     actorAdminId: string,
@@ -82,20 +82,15 @@ export class AdminOperatorsService {
     }
   }
 
-  // An identity a proof may be issued for: a member of staff with no
-  // authenticator yet (its access reset, or never set up), or any external
-  // reviewer, who has no authenticator to reset and recovers a forgotten
-  // password with a proof. Whether it may go by email is decided apart.
+  // An identity a proof may be issued for: one with no authenticator yet
+  // (its access reset, or never set up), an external reviewer as much as a
+  // member of staff (PD-091). Whether it may go by email is decided apart.
   private async awaitingEnrolment(id: string) {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id },
-      include: { roles: { select: { roleId: true } } },
     });
     if (!admin) throw new NotFoundException('Operator not found');
-    if (
-      !isReviewerRoleSet(admin.roles.map((r) => r.roleId)) &&
-      admin.totpEnabled
-    ) {
+    if (admin.totpEnabled) {
       throw new ConflictException('This operator already has an authenticator');
     }
     if (admin.status !== 'ACTIVE') {
@@ -352,8 +347,8 @@ export class AdminOperatorsService {
         ? `Created external reviewer ${email} until ${accessExpiresAt?.toISOString()}`
         : `Created operator ${email}`,
     );
-    // Everyone sets up their access from the link: a password, and for a
-    // member of staff an authenticator too.
+    // Everyone sets up their access from the link: a password and an
+    // authenticator.
     await this.sendEnrolmentLink(actorAdminId, created);
 
     return this.serialize(created);
@@ -428,8 +423,8 @@ export class AdminOperatorsService {
         where: { id },
         data: { accessExpiresAt },
       }),
-      // Becoming a reviewer, or ceasing to be one, changes how the identity
-      // signs in: its sessions end.
+      // Becoming a reviewer, or ceasing to be one, changes what a session
+      // may read and how long it lasts: its sessions end.
       ...(wasReviewer === reviewer
         ? []
         : [
@@ -451,17 +446,9 @@ export class AdminOperatorsService {
       id,
       `Roles: ${roleIds.join(',')}`,
     );
-    // No longer a reviewer: a member of staff enrols an authenticator, from
-    // a link only if it never had access (otherwise from a code).
-    if (
-      wasReviewer &&
-      !reviewer &&
-      !updated.totpEnabled &&
-      !hadAccess(updated)
-    ) {
-      await this.sendEnrolmentLink(actorAdminId, updated);
-    }
-
+    // A reviewer and a member of staff set up their access the same way, so
+    // changing between them sends nothing: a link or code already given
+    // still works.
     return this.serialize(updated);
   }
 

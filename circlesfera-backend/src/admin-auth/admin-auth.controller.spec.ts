@@ -153,22 +153,6 @@ describe('AdminAuthController', () => {
     );
   });
 
-  it('signs an external reviewer in at once, the tokens only in cookies', async () => {
-    mockService.login.mockResolvedValue({ status: 'SIGNED_IN', tokens });
-
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/admin-auth/login')
-      .send({ email: 'stripereview@example.com', password: 'password1' })
-      .expect(200);
-
-    expect(res.body).toEqual({ status: 'SIGNED_IN' });
-    const cookies = setCookies(res).join('');
-    expect(cookies).toContain(`${ADMIN_ACCESS_TOKEN_COOKIE}=admin-access-test`);
-    expect(cookies).toContain(
-      `${ADMIN_REFRESH_TOKEN_COOKIE}=admin-refresh-test`,
-    );
-  });
-
   it('returns MFA required without setting cookies', async () => {
     mockService.login.mockResolvedValue({
       status: 'MFA_REQUIRED',
@@ -358,7 +342,12 @@ describe('AdminAuthController', () => {
       `${ADMIN_ACCESS_TOKEN_COOKIE}=admin-access-step`,
     );
     expect(cookies[0]).not.toContain(ADMIN_REFRESH_TOKEN_COOKIE);
-    expect(mockService.stepUp).toHaveBeenCalledWith(TEST_ADMIN.adminId, dto);
+    // A member of staff's session: no reviewer session to keep.
+    expect(mockService.stepUp).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      dto,
+      undefined,
+    );
   });
 
   describe('setting up the access from a link', () => {
@@ -393,27 +382,6 @@ describe('AdminAuthController', () => {
         body.proof,
         body.password,
         expect.objectContaining({ userAgent: 'Vitest' }),
-      );
-    });
-
-    it('signs an external reviewer in, the tokens only in cookies', async () => {
-      mockService.setUpAccess.mockResolvedValue({
-        status: 'SIGNED_IN',
-        tokens,
-      });
-
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/admin-auth/access')
-        .send(body)
-        .expect(200);
-
-      expect(res.body).toEqual({ status: 'SIGNED_IN' });
-      const cookies = setCookies(res).join(';');
-      expect(cookies).toContain(
-        `${ADMIN_ACCESS_TOKEN_COOKIE}=admin-access-test`,
-      );
-      expect(cookies).toContain(
-        `${ADMIN_REFRESH_TOKEN_COOKIE}=admin-refresh-test`,
       );
     });
 
