@@ -8,7 +8,6 @@ interface AdminAuthState {
   isSessionChecked: boolean;
   isCheckingSession: boolean;
   setAdmin: (admin: AdminMe) => void;
-  setAuthenticated: () => void;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>;
   hasPermission: (key: string) => boolean;
@@ -22,7 +21,6 @@ export const useAdminAuthStore = create<AdminAuthState>()(
       isSessionChecked: false,
       isCheckingSession: false,
       setAdmin: (admin) => set({ admin, isAuthenticated: true }),
-      setAuthenticated: () => set({ isAuthenticated: true }),
       checkSession: async () => {
         const state = get();
         if (state.isSessionChecked || state.isCheckingSession) return;
