@@ -29,6 +29,8 @@ export interface WarehouseTable {
   bytes: number;
   // The newest updatedAt, for the tables the export loads.
   newestRowAt: string | null;
+  // true when the newest row of this table could not be read.
+  newestRowUnknown: boolean;
 }
 
 export type WarehouseFailureKind =
@@ -142,11 +144,9 @@ export class WarehouseReportService {
           name: row.name,
           rows: Number(row.rows),
           bytes: Number(row.bytes),
-          newestRowAt: (WAREHOUSE_TABLES as readonly string[]).includes(
-            row.name,
-          )
+          ...((WAREHOUSE_TABLES as readonly string[]).includes(row.name)
             ? await this.newestRow(row.name)
-            : null,
+            : { newestRowAt: null, newestRowUnknown: false }),
         })),
       );
     } catch {
@@ -154,13 +154,20 @@ export class WarehouseReportService {
     }
   }
 
-  // The name is one of WAREHOUSE_TABLES, never a person's text.
-  private async newestRow(table: string): Promise<string | null> {
-    const [row] =
-      (await this.clickHouse.select<{ newest: string | null }>(
-        `SELECT if(count() = 0, NULL, toString(max(updatedAt))) AS newest FROM ${table}`,
-      )) ?? [];
-    return row?.newest ?? null;
+  // The name is one of WAREHOUSE_TABLES, never a person's text. A failed
+  // read leaves only this table's newest row unknown.
+  private async newestRow(
+    table: string,
+  ): Promise<Pick<WarehouseTable, 'newestRowAt' | 'newestRowUnknown'>> {
+    try {
+      const [row] =
+        (await this.clickHouse.select<{ newest: string | null }>(
+          `SELECT if(count() = 0, NULL, toString(max(updatedAt))) AS newest FROM ${table}`,
+        )) ?? [];
+      return { newestRowAt: row?.newest ?? null, newestRowUnknown: false };
+    } catch {
+      return { newestRowAt: null, newestRowUnknown: true };
+    }
   }
 
   private async folderState(

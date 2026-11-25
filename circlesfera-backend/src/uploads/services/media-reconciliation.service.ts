@@ -7,29 +7,23 @@ import {
 } from '../interfaces/storage-provider.interface.js';
 import { UploadsService } from '../uploads.service.js';
 import { MediaReferencesService } from './media-references.service.js';
+import { type OrphanMediaItem, planOrphanSweep } from './orphan-sweep.plan.js';
 import {
   ORPHAN_DELETIONS_PER_NIGHT,
   ORPHAN_GRACE_HOURS,
-  ORPHAN_MAX_SHARE,
-  ORPHAN_SHARE_WINDOW_DAYS,
 } from './orphan-sweep.policy.js';
 import {
   DELETED_CONTENT_KEPT_DAYS,
   StoredFilesService,
 } from './stored-files.service.js';
 
+export type { OrphanMediaItem } from './orphan-sweep.plan.js';
+
 export interface OrphanDetectionOptions {
   olderThanHours?: number;
   dryRun?: boolean;
   /** The most files deleted in one run, the oldest first. */
   maxDeletions?: number;
-}
-
-export interface OrphanMediaItem {
-  url: string;
-  lastModified: Date;
-  ageHours: number;
-  sizeBytes?: number;
 }
 
 export interface OrphanReconciliationResult {
@@ -116,41 +110,17 @@ export class MediaReconciliationService {
     const kept = await this.storedFilesRecord.detachedSince(
       new Date(Date.now() - DELETED_CONTENT_KEPT_DAYS * 24 * 60 * 60 * 1000),
     );
-    const orphans: OrphanMediaItem[] = [];
-    let foreignCount = 0;
-
-    for (const file of storedFiles) {
-      const url = file.url;
-      const base = path.basename(url);
-
-      // Only a file this storage deletes is weighed: a video's stream in its
-      // subfolder, or a file of another shape, is never an orphan here.
-      if (!this.uploadsService.ownsUrl(url)) {
-        foreignCount++;
-        continue;
-      }
-
-      const isReferenced = referencedKeys.has(url) || referencedKeys.has(base);
-      if (isReferenced || kept.has(url)) {
-        continue;
-      }
-
-      // A recent file may be an upload in progress; one of unknown age too.
-      if (!file.lastModified || file.lastModified > cutoffTime) {
-        continue;
-      }
-
-      const ageHours = Math.round(
-        (Date.now() - file.lastModified.getTime()) / (1000 * 60 * 60),
-      );
-
-      orphans.push({
-        url: file.url,
-        lastModified: file.lastModified,
-        ageHours,
-        sizeBytes: file.sizeBytes,
-      });
-    }
+    // The sweep's rules, shared with the Operations report.
+    const plan = planOrphanSweep({
+      files: storedFiles,
+      referenced: referencedKeys,
+      kept,
+      owns: (url) => this.uploadsService.ownsUrl(url),
+      olderThanHours,
+      maxDeletions,
+    });
+    const orphans = plan.orphans;
+    const foreignCount = plan.foreign;
 
     this.logger.log(
       `Orphan scan complete. Scanned: ${storedFiles.length}, Referenced DB keys: ${referencedKeys.size}, Orphans: ${orphans.length} (grace: ${olderThanHours}h, dryRun: ${dryRun})`,
@@ -171,26 +141,9 @@ export class MediaReconciliationService {
     }
 
     // So many unused files among those stored lately means the references
-    // were misread: nothing goes. Old leftovers are not counted.
-    const windowStart =
-      Date.now() - ORPHAN_SHARE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-    const recentFiles = storedFiles.filter(
-      (file) =>
-        this.uploadsService.ownsUrl(file.url) &&
-        file.lastModified &&
-        file.lastModified.getTime() >= windowStart,
-    ).length;
-    const recentOrphans = orphans.filter(
-      (orphan) => orphan.lastModified.getTime() >= windowStart,
-    ).length;
-    if (
-      referencedKeys.size === 0 ||
-      recentOrphans > recentFiles * ORPHAN_MAX_SHARE
-    ) {
-      result.heldBack =
-        referencedKeys.size === 0
-          ? 'no row names any file'
-          : `${recentOrphans} of the ${recentFiles} files of the last ${ORPHAN_SHARE_WINDOW_DAYS} days are unused, past the share of ${ORPHAN_MAX_SHARE}`;
+    // were misread: nothing goes.
+    if (plan.heldBack) {
+      result.heldBack = plan.heldBack;
       this.logger.error(
         `Orphan sweep held back, nothing deleted: ${result.heldBack}.`,
       );
@@ -198,9 +151,7 @@ export class MediaReconciliationService {
     }
 
     // The oldest first, and only so many in one run.
-    const candidates = [...orphans]
-      .sort((a, b) => a.lastModified.getTime() - b.lastModified.getTime())
-      .slice(0, Math.max(0, maxDeletions));
+    const candidates = plan.toDelete;
     // A row may have named one of them since the scan began: read again,
     // as a person's deletion does too, so that a row naming the video's
     // stream or cover in its folder keeps the video and its folder.

@@ -22,6 +22,8 @@ export interface ResourceAlert {
 }
 
 const GIB = 1024 * 1024 * 1024;
+// A day's mark outlives the day, whatever the time zone of the reader.
+const MARK_TTL_SECONDS = 2 * 24 * 60 * 60;
 const percent = (ratio: number) => `${Math.round(ratio * 100)}%`;
 const gib = (bytes: number) => `${(bytes / GIB).toFixed(2)} GB`;
 
@@ -111,22 +113,32 @@ export class ResourceAlertsService {
   }
 
   // Whether this alert has not been sent yet today. Redis keeps the mark so
-  // that a restart or a second instance does not send it again.
+  // that a restart or a second instance does not send it again; this
+  // instance's own memory keeps it while Redis does not answer, and is read
+  // first, so an alert sent during an outage is not sent again once Redis is
+  // back.
   private async firstToday(
     key: ResourceAlertKey,
     day: string,
   ): Promise<boolean> {
     const mark = `ops:resource-alert:${key}:${day}`;
+    for (const old of this.sentWithoutRedis) {
+      if (!old.endsWith(`:${day}`)) this.sentWithoutRedis.delete(old);
+    }
+    if (this.sentWithoutRedis.has(mark)) {
+      // Tell Redis too, for the other instances; it may still be down.
+      await this.markInRedis(mark).catch(() => undefined);
+      return false;
+    }
     try {
-      const set = await this.redis.set(mark, '1', 'EX', 2 * 24 * 60 * 60, 'NX');
-      return set === 'OK';
+      return (await this.markInRedis(mark)) === 'OK';
     } catch {
-      if (this.sentWithoutRedis.has(mark)) return false;
-      for (const old of this.sentWithoutRedis) {
-        if (!old.endsWith(`:${day}`)) this.sentWithoutRedis.delete(old);
-      }
       this.sentWithoutRedis.add(mark);
       return true;
     }
+  }
+
+  private markInRedis(mark: string): Promise<string | null> {
+    return this.redis.set(mark, '1', 'EX', MARK_TTL_SECONDS, 'NX');
   }
 }

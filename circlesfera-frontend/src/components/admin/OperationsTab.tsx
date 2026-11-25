@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
+  Calculator,
   Database,
   EyeOff,
   FileWarning,
+  PauseCircle,
   RefreshCw,
   Server,
   ShieldAlert,
@@ -129,11 +131,30 @@ function Failed({ message }: { message: string }) {
   );
 }
 
-/** One line of a list: a name, then its figures. */
-function Row({ name, figures }: { name: string; figures: string[] }) {
+/**
+ * One line of a list: a name, then its figures. A name the system gives (a
+ * queue, a table) is set as code; a label (`label`) as text.
+ */
+function Row({
+  name,
+  figures,
+  label = false,
+}: {
+  name: string;
+  figures: string[];
+  label?: boolean;
+}) {
   return (
     <li className="flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-      <span className="text-sm text-white font-mono break-all">{name}</span>
+      <span
+        className={
+          label
+            ? 'text-sm text-white shrink-0'
+            : 'text-sm text-white font-mono break-all'
+        }
+      >
+        {name}
+      </span>
       <span className="text-xs text-white/70 tabular-nums sm:text-right">
         {figures.join(' · ')}
       </span>
@@ -280,20 +301,24 @@ function ResourcesBody({ data }: { data: OperationsResources }) {
           <Row
             key={queue.name}
             name={queue.name}
-            figures={[
-              t('admin.operations.queue_waiting', {
-                value: formatNumber(queue.waiting, lang),
-              }),
-              t('admin.operations.queue_active', {
-                value: formatNumber(queue.active, lang),
-              }),
-              t('admin.operations.queue_delayed', {
-                value: formatNumber(queue.delayed, lang),
-              }),
-              t('admin.operations.queue_failed', {
-                value: formatNumber(queue.failed, lang),
-              }),
-            ]}
+            figures={
+              queue.reachable
+                ? [
+                    t('admin.operations.queue_waiting', {
+                      value: formatNumber(queue.waiting ?? 0, lang),
+                    }),
+                    t('admin.operations.queue_active', {
+                      value: formatNumber(queue.active ?? 0, lang),
+                    }),
+                    t('admin.operations.queue_delayed', {
+                      value: formatNumber(queue.delayed ?? 0, lang),
+                    }),
+                    t('admin.operations.queue_failed', {
+                      value: formatNumber(queue.failed ?? 0, lang),
+                    }),
+                  ]
+                : [t('admin.operations.unreachable')]
+            }
           />
         ))}
       </ul>
@@ -373,14 +398,16 @@ function WarehouseBody({ data }: { data: OperationsWarehouse }) {
                   value: formatNumber(table.rows, lang),
                 }),
                 formatBytes(table.bytes, lang),
-                table.newestRowAt
-                  ? t('admin.operations.newest', {
-                      date: formatDateTime(
-                        `${table.newestRowAt.replace(' ', 'T')}Z`,
-                        lang,
-                      ),
-                    })
-                  : t('admin.operations.no_newest'),
+                table.newestRowUnknown
+                  ? t('admin.operations.newest_unknown')
+                  : table.newestRowAt
+                    ? t('admin.operations.newest', {
+                        date: formatDateTime(
+                          `${table.newestRowAt.replace(' ', 'T')}Z`,
+                          lang,
+                        ),
+                      })
+                    : t('admin.operations.no_newest'),
               ]}
             />
           ))}
@@ -474,18 +501,53 @@ function OrphansBody({ data }: { data: OperationsOrphanFiles }) {
     );
   }
   const count = (value: number) => formatNumber(value, lang);
+  const held = data.heldBack;
   return (
     <>
+      {held && (
+        <div
+          role="status"
+          className="m-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3"
+        >
+          <p className="flex items-center gap-2 text-sm font-semibold text-amber-300">
+            <PauseCircle size={16} className="shrink-0" />
+            {t('admin.operations.orphans_held_title')}
+          </p>
+          <p className="mt-1 text-xs text-white/70">
+            {held.reason === 'no_references'
+              ? t('admin.operations.orphans_held_no_references')
+              : t('admin.operations.orphans_held_share', {
+                  unused: count(held.recentOrphans),
+                  files: count(held.recentFiles),
+                  days: data.policy.shareWindowDays,
+                  share: formatPercent(data.policy.maxShare, lang),
+                })}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-2 divide-x divide-y divide-white/5 border-b border-white/5 sm:grid-cols-3">
         <Metric
-          label={t('admin.operations.orphans_sweepable')}
-          value={count(data.sweepable.count)}
-          hint={t('admin.operations.orphans_sweepable_hint', {
-            size: formatBytes(data.sweepable.bytes, lang),
-            nights: data.sweepable.nights,
-            perNight: data.policy.deletionsPerNight,
+          label={t('admin.operations.orphans_next_run')}
+          value={count(data.nextRun.count)}
+          hint={formatBytes(data.nextRun.bytes, lang)}
+          tone={
+            held ? 'default' : data.nextRun.count > 0 ? 'danger' : 'success'
+          }
+        />
+        <Metric
+          label={t('admin.operations.orphans_unused', {
+            hours: data.policy.graceHours,
           })}
-          tone={data.sweepable.count > 0 ? 'danger' : 'success'}
+          value={count(data.orphans.count)}
+          hint={
+            held
+              ? formatBytes(data.orphans.bytes, lang)
+              : t('admin.operations.orphans_unused_hint', {
+                  size: formatBytes(data.orphans.bytes, lang),
+                  nights: data.orphans.nights,
+                  perNight: data.policy.deletionsPerNight,
+                })
+          }
         />
         <Metric
           label={t('admin.operations.orphans_files')}
@@ -509,15 +571,20 @@ function OrphansBody({ data }: { data: OperationsOrphanFiles }) {
           value={count(data.unusedRecent)}
         />
         <Metric
+          label={t('admin.operations.orphans_foreign')}
+          value={count(data.foreign)}
+        />
+        <Metric
           label={t('admin.operations.orphans_unrecorded')}
           value={count(data.unrecordedOnDisk)}
         />
       </div>
-      {data.sweepable.count > 0 && (
+      {data.orphans.count > 0 && (
         <ul className="divide-y divide-white/5">
           {BREAKDOWN_GROUPS.map((group) => (
             <Row
               key={group}
+              label
               name={t(`admin.operations.breakdown.${group}`)}
               figures={Object.entries(data.breakdown[group])
                 .sort(([, a], [, b]) => b - a)
@@ -564,13 +631,15 @@ export default function OperationsTab() {
     queryKey: ['admin', 'operations', 'csp'],
     queryFn: adminApi.getOperationsCsp,
   });
-  // It lists every stored file: asked once, and again only on request.
+  // It reads every stored file and every row that names one: asked only
+  // when staff press its button. The server keeps its last answer a while.
   const orphans = useQuery({
     queryKey: ['admin', 'operations', 'orphan-files'],
     queryFn: adminApi.getOperationsOrphanFiles,
+    enabled: false,
     staleTime: Number.POSITIVE_INFINITY,
   });
-  const queries = [resources, warehouse, csp, orphans];
+  const queries = [resources, warehouse, csp];
   const refreshing = queries.some((query) => query.isFetching);
 
   const body = <T,>(
@@ -636,9 +705,38 @@ export default function OperationsTab() {
             subtitle={t('admin.operations.orphans_subtitle')}
             icon={FileWarning}
           >
-            {body(orphans, (data) => (
-              <OrphansBody data={data} />
-            ))}
+            <div className="flex flex-col gap-2 px-3 pt-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-white/50">
+                {orphans.data
+                  ? t('admin.operations.orphans_computed_at', {
+                      time: formatDateTime(
+                        orphans.data.generatedAt,
+                        i18n.language,
+                      ),
+                    })
+                  : t('admin.operations.orphans_not_computed')}
+              </p>
+              <Button
+                variant="secondary"
+                onClick={() => void orphans.refetch()}
+                isLoading={orphans.isFetching}
+                className="min-h-11 shrink-0"
+              >
+                <Calculator size={16} className="mr-2" />
+                {orphans.data
+                  ? t('admin.operations.orphans_recompute')
+                  : t('admin.operations.orphans_compute')}
+              </Button>
+            </div>
+            {orphans.isFetching && !orphans.data ? (
+              <Loading />
+            ) : orphans.isError ? (
+              <Failed message={t('admin.operations.load_error')} />
+            ) : orphans.data ? (
+              <OrphansBody data={orphans.data} />
+            ) : (
+              <div className="h-3" />
+            )}
           </Section>
           <Section
             title={t('admin.operations.csp_title')}

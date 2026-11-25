@@ -24,10 +24,12 @@ export interface DiskUsage {
 
 export interface QueueDepth {
   name: string;
-  waiting: number;
-  active: number;
-  delayed: number;
-  failed: number;
+  // false when the queue did not answer in time: no counts then.
+  reachable: boolean;
+  waiting: number | null;
+  active: number | null;
+  delayed: number | null;
+  failed: number | null;
 }
 
 export interface ServerResources {
@@ -106,13 +108,30 @@ function numberOrNull(value: string | undefined): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/** How long one source may take before it is reported as not answering. */
+export const SOURCE_TIMEOUT_MS = 5_000;
+
+/** The work's answer, or a rejection once `ms` have passed without one. */
+export function withinTime<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timed out')), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
 /**
  * The server's resources as far as the backend container sees them, read
  * when asked: nothing here writes, and nothing needs the Docker socket.
- * Sizes, counts and ratios only: no address, path or setting.
+ * Sizes, counts and ratios only: no address, path or setting. Each source
+ * has SOURCE_TIMEOUT_MS to answer: a Redis outage (BullMQ retries for
+ * minutes) shows as not answering instead of stalling the page or the
+ * alert job.
  */
 @Injectable()
 export class ServerResourcesService {
+  timeoutMs = SOURCE_TIMEOUT_MS;
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
@@ -159,7 +178,10 @@ export class ServerResourcesService {
 
   private async readText(file: string): Promise<string | null> {
     try {
-      return await fs.promises.readFile(file, 'utf8');
+      return await withinTime(
+        fs.promises.readFile(file, 'utf8'),
+        this.timeoutMs,
+      );
     } catch {
       return null;
     }
@@ -179,7 +201,10 @@ export class ServerResourcesService {
 
   private async disk(folder: string): Promise<DiskUsage | null> {
     try {
-      const stats = await fs.promises.statfs(folder);
+      const stats = await withinTime(
+        fs.promises.statfs(folder),
+        this.timeoutMs,
+      );
       const totalBytes = stats.blocks * stats.bsize;
       const freeBytes = stats.bavail * stats.bsize;
       if (totalBytes <= 0) return null;
@@ -195,9 +220,12 @@ export class ServerResourcesService {
 
   private async database(): Promise<ServerResources['database']> {
     try {
-      const [row] = await this.prisma.$queryRaw<{ size: bigint }[]>`
-        SELECT pg_database_size(current_database()) AS size
-      `;
+      const [row] = await withinTime(
+        this.prisma.$queryRaw<{ size: bigint }[]>`
+          SELECT pg_database_size(current_database()) AS size
+        `,
+        this.timeoutMs,
+      );
       return { reachable: true, sizeBytes: Number(row?.size ?? 0) };
     } catch {
       return { reachable: false, sizeBytes: null };
@@ -206,10 +234,10 @@ export class ServerResourcesService {
 
   private async redisMemory(): Promise<ServerResources['redis']> {
     try {
-      const [memory, stats] = await Promise.all([
-        this.redis.info('memory'),
-        this.redis.info('stats'),
-      ]);
+      const [memory, stats] = await withinTime(
+        Promise.all([this.redis.info('memory'), this.redis.info('stats')]),
+        this.timeoutMs,
+      );
       const fields = { ...parseRedisInfo(memory), ...parseRedisInfo(stats) };
       return {
         reachable: true,
@@ -229,30 +257,35 @@ export class ServerResourcesService {
     }
   }
 
+  // A queue that does not answer in time is listed with no counts.
   private async queueDepths(): Promise<QueueDepth[]> {
     const depths = await Promise.all(
-      this.queues.map(async (queue) => {
+      this.queues.map(async (queue): Promise<QueueDepth> => {
         try {
-          const counts = await queue.getJobCounts(
-            'waiting',
-            'active',
-            'delayed',
-            'failed',
+          const counts = await withinTime(
+            queue.getJobCounts('waiting', 'active', 'delayed', 'failed'),
+            this.timeoutMs,
           );
           return {
             name: queue.name,
+            reachable: true,
             waiting: counts.waiting ?? 0,
             active: counts.active ?? 0,
             delayed: counts.delayed ?? 0,
             failed: counts.failed ?? 0,
           };
         } catch {
-          return null;
+          return {
+            name: queue.name,
+            reachable: false,
+            waiting: null,
+            active: null,
+            delayed: null,
+            failed: null,
+          };
         }
       }),
     );
-    return depths
-      .filter((depth): depth is QueueDepth => depth !== null)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return depths.sort((a, b) => a.name.localeCompare(b.name));
   }
 }

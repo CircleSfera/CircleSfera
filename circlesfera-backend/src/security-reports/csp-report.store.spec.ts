@@ -74,28 +74,23 @@ describe('CspReportStore', () => {
         'enforce|connect-src|wss://a|b': '4',
       },
     };
+    // An older counter Redis has not expired yet is past the window.
+    hashes['csp:reports:2026-09-01'] = { 'report|img-src|old': '99' };
     const redis = {
-      scan: vi
-        .fn()
-        .mockResolvedValueOnce(['7', ['csp:reports:2026-11-02']])
-        .mockResolvedValueOnce([
-          '0',
-          ['csp:reports:2026-11-01', 'csp:reports:2026-11-02'],
-        ]),
-      hgetall: vi.fn(async (key: string) => hashes[key]),
+      scan: vi.fn(),
+      hgetall: vi.fn(async (key: string) => hashes[key] ?? {}),
     };
     const store = new CspReportStore(redis as never);
 
-    const summary = await store.summary();
+    const summary = await store.summary(new Date('2026-11-20T08:00:00Z'));
 
-    expect(redis.scan).toHaveBeenNthCalledWith(
-      2,
-      '7',
-      'MATCH',
-      'csp:reports:*',
-      'COUNT',
-      100,
-    );
+    // The days of the window, read by their keys: the keyspace is never
+    // scanned.
+    expect(redis.scan).not.toHaveBeenCalled();
+    expect(redis.hgetall).toHaveBeenCalledTimes(CSP_REPORT_RETENTION_DAYS);
+    expect(redis.hgetall).toHaveBeenCalledWith('csp:reports:2026-11-20');
+    expect(redis.hgetall).toHaveBeenCalledWith('csp:reports:2026-10-17');
+    expect(redis.hgetall).not.toHaveBeenCalledWith('csp:reports:2026-10-16');
     expect(summary).toEqual({
       days: 2,
       firstDay: '2026-11-01',
@@ -131,18 +126,18 @@ describe('CspReportStore', () => {
         String(i + 1),
       ]),
     );
+    const today = cspReportKey();
     const store = new CspReportStore({
-      scan: vi.fn().mockResolvedValue(['0', ['csp:reports:2026-11-01']]),
-      hgetall: vi.fn().mockResolvedValue(many),
+      hgetall: vi.fn(async (key: string) => (key === today ? many : {})),
     } as never);
 
     const summary = await store.summary();
+    expect(summary.days).toBe(1);
     expect(summary.rows).toHaveLength(CSP_SUMMARY_MAX_ROWS);
     expect(summary.rows[0].count).toBe(CSP_SUMMARY_MAX_ROWS + 5);
 
     const empty = new CspReportStore({
-      scan: vi.fn().mockResolvedValue(['0', []]),
-      hgetall: vi.fn(),
+      hgetall: vi.fn().mockResolvedValue({}),
     } as never);
     await expect(empty.summary()).resolves.toEqual({
       days: 0,
@@ -155,7 +150,7 @@ describe('CspReportStore', () => {
 
   it('fails rather than report no violations when Redis cannot be read', async () => {
     const store = new CspReportStore({
-      scan: vi.fn().mockRejectedValue(new Error('redis down')),
+      hgetall: vi.fn().mockRejectedValue(new Error('redis down')),
     } as never);
 
     await expect(store.summary()).rejects.toThrow('redis down');

@@ -18,6 +18,9 @@ export const RETIRED_PAYMENT_COLUMNS = [
   'liveStreamId',
 ] as const;
 
+/** How long a read of the warehouse may take before it fails. */
+export const SELECT_TIMEOUT_MS = 5_000;
+
 @Injectable()
 export class ClickHouseLoadService {
   private readonly logger = new Logger(ClickHouseLoadService.name);
@@ -137,6 +140,7 @@ export class ClickHouseLoadService {
     contentType: string,
     body: string,
     what: string,
+    signal?: AbortSignal,
   ): Promise<Response> {
     const headers: Record<string, string> = {
       'Content-Type': contentType,
@@ -153,6 +157,7 @@ export class ClickHouseLoadService {
       method: 'POST',
       headers,
       body,
+      ...(signal ? { signal } : {}),
     });
 
     if (!response.ok) {
@@ -166,7 +171,11 @@ export class ClickHouseLoadService {
 
   // Runs one read-only query and answers its rows; null when the warehouse
   // is not configured. The query is the caller's own text, never a person's.
-  async select<Row>(query: string): Promise<Row[] | null> {
+  // A warehouse that does not answer within timeoutMs fails the read.
+  async select<Row>(
+    query: string,
+    timeoutMs = SELECT_TIMEOUT_MS,
+  ): Promise<Row[] | null> {
     const baseUrl = this.config.get<string>('CLICKHOUSE_URL')?.trim();
     if (!baseUrl) return null;
     const url = new URL(baseUrl);
@@ -178,6 +187,7 @@ export class ClickHouseLoadService {
       'text/plain',
       `${query} FORMAT JSON`,
       'read',
+      AbortSignal.timeout(timeoutMs),
     );
     const body = (await response.json()) as { data?: Row[] };
     return body.data ?? [];

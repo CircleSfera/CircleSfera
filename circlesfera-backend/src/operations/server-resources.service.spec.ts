@@ -17,6 +17,7 @@ import {
   parseMeminfo,
   parseRedisInfo,
   ServerResourcesService,
+  SOURCE_TIMEOUT_MS,
 } from './server-resources.service.js';
 
 const MEMINFO = [
@@ -128,9 +129,17 @@ describe('ServerResourcesService', () => {
     });
     // Sorted by name; a count the queue does not give is 0.
     expect(resources.queues).toEqual([
-      { name: 'ai-processing', waiting: 0, active: 0, delayed: 0, failed: 0 },
+      {
+        name: 'ai-processing',
+        reachable: true,
+        waiting: 0,
+        active: 0,
+        delayed: 0,
+        failed: 0,
+      },
       {
         name: 'video-transcoding',
+        reachable: true,
         waiting: 2,
         active: 1,
         delayed: 0,
@@ -168,7 +177,48 @@ describe('ServerResourcesService', () => {
       maxMemoryBytes: null,
       evictedKeys: null,
     });
-    expect(resources.queues).toEqual([]);
+    expect(resources.queues).toEqual([
+      {
+        name: 'feed-fanout',
+        reachable: false,
+        waiting: null,
+        active: null,
+        delayed: null,
+        failed: null,
+      },
+    ]);
+  });
+
+  it('reports a source that does not answer in time as not answering, without waiting for it', async () => {
+    fakeFiles({ '/proc/meminfo': MEMINFO });
+    vi.spyOn(fs.promises, 'statfs').mockResolvedValue({
+      bsize: 4096,
+      blocks: 1000,
+      bavail: 250,
+    } as never);
+    const never = () => new Promise<never>(() => {});
+    const resources = service({
+      database: vi.fn(never),
+      info: vi.fn(never),
+      queues: [{ name: 'feed-fanout', getJobCounts: vi.fn(never) }] as never,
+    });
+    resources.timeoutMs = 20;
+
+    const started = Date.now();
+    const reading = await resources.collect();
+
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(reading.database.reachable).toBe(false);
+    expect(reading.redis.reachable).toBe(false);
+    expect(reading.queues[0].reachable).toBe(false);
+    // What did answer is still there.
+    expect(reading.host.memoryTotalBytes).toBe(8000000 * 1024);
+    expect(reading.disks.root?.usedRatio).toBe(0.75);
+  });
+
+  it('waits five seconds for each source by default', () => {
+    expect(service().timeoutMs).toBe(SOURCE_TIMEOUT_MS);
+    expect(SOURCE_TIMEOUT_MS).toBe(5_000);
   });
 
   it('counts an empty database as zero bytes', async () => {

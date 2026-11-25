@@ -42,29 +42,26 @@ export class CspReportStore {
   // What the counters of the last days add up to, by disposition, directive
   // and blocked origin. A failed read throws: it must never read as no
   // violations.
-  async summary(): Promise<CspSummary> {
-    const keys = new Set<string>();
-    let cursor = '0';
-    do {
-      const [next, found] = await this.redis.scan(
-        cursor,
-        'MATCH',
-        'csp:reports:*',
-        'COUNT',
-        100,
-      );
-      for (const key of found) keys.add(key);
-      cursor = next;
-    } while (cursor !== '0');
+  // The keys are known (one per UTC day of the retention), so they are read
+  // directly, never found by scanning the keyspace.
+  async summary(now: Date = new Date()): Promise<CspSummary> {
+    const keys = Array.from({ length: CSP_REPORT_RETENTION_DAYS }, (_, i) =>
+      cspReportKey(new Date(now.getTime() - i * 24 * 60 * 60 * 1000)),
+    ).reverse();
+    const hashes = await Promise.all(
+      keys.map((key) => this.redis.hgetall(key)),
+    );
 
-    const days = [...keys].sort();
+    const days: string[] = [];
     const counts = new Map<string, number>();
-    for (const key of days) {
-      const fields = await this.redis.hgetall(key);
-      for (const [field, value] of Object.entries(fields)) {
+    keys.forEach((key, i) => {
+      const fields = Object.entries(hashes[i] ?? {});
+      if (fields.length === 0) return;
+      days.push(key);
+      for (const [field, value] of fields) {
         counts.set(field, (counts.get(field) ?? 0) + Number(value));
       }
-    }
+    });
 
     const rows = [...counts.entries()]
       .map(([field, count]) => {

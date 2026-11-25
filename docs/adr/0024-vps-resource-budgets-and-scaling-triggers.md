@@ -82,12 +82,19 @@ Closing these is future work, not silently rolled into this documentation-gate t
 
 ## Update (2026-11-25, ED-016)
 
+**Correction to the queue and media rows above.** Until this update the automatic tier did not
+work: `ObservabilityModule` registered none of the queues `OperationalMetricsService` injects
+(`@Optional() @InjectQueue`), so the service watched no queue and the queue and media thresholds
+never fired. The module now registers them (`OBSERVED_QUEUES`, with a test that resolves them),
+so that tier works from this update on, still only when a Slack webhook is configured. It sends
+an alert on every minute's evaluation while a threshold stays crossed (it has no once-a-day rule).
+
 The first known gap is closed for disk, RAM, database and Redis: `ResourceAlertsService`
 (`operations/resource-alerts.service.ts`) reads them every 10 minutes and sends `system.incident`
 to Slack when an ALERT threshold of the table above is crossed (disk 90% of `/`, heap or RSS 1 GB,
-database or Redis not answering), at most once per threshold per UTC day. The thresholds are the
-health check's own (`health/resource-budgets.ts`). It is still conditional on the Slack webhook
-being set, as the queue tier is. The database size and Redis memory have no threshold in this ADR,
-so they are shown, not alerted; their thresholds remain a known gap. The values are shown to staff
-on the Backoffice's Operations page, together with what the backend container cannot see (each
-container's usage, Docker's disk use).
+database or Redis not answering or not answering within 5 seconds), at most once per threshold per
+UTC day. The thresholds are the health check's own (`health/resource-budgets.ts`). It is also
+conditional on the Slack webhook being set. The database size and Redis memory have no threshold
+in this ADR, so they are shown, not alerted; their thresholds remain a known gap. The values are
+shown to staff on the Backoffice's Operations page, together with what the backend container cannot
+see (each container's usage, Docker's disk use).

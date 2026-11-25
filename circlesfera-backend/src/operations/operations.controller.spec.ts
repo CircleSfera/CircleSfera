@@ -67,16 +67,36 @@ describe('OperationsController', () => {
 
   let withSystem: INestApplication;
   let withoutSystem: INestApplication;
+  let externalReviewer: INestApplication;
 
   beforeAll(async () => {
     withSystem = await appFor(staff(['system']));
     withoutSystem = await appFor(staff(['users.read', 'payments', 'support']));
+    // An external reviewer's session opens the review area only, whatever
+    // its identity holds.
+    externalReviewer = await appFor({
+      ...staff(['system', 'review']),
+      externalReviewer: true,
+    });
   });
 
   afterAll(async () => {
     await withSystem.close();
     await withoutSystem.close();
+    await externalReviewer.close();
   });
+
+  it.each(ROUTES)(
+    'refuses %s to an external reviewer, even one whose identity holds system',
+    async (route, method) => {
+      await request(externalReviewer.getHttpServer())
+        .get(`/api/v1/admin/operations/${route}`)
+        .set(ADMIN_BEARER)
+        .expect(403);
+
+      expect(services[route][method]).not.toHaveBeenCalled();
+    },
+  );
 
   beforeEach(() => {
     vi.clearAllMocks();

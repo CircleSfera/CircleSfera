@@ -207,6 +207,28 @@ describe('ResourceAlertsService', () => {
     expect(events.emit).toHaveBeenCalledTimes(2);
   });
 
+  it('does not send again, once Redis is back, what it sent from memory that day', async () => {
+    const back = fakeRedis();
+    let redisDown = true;
+    const redis = {
+      set: vi.fn(async (key: string, value: string) => {
+        if (redisDown) throw new Error('redis down');
+        return back.set(key, value);
+      }),
+    };
+    const { service, events } = setup(async () => overBudget(), redis);
+
+    await expect(service.checkThresholds(MORNING)).resolves.toEqual(['disk']);
+    redisDown = false;
+    await expect(service.checkThresholds(EVENING)).resolves.toEqual([]);
+
+    expect(events.emit).toHaveBeenCalledTimes(1);
+    // The mark reaches Redis, for the other instances.
+    expect(back.keys.has('ops:resource-alert:disk:2026-11-25')).toBe(true);
+    // A new day is a new alert.
+    await expect(service.checkThresholds(NEXT_DAY)).resolves.toEqual(['disk']);
+  });
+
   it('sends nothing when the resources cannot be read', async () => {
     const { service, events } = setup(async () => {
       throw new Error('unreadable');

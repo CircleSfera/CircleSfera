@@ -90,10 +90,12 @@ export interface OperationsResources {
   };
   queues: {
     name: string;
-    waiting: number;
-    active: number;
-    delayed: number;
-    failed: number;
+    // false when the queue did not answer in time: no counts then.
+    reachable: boolean;
+    waiting: number | null;
+    active: number | null;
+    delayed: number | null;
+    failed: number | null;
   }[];
   notVisible: string[];
 }
@@ -107,6 +109,7 @@ export interface OperationsWarehouse {
         rows: number;
         bytes: number;
         newestRowAt: string | null;
+        newestRowUnknown: boolean;
       }[]
     | null;
   readError: 'unreachable' | null;
@@ -140,12 +143,25 @@ export interface OperationsOrphanFiles {
     graceHours: number;
     deletionsPerNight: number;
     deletedContentKeptDays: number;
+    maxShare: number;
+    shareWindowDays: number;
   };
   files: { count: number; bytes: number };
+  // Files of another shape or in a subfolder: the sweep never weighs them.
+  foreign: number;
   used: number;
-  sweepable: { count: number; bytes: number; nights: number };
   keptDeleted: number;
   unusedRecent: number;
+  // Unused for longer than the grace period.
+  orphans: { count: number; bytes: number; nights: number };
+  // What the next run would delete: none when it holds back.
+  nextRun: { count: number; bytes: number };
+  // The sweep's safety stop: when set, it deletes nothing.
+  heldBack: {
+    reason: 'no_references' | 'share_exceeded';
+    recentOrphans: number;
+    recentFiles: number;
+  } | null;
   breakdown: Record<
     'shape' | 'extension' | 'owner' | 'age' | 'size',
     Record<string, number>

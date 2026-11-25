@@ -2,7 +2,10 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ClickHouseLoadService } from '../warehouse/clickhouse-load.service.js';
+import {
+  ClickHouseLoadService,
+  SELECT_TIMEOUT_MS,
+} from '../warehouse/clickhouse-load.service.js';
 import {
   classifyFailure,
   WarehouseReportService,
@@ -85,15 +88,28 @@ describe('WarehouseReportService', () => {
     expect(report.configured).toBe(true);
     expect(report.readError).toBeNull();
     expect(report.tables).toEqual([
-      { name: 'appeals', rows: 0, bytes: 0, newestRowAt: null },
+      {
+        name: 'appeals',
+        rows: 0,
+        bytes: 0,
+        newestRowAt: null,
+        newestRowUnknown: false,
+      },
       {
         name: 'transactions',
         rows: 42,
         bytes: 8192,
         newestRowAt: '2026-11-24 03:30:00',
+        newestRowUnknown: false,
       },
       // Not a table the export loads: no newest row is asked.
-      { name: 'schema_migrations', rows: 3, bytes: 100, newestRowAt: null },
+      {
+        name: 'schema_migrations',
+        rows: 3,
+        bytes: 100,
+        newestRowAt: null,
+        newestRowUnknown: false,
+      },
     ]);
     expect(report.exportFolder).toBe('writable');
     expect(report.recentExports).toEqual([
@@ -141,6 +157,42 @@ describe('WarehouseReportService', () => {
     expect(report.readError).toBe('unreachable');
     expect(report.job).toBeNull();
     expect(JSON.stringify(report)).not.toContain('secret');
+  });
+
+  it('leaves only that table unknown when its newest row cannot be read', async () => {
+    const report = await setup({
+      select: vi.fn(async (query: string) => {
+        if (query.includes('system.tables')) {
+          return [
+            { name: 'reports', rows: 5, bytes: 10 },
+            { name: 'transactions', rows: 7, bytes: 20 },
+          ];
+        }
+        if (query.includes('FROM transactions')) {
+          throw new Error('The operation was aborted due to timeout');
+        }
+        return [{ newest: '2026-11-24 01:00:00' }];
+      }),
+      queues: [],
+    }).report();
+
+    expect(report.readError).toBeNull();
+    expect(report.tables).toEqual([
+      {
+        name: 'reports',
+        rows: 5,
+        bytes: 10,
+        newestRowAt: '2026-11-24 01:00:00',
+        newestRowUnknown: false,
+      },
+      {
+        name: 'transactions',
+        rows: 7,
+        bytes: 20,
+        newestRowAt: null,
+        newestRowUnknown: true,
+      },
+    ]);
   });
 
   it('has no job line without the queue, and treats an unanswered query as no rows', async () => {
@@ -219,6 +271,25 @@ describe('ClickHouseLoadService.select', () => {
     expect(url.searchParams.get('database')).toBe('circlesfera_analytics');
     expect(init.body).toBe('SELECT name FROM system.tables FORMAT JSON');
     expect(init.headers.Authorization).toMatch(/^Basic /);
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('gives up on a warehouse that does not answer in time', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: { signal: AbortSignal }) =>
+          new Promise((_, reject) => {
+            init.signal.addEventListener('abort', () =>
+              reject(init.signal.reason),
+            );
+          }),
+      ),
+    );
+    const service = new ClickHouseLoadService(config('http://clickhouse:8123'));
+
+    await expect(service.select('SELECT 1', 20)).rejects.toThrow();
+    expect(SELECT_TIMEOUT_MS).toBe(5_000);
   });
 
   it('answers null without an address, and no rows for an answer without data', async () => {

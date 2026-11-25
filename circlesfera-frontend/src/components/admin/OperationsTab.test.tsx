@@ -1,4 +1,10 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   adminApi,
@@ -53,7 +59,22 @@ const resources = (
     evictedKeys: 0,
   },
   queues: [
-    { name: 'video-transcoding', waiting: 3, active: 1, delayed: 0, failed: 2 },
+    {
+      name: 'video-transcoding',
+      reachable: true,
+      waiting: 3,
+      active: 1,
+      delayed: 0,
+      failed: 2,
+    },
+    {
+      name: 'feed-fanout',
+      reachable: false,
+      waiting: null,
+      active: null,
+      delayed: null,
+      failed: null,
+    },
   ],
   notVisible: ['per_container_usage', 'docker_disk_usage', 'other_volumes'],
   ...over,
@@ -70,8 +91,22 @@ const warehouse = (
       rows: 1234,
       bytes: 2 * 1024 ** 2,
       newestRowAt: '2026-11-24 03:30:00',
+      newestRowUnknown: false,
     },
-    { name: 'appeals', rows: 0, bytes: 0, newestRowAt: null },
+    {
+      name: 'appeals',
+      rows: 0,
+      bytes: 0,
+      newestRowAt: null,
+      newestRowUnknown: false,
+    },
+    {
+      name: 'reports',
+      rows: 9,
+      bytes: 1024,
+      newestRowAt: null,
+      newestRowUnknown: true,
+    },
   ],
   readError: null,
   exportFolder: 'writable',
@@ -115,10 +150,15 @@ const orphans = (
     graceHours: 168,
     deletionsPerNight: 300,
     deletedContentKeptDays: 30,
+    maxShare: 0.5,
+    shareWindowDays: 90,
   },
   files: { count: 900, bytes: 3 * GIB },
-  used: 850,
-  sweepable: { count: 40, bytes: 120 * 1024 ** 2, nights: 1 },
+  foreign: 5,
+  used: 845,
+  orphans: { count: 40, bytes: 120 * 1024 ** 2, nights: 1 },
+  nextRun: { count: 40, bytes: 120 * 1024 ** 2 },
+  heldBack: null,
   keptDeleted: 6,
   unusedRecent: 4,
   breakdown: {
@@ -334,13 +374,56 @@ describe('OperationsTab', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows what the orphan sweep would delete, in counts and sizes', async () => {
+  /** Opens the page and asks for the orphan files report. */
+  const computeOrphans = async () => {
+    renderWithProviders(<OperationsTab />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Compute' }));
+    return screen.findByText('The next run would delete');
+  };
+
+  it('computes the orphan files only when asked, and says when it was computed', async () => {
     renderWithProviders(<OperationsTab />);
 
-    const sweep = await screen.findByText('The sweep would delete');
-    expect(sweep.parentElement?.textContent).toBe(
-      'The sweep would delete40120 MB · 1 nights at 300 a night',
+    await screen.findByText('transactions');
+    expect(api.getOperationsOrphanFiles).not.toHaveBeenCalled();
+    expect(screen.getByText(/computed only on request/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Compute' }));
+    expect(
+      await screen.findByText(
+        /^Computed at .*The server keeps it for 10 minutes\.$/,
+      ),
+    ).toBeInTheDocument();
+    expect(api.getOperationsOrphanFiles).toHaveBeenCalledTimes(1);
+
+    // The page's refresh leaves it alone; its own button asks again.
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() =>
+      expect(api.getOperationsWarehouse).toHaveBeenCalledTimes(2),
     );
+    expect(api.getOperationsOrphanFiles).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Compute again' }));
+    await waitFor(() =>
+      expect(api.getOperationsOrphanFiles).toHaveBeenCalledTimes(2),
+    );
+  });
+
+  it('shows what the next run of the sweep would delete, in counts and sizes', async () => {
+    const next = await computeOrphans();
+
+    expect(next.parentElement?.textContent).toBe(
+      'The next run would delete40120 MB',
+    );
+    expect(
+      within(metric('Orphan files', 'Unused for over 168 h')).getByText(
+        '120 MB · 1 nights at 300 a night',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(
+        metric('Orphan files', "Not the storage's own (never weighed)"),
+      ).getByText('5'),
+    ).toBeInTheDocument();
     expect(
       screen.getByText('90 days or more 30 · under 30 days 10'),
     ).toBeInTheDocument();
@@ -350,24 +433,84 @@ describe('OperationsTab', () => {
         'Record of owners: 870 rows, 800 with an owner, 70 without, 3 of a file no longer on the disk.',
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('says when the server keeps no files of its own, and lists no breakdown when nothing would go', async () => {
+  it('says when the sweep would stop itself and delete nothing', async () => {
+    api.getOperationsOrphanFiles.mockResolvedValue(
+      orphans({
+        nextRun: { count: 0, bytes: 0 },
+        orphans: { count: 400, bytes: GIB, nights: 0 },
+        heldBack: {
+          reason: 'share_exceeded',
+          recentOrphans: 400,
+          recentFiles: 600,
+        },
+      }),
+    );
+    const next = await computeOrphans();
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'The sweep would stop itself and delete nothing400 of the 600 files of the last 90 days are unused, more than 50%: the references were probably misread.',
+    );
+    expect(
+      within(next.parentElement as HTMLElement).getByText('0'),
+    ).not.toHaveClass('text-red-400');
+  });
+
+  it('says why when no row names any file', async () => {
+    api.getOperationsOrphanFiles.mockResolvedValue(
+      orphans({
+        nextRun: { count: 0, bytes: 0 },
+        heldBack: { reason: 'no_references', recentOrphans: 9, recentFiles: 9 },
+      }),
+    );
+    await computeOrphans();
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'No row names any file: the references were probably misread.',
+    );
+  });
+
+  it('says when the server keeps no files of its own, and lists no breakdown when nothing is unused', async () => {
     api.getOperationsOrphanFiles.mockResolvedValueOnce(
       orphans({ status: 'no_local_storage' }),
     );
-    const { unmount } = renderWithProviders(<OperationsTab />);
+    renderWithProviders(<OperationsTab />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Compute' }));
     expect(
       await screen.findByText('The server keeps no files on its own disk.'),
     ).toBeInTheDocument();
-    unmount();
+    cleanup();
 
     api.getOperationsOrphanFiles.mockResolvedValueOnce(
-      orphans({ sweepable: { count: 0, bytes: 0, nights: 0 } }),
+      orphans({
+        orphans: { count: 0, bytes: 0, nights: 0 },
+        nextRun: { count: 0, bytes: 0 },
+      }),
     );
-    renderWithProviders(<OperationsTab />);
-    await screen.findByText('The sweep would delete');
+    await computeOrphans();
     expect(screen.queryByText('By age')).not.toBeInTheDocument();
+  });
+
+  it('says when the orphan files could not be computed', async () => {
+    api.getOperationsOrphanFiles.mockRejectedValueOnce(new Error('503'));
+    renderWithProviders(<OperationsTab />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Compute' }));
+
+    expect(
+      await within(section('Orphan files')).findByRole('alert'),
+    ).toHaveTextContent('This report could not be read.');
+  });
+
+  it('shows a queue that did not answer, and a table whose newest row is unknown', async () => {
+    renderWithProviders(<OperationsTab />);
+
+    const queue = await screen.findByText('feed-fanout');
+    expect(queue.nextElementSibling?.textContent).toBe('Not answering');
+    expect(
+      screen.getByText('9 rows · 1 kB · newest row unknown'),
+    ).toBeInTheDocument();
   });
 
   it('keeps the other reports when one cannot be read, and reads them all again on request', async () => {
@@ -382,21 +525,26 @@ describe('OperationsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     await waitFor(() => {
       expect(api.getOperationsCsp).toHaveBeenCalledTimes(2);
-      expect(api.getOperationsOrphanFiles).toHaveBeenCalledTimes(2);
+      expect(api.getOperationsResources).toHaveBeenCalledTimes(2);
     });
     expect(
       await screen.findByText('https://cdn.example.com'),
     ).toBeInTheDocument();
   });
 
-  it('shows placeholders while the reports are on their way', () => {
+  it('shows placeholders while the reports are on their way', async () => {
     api.getOperationsResources.mockReturnValue(new Promise(() => {}));
     api.getOperationsWarehouse.mockReturnValue(new Promise(() => {}));
     api.getOperationsCsp.mockReturnValue(new Promise(() => {}));
     api.getOperationsOrphanFiles.mockReturnValue(new Promise(() => {}));
     renderWithProviders(<OperationsTab />);
 
-    expect(screen.getAllByTestId('ops-loading')).toHaveLength(4);
+    // The orphan files wait for their button.
+    expect(screen.getAllByTestId('ops-loading')).toHaveLength(3);
+    fireEvent.click(screen.getByRole('button', { name: 'Compute' }));
+    await waitFor(() =>
+      expect(screen.getAllByTestId('ops-loading')).toHaveLength(4),
+    );
     expect(
       screen.getByText(
         "The server's resources and the reports that were manual workflows. Read only.",
