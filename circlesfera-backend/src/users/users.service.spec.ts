@@ -323,6 +323,43 @@ describe('UsersService', () => {
       });
     });
 
+    it('carries the interests the person chose for their ads, and an empty set when none (PD-084)', async () => {
+      const chosen = {
+        topics: ['music', 'travel'],
+        createdAt: new Date('2026-12-01T10:00:00Z'),
+        updatedAt: new Date('2026-12-05T10:00:00Z'),
+      };
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({
+          id: 'u1',
+          deviceSignals: [],
+          signIns: [],
+          adInterests: chosen,
+        })
+        .mockResolvedValueOnce({ profiles: [] });
+
+      const data = await service.exportUserData('u1');
+
+      expect(
+        mockPrismaService.user.findUnique.mock.calls[0][0].select.adInterests,
+      ).toEqual({
+        select: { topics: true, createdAt: true, updatedAt: true },
+      });
+      expect(data.adInterests).toEqual(chosen);
+
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'u2', deviceSignals: [], signIns: [] })
+        .mockResolvedValueOnce({ profiles: [] });
+
+      const none = await service.exportUserData('u2');
+
+      expect(none.adInterests).toEqual({
+        topics: [],
+        createdAt: null,
+        updatedAt: null,
+      });
+    });
+
     it('returns formatted GDPR safe data export', async () => {
       const mockAccount = {
         id: 'u_exp',

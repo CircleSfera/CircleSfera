@@ -1,14 +1,17 @@
 import {
   AD_CONSENT_TEXT_VERSION,
+  ADS_CONSENT_FLAG,
   type AdConsentStatus,
 } from '@circlesfera/shared';
-import { screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { adInterestsApi } from '../../services/adInterests.service';
 import {
   ADS_CONSENT_QUERY_KEY,
   adsConsentApi,
 } from '../../services/adsConsent.service';
+import { useExperimentStore } from '../../stores/useExperimentStore';
 import { renderWithProviders } from '../../test/test-utils';
 import AdsSettings from './AdsSettings';
 
@@ -17,6 +20,13 @@ vi.mock('../../services/adsConsent.service', async (importOriginal) => ({
     typeof import('../../services/adsConsent.service')
   >()),
   adsConsentApi: { status: vi.fn(), answer: vi.fn() },
+}));
+
+vi.mock('../../services/adInterests.service', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('../../services/adInterests.service')
+  >()),
+  adInterestsApi: { status: vi.fn(), choose: vi.fn() },
 }));
 
 const status = (over: Partial<AdConsentStatus> = {}): AdConsentStatus => ({
@@ -194,5 +204,46 @@ describe('AdsSettings (Settings → Ads, PD-084)', () => {
     expect(
       screen.queryByTestId('ads-consent-personalised'),
     ).not.toBeInTheDocument();
+  });
+
+  describe('your interests', () => {
+    afterEach(() => {
+      act(() => useExperimentStore.getState().setFlags({}));
+    });
+
+    it('come after how ads are chosen, with the ads flag on', async () => {
+      act(() =>
+        useExperimentStore.getState().setFlags({ [ADS_CONSENT_FLAG]: true }),
+      );
+      vi.mocked(adsConsentApi.status).mockResolvedValue(status());
+      vi.mocked(adInterestsApi.status).mockResolvedValue({
+        interests: ['travel'],
+        maxInterests: 10,
+        allowed: true,
+        dateOfBirthMissing: false,
+        updatedAt: null,
+      });
+      renderWithProviders(<AdsSettings />, { lng: 'es' });
+
+      const interests = await screen.findByTestId('ad-interests');
+      const consent = await screen.findByTestId('ads-consent-general');
+      expect(interests).toHaveTextContent('Tus intereses');
+      expect(
+        consent.compareDocumentPosition(interests) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('are not there while the ads flag is off', async () => {
+      act(() =>
+        useExperimentStore.getState().setFlags({ [ADS_CONSENT_FLAG]: false }),
+      );
+      vi.mocked(adsConsentApi.status).mockResolvedValue(status());
+      renderWithProviders(<AdsSettings />);
+
+      await screen.findByTestId('ads-consent-general');
+      expect(screen.queryByTestId('ad-interests')).not.toBeInTheDocument();
+      expect(adInterestsApi.status).not.toHaveBeenCalled();
+    });
   });
 });

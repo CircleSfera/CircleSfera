@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
+  AD_INTEREST_TOPICS,
   POST_TOPIC_FALLBACK,
-  POST_TOPIC_NAMES,
   POST_TOPICS,
 } from '@circlesfera/shared';
 import { PostTopic } from '@prisma/client';
@@ -9,6 +11,25 @@ import {
   EXCLUDED_SUBJECT_DESCRIPTIONS,
   POST_TOPIC_DESCRIPTIONS,
 } from './post-topic-descriptions.js';
+
+// The names people read, in the app's translations (Settings → Ads → Your
+// interests): `other` is never chosen, so it has none.
+const TOPIC_NAMES = Object.fromEntries(
+  (['es', 'en'] as const).map((language) => [
+    language,
+    (
+      JSON.parse(
+        readFileSync(
+          join(
+            import.meta.dirname,
+            `../../../../circlesfera-frontend/src/locales/${language}.json`,
+          ),
+          'utf8',
+        ),
+      ) as { adInterests: { topics: Record<string, string> } }
+    ).adInterests.topics,
+  ]),
+) as Record<'es' | 'en', Record<string, string>>;
 
 // The subjects an ad may not be aimed at (DSA Art. 26, GDPR Art. 9), in
 // English and Spanish: none may name a topic or describe one.
@@ -98,13 +119,20 @@ describe('the closed list of post topics', () => {
     expect(Object.values(PostTopic).sort()).toEqual([...POST_TOPICS].sort());
   });
 
-  it('names every topic in Spanish and English', () => {
-    expect(Object.keys(POST_TOPIC_NAMES).sort()).toEqual(
-      [...POST_TOPICS].sort(),
+  it('offers every topic but `other` as an interest, in the order of the list', () => {
+    expect([...AD_INTEREST_TOPICS]).toEqual(
+      POST_TOPICS.filter((t) => t !== 'other'),
     );
-    for (const topic of POST_TOPICS) {
-      expect(POST_TOPIC_NAMES[topic].es.trim()).not.toBe('');
-      expect(POST_TOPIC_NAMES[topic].en.trim()).not.toBe('');
+  });
+
+  it('names every topic a person can choose in Spanish and English, and no other', () => {
+    for (const language of ['es', 'en'] as const) {
+      expect(Object.keys(TOPIC_NAMES[language]).sort()).toEqual(
+        [...AD_INTEREST_TOPICS].sort(),
+      );
+      for (const topic of AD_INTEREST_TOPICS) {
+        expect(TOPIC_NAMES[language][topic].trim()).not.toBe('');
+      }
     }
   });
 
@@ -118,7 +146,8 @@ describe('the closed list of post topics', () => {
     const texts = [
       ...POST_TOPICS,
       ...POST_TOPICS.map((t) => t.replace(/_/g, ' ')),
-      ...Object.values(POST_TOPIC_NAMES).flatMap((n) => [n.es, n.en]),
+      ...Object.values(TOPIC_NAMES.es),
+      ...Object.values(TOPIC_NAMES.en),
       ...Object.values(POST_TOPIC_DESCRIPTIONS),
     ];
     for (const text of texts) {

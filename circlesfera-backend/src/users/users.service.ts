@@ -204,6 +204,10 @@ export class UsersService {
               profile: { select: { username: true } },
             },
           },
+          // The topics the person chose for their ads (PD-084).
+          adInterests: {
+            select: { topics: true, createdAt: true, updatedAt: true },
+          },
         },
       }),
       this.prisma.user.findUnique({
@@ -384,6 +388,12 @@ export class UsersService {
         targetId: activity.targetId,
         at: activity.createdAt,
       })),
+      // None chosen is an empty list, never a missing key.
+      adInterests: account.adInterests ?? {
+        topics: [],
+        createdAt: null,
+        updatedAt: null,
+      },
       signupCountry: account.signupCountry,
       signupIp: account.signupIp,
       lastIp: account.lastIp,
