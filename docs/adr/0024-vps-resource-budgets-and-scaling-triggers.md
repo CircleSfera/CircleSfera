@@ -86,14 +86,18 @@ Closing these is future work, not silently rolled into this documentation-gate t
 work: `ObservabilityModule` registered none of the queues `OperationalMetricsService` injects
 (`@Optional() @InjectQueue`), so the service watched no queue and the queue and media thresholds
 never fired. The module now registers them (`OBSERVED_QUEUES`, with a test that resolves them),
-so that tier works from this update on, still only when a Slack webhook is configured. It sends
-an alert on every minute's evaluation while a threshold stays crossed (it has no once-a-day rule).
+so that tier works from this update on, still only when a Slack webhook is configured. It still
+evaluates every minute, but each queue, metric and threshold tier is sent to Slack at most once per
+UTC day (`DailyAlertGate`, `observability/daily-alert-gate.ts`: a Redis `SET NX` mark, with this
+instance's memory read first and used while Redis does not answer). A lasting backlog is told once
+a day; a higher tier, or another metric, crossed later the same day is told once too. The page and
+the snapshot still show every threshold crossed on every evaluation.
 
 The first known gap is closed for disk, RAM, database and Redis: `ResourceAlertsService`
 (`operations/resource-alerts.service.ts`) reads them every 10 minutes and sends `system.incident`
 to Slack when an ALERT threshold of the table above is crossed (disk 90% of `/`, heap or RSS 1 GB,
 database or Redis not answering or not answering within 5 seconds), at most once per threshold per
-UTC day. The thresholds are the health check's own (`health/resource-budgets.ts`). It is also
+UTC day, through the same `DailyAlertGate`. The thresholds are the health check's own (`health/resource-budgets.ts`). It is also
 conditional on the Slack webhook being set. The database size and Redis memory have no threshold
 in this ADR, so they are shown, not alerted; their thresholds remain a known gap. The values are
 shown to staff on the Backoffice's Operations page, together with what the backend container cannot

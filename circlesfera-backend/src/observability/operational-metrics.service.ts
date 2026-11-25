@@ -3,7 +3,10 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Queue } from 'bullmq';
+import type { Redis } from 'ioredis';
+import { REDIS_CLIENT } from '../common/redis/redis.module.js';
 import { SocketPresenceService } from '../socket/services/socket-presence.service.js';
+import { DailyAlertGate, utcDay } from './daily-alert-gate.js';
 
 export interface MetricThresholds {
   queueWaitingWarn: number;
@@ -102,7 +105,14 @@ export class OperationalMetricsService {
     @Optional()
     @InjectQueue('ai-processing')
     private readonly aiQueue?: Queue,
-  ) {}
+    @Optional()
+    @Inject(REDIS_CLIENT)
+    redis?: Redis,
+  ) {
+    this.alertGate = new DailyAlertGate(redis, 'ops:queue-alert');
+  }
+
+  private readonly alertGate: DailyAlertGate;
 
   /**
    * Configures custom operational alert thresholds.
@@ -334,19 +344,28 @@ export class OperationalMetricsService {
       alertsCount: alerts.length,
     });
 
-    // Escalate critical threshold violations to incident channel
+    // Escalate critical threshold violations to the incident channel, each
+    // queue, metric and threshold tier at most once per UTC day: a lasting
+    // backlog is told once a day, not every minute.
     if (hasCriticalAlert) {
-      const criticalMessages = alerts
-        .filter((a) => a.severity === 'ALERT')
-        .map((a) => a.message)
-        .join('; ');
+      const day = utcDay(new Date(snapshot.timestamp));
+      const fresh: ThresholdAlert[] = [];
+      for (const alert of alerts) {
+        if (alert.severity !== 'ALERT') continue;
+        const key = `${alert.component}:${alert.identifier}:${alert.metric}:${alert.severity}:${alert.threshold}`;
+        if (await this.alertGate.firstToday(key, day)) fresh.push(alert);
+      }
 
-      this.eventEmitter?.emit('system.incident', {
-        message: `[Operational Alert] System degraded: ${criticalMessages}`,
-        statusCode: 503,
-        path: 'operational://metrics',
-        timestamp: snapshot.timestamp,
-      });
+      if (fresh.length > 0) {
+        this.eventEmitter?.emit('system.incident', {
+          message: `[Operational Alert] System degraded: ${fresh
+            .map((a) => a.message)
+            .join('; ')}`,
+          statusCode: 503,
+          path: 'operational://metrics',
+          timestamp: snapshot.timestamp,
+        });
+      }
     }
 
     return snapshot;
